@@ -126,6 +126,37 @@ export function allRequirementsHold(
   );
 }
 
+/**
+ * A modeled access condition: ALL OF `requirements` must hold AND NONE OF
+ * `excludes` may hold. Both sides use the same condition primitive.
+ */
+export interface AccessConditionLike {
+  id: string;
+  name: string;
+  requirements: readonly HandCondition[];
+  /** NONE OF these exclusion predicates may hold. Missing means no exclusions. */
+  excludes?: readonly HandCondition[];
+}
+
+/**
+ * A hand satisfies the condition iff every requirement holds and the hand
+ * evaluates FALSE for every exclusion predicate.
+ */
+export function accessConditionHolds(
+  hand: readonly number[],
+  deck: readonly MappingCard[],
+  condition: AccessConditionLike,
+  groups: GroupMembership = new Map(),
+): boolean {
+  if (!allRequirementsHold(hand, deck, condition.requirements, groups)) {
+    return false;
+  }
+  const excludes = condition.excludes ?? [];
+  return !excludes.some((exclusion) =>
+    conditionHolds(hand, deck, exclusion, groups),
+  );
+}
+
 function handWeight(deck: readonly MappingCard[], hand: readonly number[]): bigint {
   let weight = 1n;
   for (let i = 0; i < deck.length; i += 1) {
@@ -252,15 +283,13 @@ export interface AccessProbabilitySummary {
 /**
  * Exact per-condition probabilities and the union (OR) over all conditions.
  * A hand matching multiple conditions contributes once to `anyAccess`.
+ * Each condition is evaluated through `accessConditionHolds` (ALL OF
+ * requirements AND NONE OF exclusions).
  */
 export function summarizeAccessConditions(
   deck: readonly MappingCard[],
   handSize: number,
-  conditions: readonly {
-    id: string;
-    name: string;
-    requirements: readonly HandCondition[];
-  }[],
+  conditions: readonly AccessConditionLike[],
   groups: GroupMembership = new Map(),
 ): AccessProbabilitySummary {
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
@@ -294,9 +323,7 @@ export function summarizeAccessConditions(
   forEachHandComposition(deck, handSize, (hand, weight) => {
     let any = false;
     for (let i = 0; i < conditions.length; i += 1) {
-      if (
-        allRequirementsHold(hand, deck, conditions[i]!.requirements, groups)
-      ) {
+      if (accessConditionHolds(hand, deck, conditions[i]!, groups)) {
         weights[i] = weights[i]! + weight;
         any = true;
       }

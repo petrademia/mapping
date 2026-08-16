@@ -1,5 +1,6 @@
 import {
   expandCopies,
+  SCHEMA_VERSION,
   sectionSize,
   type MappingDocument,
 } from "./document";
@@ -17,7 +18,7 @@ export interface YappingExport {
   card_roles: Record<string, Role[]>;
   metadata: {
     source: "mapping";
-    mapping_schema_version: 4;
+    mapping_schema_version: typeof SCHEMA_VERSION;
     opening_hand_size: number;
     deck_size: number;
     extra_deck_size: number;
@@ -86,7 +87,7 @@ export function exportYapping(doc: MappingDocument): YappingExport {
     card_roles: mergedRoles(doc),
     metadata: {
       source: "mapping",
-      mapping_schema_version: 4,
+      mapping_schema_version: SCHEMA_VERSION,
       opening_hand_size: doc.analysis.opening_hand_size,
       deck_size: sectionSize(doc.main),
       extra_deck_size: sectionSize(doc.extra),

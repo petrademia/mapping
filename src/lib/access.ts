@@ -21,6 +21,8 @@ export interface AccessCondition {
   name: string;
   /** ALL OF these requirements. Empty means incomplete (never holds). */
   requirements: HandCondition[];
+  /** NONE OF these exclusion predicates may hold. Empty means no exclusions. */
+  excludes: HandCondition[];
 }
 
 export function newAccessId(prefix: string): string {
@@ -84,10 +86,17 @@ export function normalizeAccessCondition(
 ): AccessCondition {
   const id = raw.id.trim();
   if (!id) throw new Error("access condition id is required");
+  const requirements = Array.isArray(raw.requirements)
+    ? raw.requirements.map(normalizeRequirement)
+    : [];
+  const excludes = Array.isArray(raw.excludes)
+    ? raw.excludes.map(normalizeRequirement)
+    : [];
   return {
     id,
     name: raw.name.trim() || "Untitled access",
-    requirements: raw.requirements.map(normalizeRequirement),
+    requirements,
+    excludes,
   };
 }
 
@@ -160,10 +169,14 @@ export function parseAccessCondition(raw: unknown): AccessCondition {
   const requirements = Array.isArray(record.requirements)
     ? record.requirements.map(parseRequirement)
     : [];
+  const excludes = Array.isArray(record.excludes)
+    ? record.excludes.map(parseRequirement)
+    : [];
   return normalizeAccessCondition({
     id: String(record.id ?? ""),
     name: String(record.name ?? ""),
     requirements,
+    excludes,
   });
 }
 

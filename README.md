@@ -119,23 +119,38 @@ YAPPING is expected to measure (not implemented here):
 | Layer | What it is |
 | --- | --- |
 | **Taxonomy** | Card-level human role hypothesis (`starter` / `extender` / `interaction`) |
-| **Access Condition** | Hand-level human access hypothesis (ALL OF card/role/group requirements) |
+| **Access Condition** | Hand-level human access hypothesis (ALL OF Requires AND NONE OF Excludes over card/role/group predicates) |
 | **YAPPING** | Strategic validation / game-tree outcomes |
 
 Example: classifying `Nervedo` as `starter` can be misleading if Nervedo alone does not establish the line. Prefer an Access Condition such as:
 
 ```text
 Nervedo Access
-  ALL OF
+  Requires
     Nervedo >= 1
     Valid Nervedo S/T >= 1   (user-defined group; exclude Nervedo itself)
+  Excludes
+    Citrinitas >= 1
 ```
+
+An Access Condition now has two parts:
+
+- **Requires** - ALL OF these predicates must hold in the hand.
+- **Excludes** - NONE OF these predicates may hold; a hand whose composition
+  satisfies any exclusion is rejected.
+
+Both sides use the same condition primitive (Card / Role / Group subjects with
+the same operators). `Excludes Citrinitas >= 1` reads as `NOT(Citrinitas >= 1)`
+(Power Patron / during the sequence we model, a Nervedo + valid S/T hand that
+also contains Citrinitas does not give the modeled line). Exclusion is a
+human-modeled hand-composition constraint, not a claim that Citrinitas is
+"bad" or that the hand cannot legally combo - YAPPING owns strategic judgment.
 
 MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Access Conditions are strategically independent routes (they may converge on the same choke point).
 
-**Modeled Engine Access** is the exact probability that at least one configured Access Condition is satisfied. Conditions that overlap are not double-counted. Do not label this combo success, playability, or win rate.
+**Modeled Engine Access** is the exact probability that at least one configured Access Condition is satisfied. Conditions that overlap are not double-counted, and each condition contributes only hands satisfying its Requires AND failing every one of its Excludes. Do not label this combo success, playability, or win rate.
 
-If a requirement needs “another” card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects.
+If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy.
 
 ### Deck Profile
 
@@ -240,7 +255,7 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 
 ## Non-goals
 
-Automatic role or opening-quality inference, card-effect parsing, route graphs, access targets, choke-point tagging, combo dependencies, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, nested Boolean query builders, drag-and-drop, strategic hand scoring, OCGCore, accounts, cloud sync, a replacement for existing deckbuilding sites, a single "Deck Quality %" score, arbitrary quality weights, automatic siding recommendations, and match-up-aware siding.
+Automatic role or opening-quality inference, automatic exclusion inference, card-effect parsing, route graphs, access targets, choke-point tagging, combo dependencies, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, nested Boolean query builders, drag-and-drop, strategic hand scoring, OCGCore, accounts, cloud sync, a replacement for existing deckbuilding sites, a single "Deck Quality %" score, arbitrary quality weights, automatic siding recommendations, and match-up-aware siding.
 
 ## Stack
 
@@ -248,11 +263,11 @@ Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hyperge
 
 ## Schema
 
-MAPPING owns a versioned document (`schema_version: 4`):
+MAPPING owns a versioned document (`schema_version: 5`):
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "name": "power_patron_ars_magna_v0",
   "main": [{
     "card_id": 62962630,
@@ -276,6 +291,9 @@ MAPPING owns a versioned document (`schema_version: 4`):
     "requirements": [
       { "kind": "card", "card_id": 123, "op": "gte", "count": 1 },
       { "kind": "group", "group_id": "valid-nervedo-st", "op": "gte", "count": 1 }
+    ],
+    "excludes": [
+      { "kind": "card", "card_id": 456, "op": "gte", "count": 1 }
     ]
   }],
   "analysis": {
@@ -288,11 +306,13 @@ MAPPING owns a versioned document (`schema_version: 4`):
 
 Unclassified opening quality in either context is serialized as `null`, never silently as `"neutral"`. An absent `going_first` / `going_second` key defaults to `null`.
 
-Schema v1/v2/v3 documents are accepted on load and migrated to v4:
+Schema v1-v4 documents are accepted on load and migrated to v5:
 legacy v1 flat `roles` migrate via the v0 mapping (with `brick` → `undesirable`),
-and a legacy v3 scalar `opening_quality` is copied to **both** contexts (the
-previous judgment is preserved until explicitly changed). Empty access
-groups/conditions are defaulted when absent.
+a legacy v3 scalar `opening_quality` is copied to **both** contexts (the
+previous judgment is preserved until explicitly changed), and a v4 Access
+Condition without an `excludes` key gains `excludes: []` (Requires-only
+behavior is preserved). Empty access groups/conditions are defaulted when
+absent.
 
 YAPPING currently loads `configs/archetypes/*.json` with:
 
