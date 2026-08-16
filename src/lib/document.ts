@@ -150,6 +150,27 @@ export function removeCard(
   );
 }
 
+export function addFromParsed(
+  doc: MappingDocument,
+  parsed: {
+    main: readonly { card_id: number; quantity: number }[];
+    extra: readonly { card_id: number; quantity: number }[];
+    side: readonly { card_id: number; quantity: number }[];
+  },
+): MappingDocument {
+  let next = doc;
+  for (const section of ["main", "extra", "side"] as const) {
+    for (const card of parsed[section]) {
+      next = addCard(next, section, {
+        card_id: card.card_id,
+        quantity: card.quantity,
+        taxonomy: { ...EMPTY_TAXONOMY },
+      });
+    }
+  }
+  return next;
+}
+
 export function setQuantity(
   doc: MappingDocument,
   section: DeckSection,

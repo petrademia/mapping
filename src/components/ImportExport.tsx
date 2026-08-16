@@ -1,8 +1,9 @@
 import { useState } from "react";
 import type { Catalog } from "../lib/catalog";
-import { displayName } from "../lib/catalog";
+import { displayName, searchCatalog } from "../lib/catalog";
 import {
   addCard,
+  addFromParsed,
   documentFromParsed,
   parseMappingJson,
   serializeMapping,
@@ -10,7 +11,7 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { serializeYapping } from "../lib/exportYapping";
-import { parseDeckText } from "../lib/ydk";
+import { parseDeckText, serializeYdk } from "../lib/ydk";
 
 function download(filename: string, text: string): void {
   const blob = new Blob([text], { type: "application/json" });
@@ -37,7 +38,8 @@ interface Props {
 export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
   const [paste, setPaste] = useState("");
   const [addSection, setAddSection] = useState<DeckSection>("main");
-  const [addId, setAddId] = useState("");
+  const [addQuery, setAddQuery] = useState("");
+  const [addCardId, setAddCardId] = useState<number | null>(null);
   const [addQty, setAddQty] = useState("1");
 
   function importText(text: string, filename: string): void {
@@ -55,6 +57,20 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
       const message = caught instanceof Error ? caught.message : "Import failed";
       onStatus(message);
     }
+  }
+
+  const hits =
+    addQuery.trim() === ""
+      ? []
+      : searchCatalog(catalog, addQuery, 10);
+
+  function resolveAddCardId(): number | null {
+    if (addCardId !== null) return addCardId;
+    const numeric = Number(addQuery);
+    if (/^\d+$/.test(addQuery) && Number.isInteger(numeric) && numeric > 0) {
+      return numeric;
+    }
+    return null;
   }
 
   return (
@@ -82,6 +98,20 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
         type="button"
         className="primary"
         onClick={() => {
+          download(`${slug(doc.name)}.ydk`, serializeYdk({
+            main: doc.main,
+            extra: doc.extra,
+            side: doc.side,
+          }));
+          onStatus("Saved YDK");
+        }}
+      >
+        Save YDK
+      </button>
+      <button
+        type="button"
+        className="primary"
+        onClick={() => {
           download(`${slug(doc.name)}.yapping.json`, serializeYapping(doc));
           onStatus("Exported YAPPING archetype JSON");
         }}
@@ -92,10 +122,10 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
         className="add-card"
         onSubmit={(event) => {
           event.preventDefault();
-          const cardId = Number(addId);
+          const cardId = resolveAddCardId();
           const quantity = Number(addQty);
-          if (!Number.isInteger(cardId) || cardId <= 0) {
-            onStatus("Card ID must be a positive integer");
+          if (cardId === null) {
+            onStatus("Pick a catalog hit or enter a numeric card ID");
             return;
           }
           if (!Number.isInteger(quantity) || quantity < 1) {
@@ -110,7 +140,8 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
               name: catalog.get(cardId),
             }),
           );
-          setAddId("");
+          setAddQuery("");
+          setAddCardId(null);
           onStatus(`Added ${displayName(cardId, catalog.get(cardId), catalog)}`);
         }}
       >
@@ -123,13 +154,42 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
           <option value="extra">Extra</option>
           <option value="side">Side</option>
         </select>
-        <input
-          value={addId}
-          onChange={(event) => setAddId(event.target.value)}
-          inputMode="numeric"
-          placeholder="Card ID"
-          aria-label="Card ID"
-        />
+        <span className="card-search">
+          <input
+            type="search"
+            value={addQuery}
+            onChange={(event) => {
+              const value = event.target.value;
+              setAddQuery(value);
+              if (/^\d+$/.test(value) && Number(value) > 0) {
+                setAddCardId(Number(value));
+              } else {
+                setAddCardId(null);
+              }
+            }}
+            placeholder="Search name or passcode"
+            aria-label="Card name or passcode"
+            autoComplete="off"
+          />
+          {hits.length > 0 && (
+            <ul className="catalog-hits">
+              {hits.map((hit) => (
+                <li key={hit.card_id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddQuery(hit.name);
+                      setAddCardId(hit.card_id);
+                    }}
+                  >
+                    <span className="catalog-hit-name">{hit.name}</span>
+                    <span className="catalog-hit-id">{hit.card_id}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </span>
         <input
           value={addQty}
           onChange={(event) => setAddQty(event.target.value)}
@@ -139,7 +199,7 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
         <button type="submit">Add card</button>
       </form>
       <details className="paste">
-        <summary>Paste IDs or YDK</summary>
+        <summary>Paste deck or add lines</summary>
         <textarea
           value={paste}
           onChange={(event) => setPaste(event.target.value)}
@@ -153,6 +213,24 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
           }}
         >
           Import paste
+        </button>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            try {
+              const parsed = parseDeckText(paste, addSection);
+              onChange(addFromParsed(doc, parsed));
+              setPaste("");
+              onStatus(`Added lines to deck (default section: ${addSection})`);
+            } catch (caught) {
+              onStatus(
+                caught instanceof Error ? caught.message : "Add lines failed",
+              );
+            }
+          }}
+        >
+          Add lines
         </button>
       </details>
     </div>

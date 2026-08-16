@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { powerPatronArsMagnaDemo } from "../data/powerPatronArsMagnaDemo";
 import {
+  addFromParsed,
   createDocument,
   parseMappingJson,
   sectionSize,
@@ -9,7 +10,7 @@ import {
   setCardTaxonomy,
   setQuantity,
 } from "./document";
-import { parseYdk } from "./ydk";
+import { parseDeckText, parseYdk, serializeYdk } from "./ydk";
 import { exportYapping, serializeYapping } from "./exportYapping";
 
 describe("import/export", () => {
@@ -129,6 +130,36 @@ describe("import/export", () => {
     expect(parsed.side).toEqual([{ card_id: 14558129, quantity: 1 }]);
   });
 
+  it("serializes YDK with expanded copies and empty section headers", () => {
+    const text = serializeYdk({
+      main: [
+        { card_id: 70488851, quantity: 3 },
+        { card_id: 26237713, quantity: 1 },
+      ],
+      extra: [{ card_id: 4063756, quantity: 2 }],
+      side: [],
+    });
+    expect(text).toBe(`#created by mapping
+#main
+70488851
+70488851
+70488851
+26237713
+#extra
+4063756
+4063756
+!side
+`);
+    expect(parseYdk(text)).toEqual({
+      main: [
+        { card_id: 70488851, quantity: 3 },
+        { card_id: 26237713, quantity: 1 },
+      ],
+      extra: [{ card_id: 4063756, quantity: 2 }],
+      side: [],
+    });
+  });
+
   it("coerces a blank name instead of dropping the document", () => {
     const parsed = parseMappingJson(
       JSON.stringify({
@@ -188,5 +219,40 @@ describe("import/export", () => {
     const doc = setQuantity(createDocument("Test"), "main", 7, 2);
     expect(() => setQuantity(doc, "main", 7, 0)).toThrow(/quantity/);
     expect(doc.main[0]?.quantity).toBe(2);
+  });
+
+  it("parseDeckText uses defaultSection when headers are absent", () => {
+    expect(parseDeckText("7 2\n8", "extra")).toEqual({
+      main: [],
+      extra: [
+        { card_id: 7, quantity: 2 },
+        { card_id: 8, quantity: 1 },
+      ],
+      side: [],
+    });
+  });
+
+  it("addFromParsed appends without wiping taxonomy", () => {
+    let doc = createDocument("t");
+    doc = setCardRoles(doc, "main", 1, ["starter"]);
+    doc = addFromParsed(doc, {
+      main: [{ card_id: 1, quantity: 2 }],
+      extra: [{ card_id: 9, quantity: 1 }],
+      side: [],
+    });
+    expect(doc.main).toEqual([
+      {
+        card_id: 1,
+        quantity: 3,
+        taxonomy: { roles: ["starter"], opening_quality: null },
+      },
+    ]);
+    expect(doc.extra).toEqual([
+      {
+        card_id: 9,
+        quantity: 1,
+        taxonomy: { roles: [], opening_quality: null },
+      },
+    ]);
   });
 });

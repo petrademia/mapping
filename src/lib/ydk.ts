@@ -34,9 +34,12 @@ function parseLine(line: string): { card_id: number; quantity: number } | null {
   return { card_id, quantity };
 }
 
-export function parseDeckText(text: string): ParsedDeck {
+export function parseDeckText(
+  text: string,
+  defaultSection: Section = "main",
+): ParsedDeck {
   const buckets: Record<Section, number[]> = { main: [], extra: [], side: [] };
-  let section: Section = "main";
+  let section: Section = defaultSection;
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (line === "") continue;
@@ -71,4 +74,28 @@ export function parseDeckText(text: string): ParsedDeck {
 
 export function parseYdk(text: string): ParsedDeck {
   return parseDeckText(text);
+}
+
+function expandSection(cards: readonly ParsedCopies[]): string[] {
+  const lines: string[] = [];
+  for (const card of cards) {
+    for (let i = 0; i < card.quantity; i += 1) {
+      lines.push(String(card.card_id));
+    }
+  }
+  return lines;
+}
+
+export function serializeYdk(deck: ParsedDeck): string {
+  const lines = [
+    "#created by mapping",
+    "#main",
+    ...expandSection(deck.main),
+    "#extra",
+    ...expandSection(deck.extra),
+    "!side",
+    ...expandSection(deck.side),
+    "",
+  ];
+  return lines.join("\n");
 }

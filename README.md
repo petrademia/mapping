@@ -146,11 +146,13 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 - select Analysis Context (going first/second × opening hand / first cards seen)
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities and Taxonomy v0 annotations
+- add cards by catalog name search or passcode; paste-add appends without replacing
 - define Access Conditions and Groups; inspect modeled engine access
 - inspect main/extra/side sizes, overlapping role density, and opening-quality counts
 - inspect per-role and undesirable composition probabilities
 - compare two opening-hand conditions with exact joint/conditional probabilities
 - save locally (browser `localStorage` plus file download)
+- Save YDK exports the current list for Omega / external tools
 - export a YAPPING-readable archetype JSON
 
 ## Non-goals
