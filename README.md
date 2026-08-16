@@ -168,7 +168,7 @@ MAPPING owns a versioned document (`schema_version: 3`):
 ```json
 {
   "schema_version": 3,
-  "name": "branded_albaz_v1",
+  "name": "power_patron_ars_magna_v0",
   "main": [{
     "card_id": 62962630,
     "quantity": 3,
@@ -229,4 +229,4 @@ npm run build
 npm run extract-catalog
 ```
 
-The first-run demo is the Branded list from YAPPING `configs/archetypes/branded.json`, with Taxonomy v0 annotations (legacy flat roles migrated).
+The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Access Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T. Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.

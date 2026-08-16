@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { brandedDemo } from "./data/brandedDemo";
+import { elfnoteArsMagnaDemo } from "./data/elfnoteArsMagnaDemo";
+import { powerPatronArsMagnaDemo } from "./data/powerPatronArsMagnaDemo";
 import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
 import { AccessConditionsPanel } from "./components/AccessConditionsPanel";
 import { DeckEditor } from "./components/DeckEditor";
@@ -20,7 +21,7 @@ import { loadStored, saveStored } from "./lib/persistence";
 
 export function App() {
   const [doc, setDoc] = useState<MappingDocument>(
-    () => loadStored() ?? brandedDemo,
+    () => loadStored() ?? powerPatronArsMagnaDemo,
   );
   const [catalog, setCatalog] = useState<Catalog>(new Map());
   const [status, setStatus] = useState(
@@ -72,11 +73,20 @@ export function App() {
             <button
               type="button"
               onClick={() => {
-                setDoc(brandedDemo);
-                setStatus("Loaded Branded demo from the YAPPING archetype.");
+                setDoc(powerPatronArsMagnaDemo);
+                setStatus("Loaded Power Patron Ars Magna demo.");
               }}
             >
-              Load Branded demo
+              Load Power Patron
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDoc(elfnoteArsMagnaDemo);
+                setStatus("Loaded Elfnote Ars Magna demo.");
+              }}
+            >
+              Load Elfnote
             </button>
           </div>
         </div>
