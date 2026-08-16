@@ -36,6 +36,17 @@ function profileFor(doc: MappingDocument, turnOrder: "going_first" | "going_seco
   });
 }
 
+function comparisonProfile(doc: MappingDocument, turnOrder: "going_first" | "going_second") {
+  // Keep sample size identical (opening hand) so GF/GS rows are comparable.
+  return computeDeckProfile({
+    deck: doc.main,
+    handSize: doc.analysis.opening_hand_size,
+    turnOrder,
+    conditions: doc.access_conditions,
+    groups: groupsToMembership(doc.access_groups),
+  });
+}
+
 export function DeckProfile({ doc, onHandSize }: Props) {
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
@@ -60,8 +71,8 @@ export function DeckProfile({ doc, onHandSize }: Props) {
     if (deck === 0) return null;
     try {
       return {
-        going_first: profileFor(doc, "going_first"),
-        going_second: profileFor(doc, "going_second"),
+        going_first: comparisonProfile(doc, "going_first"),
+        going_second: comparisonProfile(doc, "going_second"),
       };
     } catch {
       return null;
