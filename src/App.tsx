@@ -5,7 +5,6 @@ import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
 import { ModelsPanel } from "./components/ModelsPanel";
 import { HandTestPanel } from "./components/HandTestPanel";
 import { DeckEditor } from "./components/DeckEditor";
-import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
 import { ImportExport } from "./components/ImportExport";
 import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
@@ -20,12 +19,11 @@ import {
 } from "./lib/document";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "explore" | "hand-test";
+type Workspace = "profile" | "models" | "hand-test";
 
 const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "profile", label: "Profile" },
   { key: "models", label: "Models" },
-  { key: "explore", label: "Explore" },
   { key: "hand-test", label: "Hand Test" },
 ];
 
@@ -155,17 +153,6 @@ export function App() {
               doc={doc}
               catalog={catalog}
               onChange={setDoc}
-              onHandSize={(size) => {
-                if (!Number.isInteger(size) || size < 0) return;
-                setDoc(setOpeningHandSize(doc, size));
-              }}
-            />
-          ) : null}
-
-          {workspace === "explore" ? (
-            <HandProbabilityExplorer
-              doc={doc}
-              catalog={catalog}
               onHandSize={(size) => {
                 if (!Number.isInteger(size) || size < 0) return;
                 setDoc(setOpeningHandSize(doc, size));
