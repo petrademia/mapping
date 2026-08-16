@@ -34,9 +34,12 @@ function parseLine(line: string): { card_id: number; quantity: number } | null {
   return { card_id, quantity };
 }
 
-export function parseDeckText(text: string): ParsedDeck {
+export function parseDeckText(
+  text: string,
+  defaultSection: Section = "main",
+): ParsedDeck {
   const buckets: Record<Section, number[]> = { main: [], extra: [], side: [] };
-  let section: Section = "main";
+  let section: Section = defaultSection;
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (line === "") continue;
