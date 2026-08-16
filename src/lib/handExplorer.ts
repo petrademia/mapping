@@ -299,21 +299,72 @@ export interface HandConditionSummary {
   total: bigint;
 }
 
+/** A named set of Hand Conditions combined with `any` (OR) semantics. */
+export interface HandConditionSetLike {
+  id: string;
+  name: string;
+  condition_ids: readonly string[];
+}
+
 /**
- * Exact per-Hand-Condition probabilities plus, for the explicitly selected
- * access conditions (`accessConditionIds`), the union and the distribution of
- * how many of them a random hand satisfies. No probabilities are summed and no
- * independence is assumed: everything is accumulated from hand enumeration.
- * A hand matching multiple conditions contributes once per condition and once
- * per distinct satisfied access condition.
+ * Exact statistics for one Condition Set: the union probability (P(S)) and
+ * the multiplicity distribution of how many member conditions a random hand
+ * satisfies.
  */
-export function summarizeHandConditions(
+export interface ConditionSetSummary {
+  id: string;
+  name: string;
+  /** Member condition ids resolved against the analyzed conditions. */
+  conditionIds: string[];
+  /** P(any member condition): exact union over the set. */
+  union: number;
+  unionWeight: bigint;
+  distribution: AccessCountDistribution;
+}
+
+/** Exact pairwise intersection P(A ∩ B) for two conditions. */
+export interface PairOverlap {
+  intersection: number;
+  intersectionWeight: bigint;
+}
+
+/**
+ * Exact event analysis over the hand sample space: per-condition
+ * probabilities, per-set unions/distributions, and pairwise intersections.
+ * Everything is accumulated from a single hand-composition enumeration.
+ */
+export interface HandEventAnalysis {
+  total: bigint;
+  /** P(C) for every hand condition, in input order. */
+  conditions: HandConditionProbabilityRow[];
+  /** Per configured Condition Set. */
+  sets: ConditionSetSummary[];
+  /**
+   * P(A ∩ B) keyed by `pairKey(aId, bId)`. Only pairs of distinct conditions
+   * with a positive overlap appear.
+   */
+  overlaps: Map<string, PairOverlap>;
+}
+
+/** Canonical, order-independent key for an unordered condition pair. */
+export function pairKey(aId: string, bId: string): string {
+  return aId < bId ? `${aId}\u0000${bId}` : `${bId}\u0000${aId}`;
+}
+
+/**
+ * Exact analysis of Hand Conditions and Condition Sets in one enumeration
+ * pass. For each hand composition, every condition is evaluated once; the
+ * satisfied set drives per-condition weights, per-set union/multiplicity
+ * buckets, and pairwise intersection weights. No probabilities are summed and
+ * no independence is assumed.
+ */
+export function analyzeHandConditions(
   deck: readonly MappingCard[],
   handSize: number,
   conditions: readonly HandConditionLike[],
-  accessConditionIds: readonly string[] = [],
+  sets: readonly HandConditionSetLike[],
   groups: GroupMembership = new Map(),
-): HandConditionSummary {
+): HandEventAnalysis {
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
   if (
     !Number.isInteger(handSize) ||
@@ -323,79 +374,152 @@ export function summarizeHandConditions(
   ) {
     throw new ProbabilityError("copies and hand_size must fit inside deck_size");
   }
-
   const total = combinations(deckSize, handSize);
-  const accessMembership = new Set(accessConditionIds);
 
-  const emptySummary = (): HandConditionSummary => ({
-    conditions: conditions.map((condition) => ({
-      id: condition.id,
-      name: condition.name,
-      probability: 0,
-      weight: 0n,
-    })),
-    anyAccess: 0,
-    anyWeight: 0n,
-    accessDistribution: {
-      exact: [],
-      atLeast: [],
-      weights: [],
-    },
-    total,
-  });
+  const conditionById = new Map(conditions.map((c) => [c.id, c]));
 
-  if (total === 0n || conditions.length === 0) {
-    return emptySummary();
+  const setSpecs = sets.map((set) => ({
+    id: set.id,
+    name: set.name,
+    // Resolve members against known conditions; unknown ids are dropped.
+    conditionIds: [...new Set(set.condition_ids)].filter((id) =>
+      conditionById.has(id),
+    ),
+  }));
+
+  const conditionWeights = conditions.map(() => 0n);
+  const setMembers = setSpecs.map((spec) =>
+    spec.conditionIds
+      .map((id) => conditions.findIndex((c) => c.id === id))
+      .filter((index) => index >= 0),
+  );
+  const setUnionWeights = setSpecs.map(() => 0n);
+  const setBucketWeights = setMembers.map((members) =>
+    new Array<bigint>(members.length + 1).fill(0n),
+  );
+  const pairWeights = new Map<string, bigint>();
+
+  if (total > 0n) {
+    forEachHandComposition(deck, handSize, (hand, weight) => {
+      const holds = conditions.map((condition) =>
+        handConditionHolds(hand, deck, condition, groups),
+      );
+      for (let i = 0; i < conditions.length; i += 1) {
+        if (holds[i]) conditionWeights[i] = conditionWeights[i]! + weight;
+      }
+
+      const satisfied: number[] = [];
+      for (let i = 0; i < holds.length; i += 1) {
+        if (holds[i]) satisfied.push(i);
+      }
+      if (satisfied.length >= 2) {
+        for (let a = 0; a < satisfied.length; a += 1) {
+          for (let b = a + 1; b < satisfied.length; b += 1) {
+            const key = pairKey(
+              conditions[satisfied[a]!]!.id,
+              conditions[satisfied[b]!]!.id,
+            );
+            pairWeights.set(key, (pairWeights.get(key) ?? 0n) + weight);
+          }
+        }
+      }
+
+      for (let s = 0; s < setSpecs.length; s += 1) {
+        let count = 0;
+        for (const index of setMembers[s]!) {
+          if (holds[index]) count += 1;
+        }
+        if (count > 0) setUnionWeights[s] = setUnionWeights[s]! + weight;
+        setBucketWeights[s]![count] = setBucketWeights[s]![count]! + weight;
+      }
+    });
   }
 
-  const weights = conditions.map(() => 0n);
-  let anyWeight = 0n;
-  const accessMembers = conditions.filter((condition) =>
-    accessMembership.has(condition.id),
-  );
-  const n = accessMembers.length;
-  const bucketWeights = new Array<bigint>(n + 1).fill(0n);
-
-  forEachHandComposition(deck, handSize, (hand, weight) => {
-    let satisfiedCount = 0;
-    for (let i = 0; i < conditions.length; i += 1) {
-      if (handConditionHolds(hand, deck, conditions[i]!, groups)) {
-        weights[i] = weights[i]! + weight;
-        if (accessMembership.has(conditions[i]!.id)) satisfiedCount += 1;
-      }
-    }
-    if (satisfiedCount > 0) {
-      anyWeight += weight;
-    }
-    bucketWeights[satisfiedCount] = bucketWeights[satisfiedCount]! + weight;
-  });
-
-  const exact = Array.from(
-    { length: n + 1 },
-    (_, count) => ratioToNumber(bucketWeights[count]!, total),
-  );
-  const atLeast = Array.from({ length: n }, (_, index) => {
-    let sum = 0n;
-    for (let count = index + 1; count <= n; count += 1) {
-      sum += bucketWeights[count]!;
-    }
-    return ratioToNumber(sum, total);
-  });
+  const overlaps = new Map<string, PairOverlap>();
+  for (const [key, weight] of pairWeights) {
+    overlaps.set(key, {
+      intersection: ratioToNumber(weight, total),
+      intersectionWeight: weight,
+    });
+  }
 
   return {
+    total,
     conditions: conditions.map((condition, index) => ({
       id: condition.id,
       name: condition.name,
-      probability: ratioToNumber(weights[index]!, total),
-      weight: weights[index]!,
+      probability: ratioToNumber(conditionWeights[index]!, total),
+      weight: conditionWeights[index]!,
     })),
-    anyAccess: ratioToNumber(anyWeight, total),
-    anyWeight,
-    accessDistribution: {
-      exact,
-      atLeast,
-      weights: bucketWeights,
-    },
-    total,
+    sets: setSpecs.map((spec, index) => {
+      const weights = setBucketWeights[index]!;
+      const n = spec.conditionIds.length;
+      const exact = Array.from(
+        { length: n + 1 },
+        (_, count) => ratioToNumber(weights[count]!, total),
+      );
+      const atLeast = Array.from({ length: n }, (_, i) => {
+        let sum = 0n;
+        for (let count = i + 1; count <= n; count += 1) sum += weights[count]!;
+        return ratioToNumber(sum, total);
+      });
+      return {
+        id: spec.id,
+        name: spec.name,
+        conditionIds: spec.conditionIds,
+        union: ratioToNumber(setUnionWeights[index]!, total),
+        unionWeight: setUnionWeights[index]!,
+        distribution: { exact, atLeast, weights },
+      };
+    }),
+    overlaps,
+  };
+}
+
+/**
+ * P(A | B) = P(A ∩ B) / P(B), derived exactly from the analysis weights.
+ * Returns null when the conditioning event B has zero probability.
+ */
+export function pAGivenB(
+  analysis: HandEventAnalysis,
+  aId: string,
+  bId: string,
+): number | null {
+  const b = analysis.conditions.find((row) => row.id === bId);
+  if (!b || b.weight === 0n) return null;
+  const overlap = analysis.overlaps.get(pairKey(aId, bId));
+  if (!overlap) return 0;
+  return ratioToNumber(overlap.intersectionWeight, b.weight);
+}
+
+/**
+ * Exact per-Hand-Condition probabilities plus, for the explicitly selected
+ * access conditions (`accessConditionIds`), the union and the distribution of
+ * how many of them a random hand satisfies. Convenience wrapper over
+ * `analyzeHandConditions` for a single condition set.
+ */
+export function summarizeHandConditions(
+  deck: readonly MappingCard[],
+  handSize: number,
+  conditions: readonly HandConditionLike[],
+  accessConditionIds: readonly string[] = [],
+  groups: GroupMembership = new Map(),
+): HandConditionSummary {
+  const analysis = analyzeHandConditions(
+    deck,
+    handSize,
+    conditions,
+    [{ id: "engine-access", name: "Engine Access", condition_ids: accessConditionIds }],
+    groups,
+  );
+  const set = analysis.sets[0];
+  return {
+    conditions: analysis.conditions,
+    anyAccess: set ? set.union : 0,
+    anyWeight: set ? set.unionWeight : 0n,
+    accessDistribution: set
+      ? set.distribution
+      : { exact: [], atLeast: [], weights: [] },
+    total: analysis.total,
   };
 }

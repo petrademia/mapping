@@ -480,6 +480,24 @@ export function removeHandConditionSet(
   };
 }
 
+/**
+ * Add or remove a Hand Condition from a Condition Set. No-op when the set
+ * does not exist. Members are kept deduplicated.
+ */
+export function setConditionSetMember(
+  doc: MappingDocument,
+  setId: string,
+  conditionId: string,
+  member: boolean,
+): MappingDocument {
+  const set = doc.hand_condition_sets.find((item) => item.id === setId);
+  if (!set) return doc;
+  const condition_ids = member
+    ? [...new Set([...set.condition_ids, conditionId])]
+    : set.condition_ids.filter((id) => id !== conditionId);
+  return upsertHandConditionSet(doc, { ...set, condition_ids });
+}
+
 /** The HandConditionSet that defines Modeled Engine Access, if present. */
 export function engineAccessSet(doc: MappingDocument): HandConditionSet | null {
   if (!doc.engine_access_set_id) return null;
