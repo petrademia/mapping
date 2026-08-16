@@ -116,8 +116,52 @@ h1 {
 .toolbar-actions { margin: 1rem 0 0.5rem; }
 .file-button { position: relative; overflow: hidden; }
 .file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.add-card { position: relative; }
 .add-card input { width: 8rem; }
 .add-card input:last-of-type { width: 3.5rem; }
+.add-card .card-search { position: relative; display: inline-flex; }
+.add-card .card-search input {
+  width: 16rem;
+  background: #171b18;
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.55rem;
+}
+.catalog-hits {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  max-height: 12rem;
+  overflow: auto;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.35);
+}
+.catalog-hits li { border-bottom: 1px solid #252c26; }
+.catalog-hits li:last-child { border-bottom: 0; }
+.catalog-hits button {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  color: var(--mist);
+  background: transparent;
+}
+.catalog-hits button:hover { background: #1f2420; }
+.catalog-hit-id {
+  flex-shrink: 0;
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
 
 .paste textarea {
   display: block;
