@@ -52,6 +52,31 @@ export interface MappingDocument {
   analysis: MappingAnalysis;
 }
 
+/**
+ * A concrete deck list under analysis (siding changes which list is used).
+ * Annotations (taxonomy) stay on individual cards referenced by `card_id`;
+ * a configuration only groups which cards/copies belong to the Main Deck.
+ * Post-side configurations are a future task; v0 exposes only the pre-side
+ * configuration derived from the document.
+ */
+export interface DeckConfiguration {
+  id: string;
+  name: string;
+  main: MappingCard[];
+  extra: MappingCard[];
+  side: MappingCard[];
+}
+
+export function preSideConfiguration(doc: MappingDocument): DeckConfiguration {
+  return {
+    id: "pre-side",
+    name: "Pre-Side",
+    main: doc.main,
+    extra: doc.extra,
+    side: doc.side,
+  };
+}
+
 function defaultAnalysis(
   overrides: Partial<MappingAnalysis> = {},
 ): MappingAnalysis {
