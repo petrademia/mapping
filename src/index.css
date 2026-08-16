@@ -1,0 +1,249 @@
+:root {
+  color-scheme: dark;
+  --ground: #1f2420;
+  --panel: #2a312c;
+  --paper: #cfd5c8;
+  --ink: #1a2218;
+  --mist: #dfe6d8;
+  --muted: #8b9688;
+  --brass: #b08d57;
+  --line: #4a554c;
+  --danger: #c45c4a;
+  --starter: #d4a017;
+  --extender: #3d9b8f;
+  --interaction: #c45c4a;
+  --recovery: #6b8fc4;
+  --brick: #8a7a6b;
+  --engine_requirement: #9b6bb0;
+  --swatch: #7a8f7a;
+  font-family: Figtree, ui-sans-serif, system-ui, sans-serif;
+  background: var(--ground);
+  color: var(--mist);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; margin: 0; }
+body {
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #2d382f 0%, transparent 50%),
+    var(--ground);
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button, .file-button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--mist);
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+button.primary {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #1a160f;
+  font-weight: 600;
+}
+
+button.ghost { border: 0; color: var(--muted); padding: 0.2rem 0.4rem; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+.masthead {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.25rem;
+}
+
+.eyebrow {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin: 0 0 0.4rem;
+}
+
+h1 {
+  font-family: Fraunces, ui-serif, serif;
+  font-size: 2.6rem;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.tag, .note, .empty, .status { color: var(--muted); }
+.tag { max-width: 36rem; margin: 0.5rem 0 0; }
+
+.deck-meta label, .panel header label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.deck-meta input, .panel input, .add-card input, .add-card select, textarea, .role-draft {
+  background: #171b18;
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.55rem;
+}
+
+.counts {
+  display: flex;
+  gap: 1rem;
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  margin: 0.75rem 0;
+}
+
+.row-actions, .toolbar-actions, .add-card { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.toolbar-actions { margin: 1rem 0 0.5rem; }
+.file-button { position: relative; overflow: hidden; }
+.file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.add-card input { width: 8rem; }
+.add-card input:last-of-type { width: 3.5rem; }
+
+.paste textarea {
+  display: block;
+  width: min(36rem, 100%);
+  min-height: 7rem;
+  margin: 0.6rem 0;
+}
+
+.status { min-height: 1.4rem; margin: 0 0 1rem; }
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(18rem, 0.9fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.deck-section {
+  background: var(--paper);
+  color: var(--ink);
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem 0.4rem;
+}
+
+.deck-section header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid #b7bfb0;
+  margin-bottom: 0.6rem;
+}
+
+.deck-section h2, .panel h2 {
+  font-family: Fraunces, ui-serif, serif;
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.deck-section p, .deck-section .empty { margin: 0; color: #5c6658; }
+.deck-section table { width: 100%; border-collapse: collapse; }
+.deck-section th {
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5c6658;
+  padding: 0.35rem 0.4rem;
+}
+.deck-section td { padding: 0.55rem 0.4rem; vertical-align: top; border-top: 1px solid #d5dccf; }
+.card-name { display: flex; flex-direction: column; gap: 0.15rem; min-width: 12rem; }
+.card-id { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.75rem; color: #5c6658; }
+
+.qty { display: flex; align-items: center; gap: 0.2rem; }
+.qty input { width: 3rem; text-align: center; background: #e7ebe1; color: var(--ink); border-color: #b7bfb0; }
+.qty button { color: var(--ink); border-color: #b7bfb0; padding: 0.15rem 0.45rem; }
+
+.roles { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.chip {
+  border: 1px dashed color-mix(in srgb, var(--swatch) 70%, #1a2218);
+  color: #3a4338;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.78rem;
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+}
+.chip.on {
+  background: color-mix(in srgb, var(--swatch) 28%, #cfd5c8);
+  border-style: solid;
+  color: var(--ink);
+}
+.chip span { margin-left: 0.3rem; }
+.roles select {
+  background: #e7ebe1;
+  color: var(--ink);
+  border: 1px solid #b7bfb0;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.78rem;
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+}
+.role-draft { width: 8.5rem; background: #e7ebe1; color: var(--ink); border-color: #b7bfb0; }
+
+.panel {
+  background: var(--panel);
+  padding: 0.9rem 1rem 1rem;
+  margin-bottom: 1rem;
+}
+.panel header { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 0.6rem; }
+.panel header input { width: 4.5rem; }
+
+.census { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; list-style: none; padding: 0; margin: 0 0 0.8rem; }
+.census li { display: flex; flex-direction: column; border: 1px solid var(--line); padding: 0.45rem 0.55rem; }
+.census span { color: var(--muted); font-size: 0.75rem; }
+.census strong { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 1.15rem; }
+
+.density { display: grid; gap: 0.45rem; }
+.density-row { display: grid; grid-template-columns: 0.7rem 7.5rem 1fr 4.5rem; gap: 0.45rem; align-items: center; }
+.swatch { width: 0.7rem; height: 0.7rem; background: var(--swatch); }
+.role-label { font-size: 0.82rem; }
+.track { height: 0.55rem; background: #171b18; overflow: hidden; }
+.fill { height: 100%; background: var(--swatch); }
+.frac { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.78rem; text-align: right; }
+
+.probs { display: grid; gap: 0.8rem; }
+.probs article { border-top: 1px solid var(--line); padding-top: 0.7rem; }
+.probs h3 { margin: 0; font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.85rem; color: var(--swatch); }
+.hero { display: flex; justify-content: space-between; align-items: baseline; margin: 0.35rem 0 0.5rem; }
+.hero strong { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 1.2rem; color: var(--mist); }
+.probs dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem 0.8rem; margin: 0; }
+.probs dt { color: var(--muted); font-size: 0.78rem; }
+.probs dd { margin: 0; font-family: "Red Hat Mono", ui-monospace, monospace; }
+.error { color: var(--danger); }
+
+[data-role="starter"] { --swatch: var(--starter); }
+[data-role="extender"] { --swatch: var(--extender); }
+[data-role="interaction"] { --swatch: var(--interaction); }
+[data-role="recovery"] { --swatch: var(--recovery); }
+[data-role="brick"] { --swatch: var(--brick); }
+[data-role="engine_requirement"] { --swatch: var(--engine_requirement); }
+
+.deck-section .ghost { color: #6a7466; }
+
+@media (max-width: 960px) {
+  .masthead, .workspace { grid-template-columns: 1fr; }
+  .density-row { grid-template-columns: 0.7rem 1fr 3.8rem; }
+  .density-row .track { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
