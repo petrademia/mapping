@@ -4,6 +4,9 @@ import {
   normalizeGroup,
   normalizeHandCondition,
   normalizeHandConditionSet,
+  parseGroup,
+  parseHandCondition,
+  parseHandConditionSet,
   type Group,
   type HandCondition,
 } from "./handCondition";
@@ -846,5 +849,76 @@ describe("hand conditions: empty names stay editable", () => {
     doc = upsertGroup(doc, { id: "g1", name: "Group", card_ids: [] });
     doc = upsertGroup(doc, { id: "g1", name: "", card_ids: [] });
     expect(doc.groups[0]!.name).toBe("");
+  });
+});
+
+describe("hand conditions: optional notes", () => {
+  it("preserves trimmed notes and omits blank notes", () => {
+    expect(
+      normalizeGroup({
+        id: "g",
+        name: "Valid S/T",
+        notes: "  searchable targets  ",
+        card_ids: [],
+      }).notes,
+    ).toBe("searchable targets");
+    expect(
+      normalizeGroup({
+        id: "g",
+        name: "Valid S/T",
+        notes: "   ",
+        card_ids: [],
+      }),
+    ).not.toHaveProperty("notes");
+    expect(
+      normalizeHandCondition({
+        id: "c",
+        name: "Access",
+        notes: "Nervedo plus a valid S/T",
+        requirements: [],
+        excludes: [],
+      }).notes,
+    ).toBe("Nervedo plus a valid S/T");
+    expect(
+      normalizeHandConditionSet({
+        id: "s",
+        name: "Engine",
+        notes: " union of access lines ",
+        condition_ids: [],
+        aggregation: "any",
+      }).notes,
+    ).toBe("union of access lines");
+  });
+
+  it("round-trips notes through parse helpers", () => {
+    expect(
+      parseGroup({
+        id: "g",
+        name: "G",
+        notes: "group intent",
+        card_ids: [1],
+      }).notes,
+    ).toBe("group intent");
+    expect(
+      parseHandCondition({
+        id: "c",
+        name: "C",
+        notes: "condition intent",
+        requirements: [],
+        excludes: [],
+      }).notes,
+    ).toBe("condition intent");
+    expect(
+      parseHandConditionSet({
+        id: "s",
+        name: "S",
+        notes: "outcome intent",
+        condition_ids: [],
+        aggregation: "any",
+      }).notes,
+    ).toBe("outcome intent");
+    expect(
+      parseGroup({ id: "g", name: "G", card_ids: [] }),
+    ).not.toHaveProperty("notes");
   });
 });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   groupsToMembership,
   newId,
@@ -34,6 +34,7 @@ import {
   type CountOperator,
   type HandEventAnalysis,
 } from "../lib/handExplorer";
+import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { ProbabilityError } from "../lib/probability";
 import { sortCheckedFirst } from "../lib/sortCheckedFirst";
 import { openingQualityCoverage, ROLES, type Role } from "../lib/taxonomy";
@@ -52,6 +53,63 @@ const ROLE_LABELS: Record<Role, string> = {
   extender: "Extender",
   interaction: "Interaction",
 };
+
+function EntityNotes({
+  value,
+  label,
+  onCommit,
+}: {
+  value: string | undefined;
+  label: string;
+  onCommit: (notes: string) => void;
+}) {
+  const committed = value ?? "";
+  const [draft, setDraft] = useState(committed);
+  useEffect(() => {
+    setDraft(committed);
+  }, [committed]);
+  return (
+    <textarea
+      className="entity-notes"
+      value={draft}
+      placeholder="Optional notes…"
+      aria-label={label}
+      rows={2}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== committed) onCommit(draft);
+      }}
+    />
+  );
+}
+
+function DeferredNameInput({
+  value,
+  placeholder,
+  label,
+  onCommit,
+}: {
+  value: string;
+  placeholder: string;
+  label: string;
+  onCommit: (name: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+  return (
+    <input
+      value={draft}
+      placeholder={placeholder}
+      aria-label={label}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) onCommit(draft);
+      }}
+    />
+  );
+}
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
@@ -103,6 +161,15 @@ export function ModelsPanel({
   const context = analysisContextOf(doc);
   const sample = observedCards(context, opening);
 
+  const analysisKey = modelsAnalysisKey({
+    main: doc.main,
+    groups: doc.groups,
+    hand_conditions: doc.hand_conditions,
+    hand_condition_sets: doc.hand_condition_sets,
+    sample,
+    turn_order: context.turn_order,
+  });
+
   const summary = useMemo(() => {
     if (deck === 0) return null;
     try {
@@ -122,7 +189,9 @@ export function ModelsPanel({
             : "Cannot compute hand condition probabilities.",
       };
     }
-  }, [doc.main, doc.hand_conditions, doc.groups, doc.hand_condition_sets, context.turn_order, deck, sample]);
+    // analysisKey ignores name/notes; structural edits still recompute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional fingerprint
+  }, [analysisKey, deck]);
 
   function addCondition(): void {
     const firstCard = doc.main[0]?.card_id;
@@ -368,16 +437,21 @@ function GroupEditor({
   return (
     <div className="access-block">
       <div className="access-block-head">
-        <input
+        <DeferredNameInput
           value={group.name}
           placeholder="Untitled group"
-          aria-label="Group name"
-          onChange={(event) => onChange({ ...group, name: event.target.value })}
+          label="Group name"
+          onCommit={(name) => onChange({ ...group, name })}
         />
         <button type="button" className="ghost" onClick={onRemove}>
           Delete group
         </button>
       </div>
+      <EntityNotes
+        value={group.notes}
+        label={`Notes for ${group.name || "group"}`}
+        onCommit={(notes) => onChange({ ...group, notes })}
+      />
       <input
         type="search"
         value={filter}
@@ -479,18 +553,21 @@ function ConditionEditor({
   return (
     <div className="access-block">
       <div className="access-block-head">
-        <input
+        <DeferredNameInput
           value={condition.name}
           placeholder="Untitled hand condition"
-          aria-label="Hand condition name"
-          onChange={(event) =>
-            onChange({ ...condition, name: event.target.value })
-          }
+          label="Hand condition name"
+          onCommit={(name) => onChange({ ...condition, name })}
         />
         <button type="button" className="ghost" onClick={onRemove}>
           Delete
         </button>
       </div>
+      <EntityNotes
+        value={condition.notes}
+        label={`Notes for ${condition.name || "hand condition"}`}
+        onCommit={(notes) => onChange({ ...condition, notes })}
+      />
       <p className="access-allof">Requires</p>
       {condition.requirements.length === 0 ? (
         <p className="empty">Add at least one requirement.</p>
@@ -751,16 +828,21 @@ function ModeledOutcomeEditor({
   return (
     <div className="access-block">
       <div className="access-block-head">
-        <input
+        <DeferredNameInput
           value={set.name}
           placeholder="Untitled modeled outcome"
-          aria-label="Modeled outcome name"
-          onChange={(event) => onSetChange({ ...set, name: event.target.value })}
+          label="Modeled outcome name"
+          onCommit={(name) => onSetChange({ ...set, name })}
         />
         <button type="button" className="ghost" onClick={onRemove}>
           Delete outcome
         </button>
       </div>
+      <EntityNotes
+        value={set.notes}
+        label={`Notes for ${set.name || "modeled outcome"}`}
+        onCommit={(notes) => onSetChange({ ...set, notes })}
+      />
       <p className="access-allof">ANY OF</p>
       {doc.hand_conditions.length === 0 ? (
         <p className="empty">Add a Hand Condition first.</p>

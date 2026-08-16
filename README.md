@@ -350,7 +350,7 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; paste-add appends without replacing
-- define Hand Conditions (Requires / Excludes), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace; inspect per-outcome union, pairwise overlap, and multiplicity distribution
+- define Hand Conditions (Requires / Excludes), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-outcome union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Modeled Outcomes, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
 - inspect the Deck Profile: modeled outcomes (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
@@ -389,11 +389,17 @@ MAPPING owns a versioned document (`schema_version: 6`):
   "extra": [],
   "side": [],
   "groups": [
-    { "id": "valid-nervedo-st", "name": "Valid Nervedo S/T", "card_ids": [111, 222] }
+    {
+      "id": "valid-nervedo-st",
+      "name": "Valid Nervedo S/T",
+      "notes": "Searchable S/T targets; exclude Nervedo itself",
+      "card_ids": [111, 222]
+    }
   ],
   "hand_conditions": [{
     "id": "nervedo-access",
     "name": "Nervedo Access",
+    "notes": "Nervedo plus a valid S/T, without brick Nervedo alone",
     "requirements": [
       { "kind": "card", "card_id": 123, "op": "gte", "count": 1 },
       { "kind": "group", "group_id": "valid-nervedo-st", "op": "gte", "count": 1 }
@@ -405,6 +411,7 @@ MAPPING owns a versioned document (`schema_version: 6`):
   "hand_condition_sets": [{
     "id": "modeled-engine-access",
     "name": "Modeled Engine Access",
+    "notes": "Union of engine-access lines for Profile",
     "condition_ids": ["nervedo-access"],
     "aggregation": "any"
   }],
