@@ -127,7 +127,7 @@ export function DeckProfile({ doc, onHandSize }: Props) {
           <article>
             <h3>Modeled Engine Access</h3>
             <p className="hero">
-              At least one access condition{" "}
+              At least one engine-access condition{" "}
               <strong>{formatChance(profile.anyAccess)}</strong>
             </p>
             <p className="explorer-notation">
