@@ -239,6 +239,47 @@ describe("import/export", () => {
     ]);
   });
 
+  it("migrates schema v3 scalar opening_quality to both contexts", () => {
+    const parsed = parseMappingJson(
+      JSON.stringify({
+        schema_version: 3,
+        name: "legacy-quality",
+        main: [
+          {
+            card_id: 1,
+            quantity: 2,
+            taxonomy: { roles: ["starter"], opening_quality: "undesirable" },
+          },
+          {
+            card_id: 2,
+            quantity: 1,
+            taxonomy: { roles: [], opening_quality: null },
+          },
+        ],
+        extra: [],
+        side: [],
+        analysis: { opening_hand_size: 5 },
+      }),
+    );
+    expect(parsed.schema_version).toBe(4);
+    expect(parsed.main[0]?.taxonomy.opening_quality).toEqual({
+      going_first: "undesirable",
+      going_second: "undesirable",
+    });
+    expect(parsed.main[1]?.taxonomy.opening_quality).toEqual({
+      going_first: null,
+      going_second: null,
+    });
+  });
+
+  it("rejects unsupported schema versions", () => {
+    expect(() =>
+      parseMappingJson(
+        JSON.stringify({ schema_version: 99, name: "x", main: [], extra: [], side: [] }),
+      ),
+    ).toThrow(/schema_version/);
+  });
+
   it("does not treat quantity 0 as card removal", () => {
     const doc = setQuantity(createDocument("Test"), "main", 7, 2);
     expect(() => setQuantity(doc, "main", 7, 0)).toThrow(/quantity/);
