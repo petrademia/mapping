@@ -439,6 +439,80 @@ h1 {
   margin-top: 0.7rem;
 }
 
+.hand-cards {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.hand-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  border-bottom: 1px solid #222822;
+  padding-bottom: 0.25rem;
+}
+.hand-picker {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  max-height: 12rem;
+  overflow: auto;
+  display: grid;
+  gap: 0.25rem;
+}
+.hand-picker-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.hand-stepper {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.hand-stepper button {
+  min-width: 1.6rem;
+}
+.hand-stepper-count {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  min-width: 1.2rem;
+  text-align: center;
+}
+.hand-total {
+  margin-top: 0.3rem;
+}
+.hand-pass {
+  color: var(--swatch);
+}
+.hand-fail {
+  color: var(--danger);
+}
+.hand-pass-title {
+  color: var(--swatch);
+}
+.hand-fail-title {
+  color: var(--danger);
+}
+.predicate-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+  padding: 0.15rem 0;
+  flex-wrap: wrap;
+}
+.predicate-exclusion {
+  border-left: 2px solid var(--danger);
+  padding-left: 0.4rem;
+}
+.hand-exclusion-reason {
+  color: var(--danger);
+}
+
 .context-presets {
   display: flex;
   flex-wrap: wrap;

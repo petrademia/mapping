@@ -191,6 +191,35 @@ routes. Do not label this combo success, playability, or win rate.
 
 If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy. v0 does not generalize membership in a condition set from a condition's name.
 
+### Hand Test
+
+Probability analysis asks *how often* a condition occurs; **Hand Test** asks
+whether one *exact* hand satisfies it. It evaluates the user's existing model
+(Hand Conditions + Condition Sets) against a single concrete hand and explains
+why each predicate passed or failed.
+
+- **Hand acquisition**: *Draw Random Hand* samples uniformly over physical
+  cards (each copy is a distinct card, so multi-copy cards are weighted
+  correctly) from the current Main Deck, sized by the current Analysis Context
+  (opening 5 / opening 5 / first 6 cards seen). *Manual selection* uses a
+  searchable stepper that enforces deck copy limits and the observed sample
+  size.
+- **Condition trace**: every requirement and exclusion shows its actual count,
+  PASS/FAIL, and the contributing cards (especially useful for debugging Group
+  definitions). An exclusion that matches is flagged and explains why the
+  condition fails.
+- **Condition Sets**: each set shows PASS/FAIL and how many of its member
+  conditions the hand satisfies (`N_S(H) = Σ 1[C_i(H)]`), the single-hand
+  counterpart of the multiplicity distribution. Satisfying multiple conditions
+  is not evidence of independent routes.
+- **Probability link**: each condition shows its population probability, and
+  the tested hand shows its exact composition probability
+  (`product_i C(n_i, h_i) / C(deck_size, observed)`), a property of the exact
+  card-name/count composition, not a strategic hand quality.
+- **Modeled, not verified**: a PASS means the human-authored model matches the
+  hand. Hand Test never simulates play, Ash, or legal continuations; YAPPING
+  remains responsible for strategic validation.
+
 ### Deck Profile
 
 The **Deck Profile** panel reports transparent, named percentages for the
@@ -285,6 +314,7 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; paste-add appends without replacing
 - define Hand Conditions (Requires / Excludes), Groups, and Condition Sets (ANY of members); inspect per-set union, pairwise overlap, and multiplicity distribution
+- test one exact hand (random or manual) against all Hand Conditions and Condition Sets, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
 - inspect the Deck Profile: opening composition, access composition, interaction, and GF/GS context comparison
 - compare two opening-hand conditions with exact joint/conditional probabilities
