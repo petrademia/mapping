@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { brandedDemo } from "../data/brandedDemo";
+import { powerPatronArsMagnaDemo } from "../data/powerPatronArsMagnaDemo";
 import {
   createDocument,
   parseMappingJson,
+  sectionSize,
   serializeMapping,
   setCardRoles,
   setCardTaxonomy,
@@ -13,7 +14,7 @@ import { exportYapping, serializeYapping } from "./exportYapping";
 
 describe("import/export", () => {
   it("round-trips a MAPPING document", () => {
-    const original = setCardTaxonomy(brandedDemo, "main", 62962630, {
+    const original = setCardTaxonomy(powerPatronArsMagnaDemo, "main", 70488851, {
       roles: ["starter", "extender"],
       opening_quality: "desirable",
     });
@@ -82,46 +83,50 @@ describe("import/export", () => {
 
   it("emits the YAPPING archetype fields load_archetype expects", () => {
     const exported = exportYapping(
-      setCardRoles(brandedDemo, "main", 62962630, ["starter", "extender"]),
+      setCardRoles(powerPatronArsMagnaDemo, "main", 70488851, [
+        "starter",
+        "extender",
+      ]),
     );
-    expect(exported.name).toBe("branded_albaz_v1");
-    expect(exported.main_deck.filter((id) => id === 62962630)).toHaveLength(3);
-    expect(exported.extra_deck).toContain(44146295);
-    expect(exported.card_roles["62962630"]).toEqual(["starter", "extender"]);
-    expect(exported.card_roles["55273560"]).toEqual(["starter", "extender"]);
-    expect(exported.metadata.card_opening_quality["68468459"]).toBe(
-      "undesirable",
-    );
+    expect(exported.name).toBe("power_patron_ars_magna_v0");
+    expect(exported.main_deck.filter((id) => id === 70488851)).toHaveLength(3);
+    expect(exported.extra_deck).toContain(4063756);
+    expect(exported.card_roles["70488851"]).toEqual(["starter", "extender"]);
+    expect(exported.card_roles["97556336"]).toEqual(["starter"]);
+    expect(exported.metadata.card_opening_quality["17473466"]).toBe("neutral");
     expect(exported).not.toHaveProperty("interruption_specs");
     expect(exported).not.toHaveProperty("fixtures");
     expect(exported.metadata.source).toBe("mapping");
     expect(exported.metadata.mapping_schema_version).toBe(3);
     expect(exported.metadata.opening_hand_size).toBe(5);
     expect(exported.metadata.deck_size).toBe(exported.main_deck.length);
-    expect(JSON.parse(serializeYapping(brandedDemo)).card_roles).toBeTypeOf(
-      "object",
+    expect(exported.metadata.deck_size).toBe(
+      sectionSize(powerPatronArsMagnaDemo.main),
     );
+    expect(
+      JSON.parse(serializeYapping(powerPatronArsMagnaDemo)).card_roles,
+    ).toBeTypeOf("object");
   });
 
   it("parses YDK main/extra/side quantities", () => {
     const parsed = parseYdk(`#created by mapping
 #main
-62962630
-62962630
-62962630
-44362883
+70488851
+70488851
+70488851
+26237713
 #extra
-44146295
-44146295
+4063756
+4063756
 !side
-10045474
+14558129
 `);
     expect(parsed.main).toEqual([
-      { card_id: 62962630, quantity: 3 },
-      { card_id: 44362883, quantity: 1 },
+      { card_id: 70488851, quantity: 3 },
+      { card_id: 26237713, quantity: 1 },
     ]);
-    expect(parsed.extra).toEqual([{ card_id: 44146295, quantity: 2 }]);
-    expect(parsed.side).toEqual([{ card_id: 10045474, quantity: 1 }]);
+    expect(parsed.extra).toEqual([{ card_id: 4063756, quantity: 2 }]);
+    expect(parsed.side).toEqual([{ card_id: 14558129, quantity: 1 }]);
   });
 
   it("coerces a blank name instead of dropping the document", () => {
@@ -171,7 +176,10 @@ describe("import/export", () => {
       {
         card_id: 1,
         quantity: 3,
-        taxonomy: { roles: ["starter", "extender"], opening_quality: "neutral" },
+        taxonomy: {
+          roles: ["starter", "extender"],
+          opening_quality: "neutral",
+        },
       },
     ]);
   });
