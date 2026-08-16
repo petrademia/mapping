@@ -48,9 +48,14 @@ export function RoleSummary({ doc }: Props) {
   return (
     <section className="panel">
       <header>
-        <h2>Taxonomy density</h2>
+        <h2>Taxonomy / Annotation Analysis</h2>
         <p>Main deck {deck}</p>
       </header>
+      <p className="note">
+        Raw card annotations. These describe what cards are tagged as, not what
+        the modeled hand can do - role and quality stats here are diagnostics,
+        not strategic usability.
+      </p>
       <ul className="census">
         <li>
           <span>Main</span>

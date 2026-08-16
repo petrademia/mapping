@@ -2,6 +2,7 @@ import { groupsToMembership, type Group, type HandCondition } from "./handCondit
 import {
   forEachHandComposition,
   handConditionHolds,
+  type AccessCountDistribution,
   type GroupMembership,
   type HandConditionLike,
 } from "./handExplorer";
@@ -25,7 +26,17 @@ export interface DeckProfile {
   /** P(at least one engine-access condition holds): modeled engine access. */
   anyAccess: number;
   anyAccessWeight: bigint;
-  /** P(>= 1 card with contextual quality). */
+  /**
+   * Access multiplicity over the selected engine-access conditions:
+   * how many of them a random hand satisfies. `exact[k] = P(N = k)`,
+   * `atLeast[k] = P(N >= k+1)`. P(Access) == atLeast[0].
+   */
+  accessMultiplicity: AccessCountDistribution;
+  /** P(interaction-tagged | access); null when P(access) = 0. */
+  interactionGivenAccess: number | null;
+  /** P(no undesirable | access) under the current Opening Quality context; null when P(access) = 0. */
+  noUndesirableGivenAccess: number | null;
+  /** P(>= 1 card with contextual quality). Raw annotation statistics. */
   desirableGe1: number;
   neutralGe1: number;
   undesirableGe1: number;
@@ -36,7 +47,7 @@ export interface DeckProfile {
   accessNoUndesirableWeight: bigint;
   accessUndesirableGe1: number;
   accessUndesirableGe1Weight: bigint;
-  /** P(>= 1 interaction role) and P(access AND >= 1 interaction). */
+  /** P(>= 1 interaction role) and P(access AND >= 1 interaction). Raw taxonomy. */
   interactionGe1: number;
   accessAndInteraction: number;
   accessAndInteractionWeight: bigint;
@@ -117,6 +128,11 @@ export function computeDeckProfile({
   const interactionGe1 = marginal(interactionCopies, 1);
 
   const accessMembership = new Set(accessConditionIds);
+  const accessMembers = conditions.filter((condition) =>
+    accessMembership.has(condition.id),
+  );
+  const n = accessMembers.length;
+  const bucketWeights = new Array<bigint>(n + 1).fill(0n);
 
   let anyAccessWeight = 0n;
   let accessNoUndesirableWeight = 0n;
@@ -125,12 +141,15 @@ export function computeDeckProfile({
 
   if (conditions.length > 0 && total > 0n) {
     forEachHandComposition(deck, handSize, (hand, weight) => {
-      const access = conditions.some(
-        (condition) =>
-          accessMembership.has(condition.id) &&
-          handConditionHolds(hand, deck, condition, groups),
-      );
-      if (!access) return;
+      let satisfiedAccessCount = 0;
+      for (const condition of accessMembers) {
+        if (handConditionHolds(hand, deck, condition, groups)) {
+          satisfiedAccessCount += 1;
+        }
+      }
+      bucketWeights[satisfiedAccessCount] =
+        bucketWeights[satisfiedAccessCount]! + weight;
+      if (satisfiedAccessCount === 0) return;
       anyAccessWeight += weight;
       const undesirable = copyCountFor(
         hand,
@@ -151,12 +170,31 @@ export function computeDeckProfile({
   const pAccess =
     total === 0n ? 0 : ratioToNumber(anyAccessWeight, total);
 
+  const exact = Array.from(
+    { length: n + 1 },
+    (_, count) => ratioToNumber(bucketWeights[count]!, total),
+  );
+  const atLeast = Array.from({ length: n }, (_, index) => {
+    let sum = 0n;
+    for (let count = index + 1; count <= n; count += 1) sum += bucketWeights[count]!;
+    return ratioToNumber(sum, total);
+  });
+
   return {
     deckSize,
     handSize,
     total,
     anyAccess: pAccess,
     anyAccessWeight,
+    accessMultiplicity: { exact, atLeast, weights: bucketWeights },
+    interactionGivenAccess:
+      anyAccessWeight === 0n
+        ? null
+        : ratioToNumber(accessAndInteractionWeight, anyAccessWeight),
+    noUndesirableGivenAccess:
+      anyAccessWeight === 0n
+        ? null
+        : ratioToNumber(accessNoUndesirableWeight, anyAccessWeight),
     desirableGe1,
     neutralGe1,
     undesirableGe1,

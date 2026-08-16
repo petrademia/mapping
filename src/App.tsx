@@ -104,7 +104,6 @@ export function App() {
       <div className="workspace">
         <DeckEditor doc={doc} catalog={catalog} onChange={setDoc} />
         <aside>
-          <RoleSummary doc={doc} />
           <AnalysisContextSelector
             context={{
               turn_order: doc.analysis.turn_order,
@@ -120,6 +119,7 @@ export function App() {
               setDoc(setOpeningHandSize(doc, size));
             }}
           />
+          <RoleSummary doc={doc} />
           <HandProbabilityExplorer
             doc={doc}
             catalog={catalog}

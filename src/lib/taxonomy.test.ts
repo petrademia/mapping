@@ -6,6 +6,7 @@ import {
   isRole,
   migrateLegacyRoles,
   normalizeTaxonomy,
+  openingQualityCoverage,
   openingQualityDensity,
   removeRole,
   roleDensity,
@@ -356,6 +357,45 @@ describe("Taxonomy v0 deck context and density", () => {
     expect(migrated.main[1]?.taxonomy).toEqual({
       roles: [],
       opening_quality: { going_first: null, going_second: null },
+    });
+  });
+});
+
+describe("opening quality coverage", () => {
+  it("counts classified and unclassified card entries per turn order", () => {
+    const cards = [
+      {
+        card_id: 1,
+        quantity: 3,
+        taxonomy: normalizeTaxonomy({
+          roles: [],
+          opening_quality: { going_first: "desirable", going_second: null },
+        }),
+      },
+      {
+        card_id: 2,
+        quantity: 2,
+        taxonomy: normalizeTaxonomy({
+          roles: [],
+          opening_quality: { going_first: null, going_second: "neutral" },
+        }),
+      },
+      {
+        card_id: 3,
+        quantity: 1,
+        taxonomy: normalizeTaxonomy({ roles: [] }),
+      },
+    ];
+    const coverage = openingQualityCoverage(cards);
+    expect(coverage.going_first).toEqual({
+      classified: 1,
+      unclassified: 2,
+      total: 3,
+    });
+    expect(coverage.going_second).toEqual({
+      classified: 1,
+      unclassified: 2,
+      total: 3,
     });
   });
 });
