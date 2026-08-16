@@ -52,7 +52,8 @@ export function newId(prefix: string): string {
 export function normalizeGroup(raw: Group): Group {
   const id = raw.id.trim();
   if (!id) throw new Error("group id is required");
-  const name = raw.name.trim() || "Untitled group";
+  // Keep the trimmed name; the UI shows a placeholder when it is empty.
+  const name = raw.name.trim();
   const seen = new Set<number>();
   const card_ids: number[] = [];
   for (const cardId of raw.card_ids) {
@@ -112,7 +113,8 @@ export function normalizeHandCondition(raw: HandCondition): HandCondition {
     : [];
   return {
     id,
-    name: raw.name.trim() || "Untitled hand condition",
+    // Keep the trimmed name; the UI shows a placeholder when it is empty.
+    name: raw.name.trim(),
     requirements,
     excludes,
   };
@@ -136,7 +138,8 @@ export function normalizeHandConditionSet(raw: HandConditionSet): HandConditionS
   }
   return {
     id,
-    name: raw.name.trim() || "Untitled set",
+    // Keep the trimmed name; the UI shows a placeholder when it is empty.
+    name: raw.name.trim(),
     condition_ids,
     aggregation,
   };

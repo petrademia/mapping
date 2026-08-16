@@ -286,6 +286,7 @@ function GroupEditor({
       <div className="access-block-head">
         <input
           value={group.name}
+          placeholder="Untitled group"
           aria-label="Group name"
           onChange={(event) => onChange({ ...group, name: event.target.value })}
         />
@@ -396,6 +397,7 @@ function ConditionEditor({
       <div className="access-block-head">
         <input
           value={condition.name}
+          placeholder="Untitled hand condition"
           aria-label="Hand condition name"
           onChange={(event) =>
             onChange({ ...condition, name: event.target.value })
@@ -651,6 +653,7 @@ function SetEditor({
       <div className="access-block-head">
         <input
           value={set.name}
+          placeholder="Untitled set"
           aria-label="Condition set name"
           onChange={(event) => onSetChange({ ...set, name: event.target.value })}
         />

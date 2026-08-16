@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   groupsToMembership,
+  normalizeGroup,
+  normalizeHandCondition,
+  normalizeHandConditionSet,
   type Group,
   type HandCondition,
 } from "./handCondition";
@@ -815,5 +818,33 @@ describe("hand conditions: access-count distribution", () => {
       summary.accessDistribution.exact[1]!,
       12,
     );
+  });
+});
+describe("hand conditions: empty names stay editable", () => {
+  it("keeps an empty name instead of substituting a default", () => {
+    expect(normalizeGroup({ id: "g", name: "", card_ids: [] }).name).toBe("");
+    expect(
+      normalizeHandCondition({
+        id: "c",
+        name: "   ",
+        requirements: [],
+        excludes: [],
+      }).name,
+    ).toBe("");
+    expect(
+      normalizeHandConditionSet({
+        id: "s",
+        name: "",
+        condition_ids: [],
+        aggregation: "any",
+      }).name,
+    ).toBe("");
+  });
+
+  it("does not snap an emptied name back to a default on upsert", () => {
+    let doc = createDocument("names");
+    doc = upsertGroup(doc, { id: "g1", name: "Group", card_ids: [] });
+    doc = upsertGroup(doc, { id: "g1", name: "", card_ids: [] });
+    expect(doc.groups[0]!.name).toBe("");
   });
 });
