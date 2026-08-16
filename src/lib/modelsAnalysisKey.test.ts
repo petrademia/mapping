@@ -90,4 +90,26 @@ describe("modelsAnalysisKey", () => {
     expect(membership).not.toBe(base);
     expect(requirement).not.toBe(base);
   });
+
+  it("changes when engine_access_set_id changes", () => {
+    const a = modelsAnalysisKey({
+      main,
+      groups,
+      hand_conditions: conditions,
+      hand_condition_sets: sets,
+      sample: 5,
+      turn_order: "going_first",
+      engine_access_set_id: "s1",
+    });
+    const b = modelsAnalysisKey({
+      main,
+      groups,
+      hand_conditions: conditions,
+      hand_condition_sets: sets,
+      sample: 5,
+      turn_order: "going_first",
+      engine_access_set_id: "other",
+    });
+    expect(a).not.toBe(b);
+  });
 });

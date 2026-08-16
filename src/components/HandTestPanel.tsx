@@ -24,6 +24,7 @@ import {
   validateManualHand,
   type TestedHand,
 } from "../lib/handTest";
+import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { ROLES } from "../lib/taxonomy";
 
 const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
@@ -57,7 +58,15 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
   const opening = doc.analysis.opening_hand_size;
   const context = analysisContextOf(doc);
   const sample = observedCards(context, opening);
-  const groups = groupsToMembership(doc.groups);
+  const analysisKey = modelsAnalysisKey({
+    main: doc.main,
+    groups: doc.groups,
+    hand_conditions: doc.hand_conditions,
+    hand_condition_sets: doc.hand_condition_sets,
+    sample,
+    turn_order: context.turn_order,
+    engine_access_set_id: doc.engine_access_set_id,
+  });
 
   const analysis = useMemo(() => {
     if (deck === 0) return null;
@@ -67,12 +76,14 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         sample,
         doc.hand_conditions,
         doc.hand_condition_sets,
-        groups,
+        groupsToMembership(doc.groups),
+        context.turn_order,
       );
     } catch {
       return null;
     }
-  }, [doc.main, doc.hand_conditions, doc.hand_condition_sets, groups, deck, sample]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
+  }, [analysisKey, deck]);
 
   const result = useMemo(() => {
     if (!hand) return null;
@@ -81,9 +92,10 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
       hand.card_counts,
       doc.hand_conditions,
       doc.hand_condition_sets,
-      groups,
+      groupsToMembership(doc.groups),
     );
-  }, [doc.main, doc.hand_conditions, doc.hand_condition_sets, groups, hand]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
+  }, [analysisKey, hand]);
 
   const issues = useMemo(() => {
     if (!hand) return [];

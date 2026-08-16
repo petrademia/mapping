@@ -9,6 +9,7 @@ import {
 } from "../lib/analysisContext";
 import { groupsToMembership } from "../lib/handCondition";
 import { computeDeckProfile } from "../lib/deckProfile";
+import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { ProbabilityError } from "../lib/probability";
 import { openingQualityCoverage } from "../lib/taxonomy";
 
@@ -59,6 +60,24 @@ export function DeckProfile({ doc, onHandSize }: Props) {
   const opening = doc.analysis.opening_hand_size;
   const context = analysisContextOf(doc);
   const sample = observedCards(context, opening);
+  const analysisKey = modelsAnalysisKey({
+    main: doc.main,
+    groups: doc.groups,
+    hand_conditions: doc.hand_conditions,
+    hand_condition_sets: doc.hand_condition_sets,
+    sample,
+    turn_order: context.turn_order,
+    engine_access_set_id: doc.engine_access_set_id,
+  });
+  const comparisonKey = modelsAnalysisKey({
+    main: doc.main,
+    groups: doc.groups,
+    hand_conditions: doc.hand_conditions,
+    hand_condition_sets: doc.hand_condition_sets,
+    sample: opening,
+    turn_order: "going_first",
+    engine_access_set_id: doc.engine_access_set_id,
+  });
 
   const profile = useMemo(() => {
     if (deck === 0) return null;
@@ -72,7 +91,8 @@ export function DeckProfile({ doc, onHandSize }: Props) {
             : "Cannot compute the deck profile for these sizes.",
       };
     }
-  }, [doc, deck, context.turn_order, opening, sample]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
+  }, [analysisKey, deck]);
 
   const comparison = useMemo(() => {
     if (deck === 0) return null;
@@ -84,7 +104,8 @@ export function DeckProfile({ doc, onHandSize }: Props) {
     } catch {
       return null;
     }
-  }, [doc, deck]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
+  }, [comparisonKey, deck]);
 
   const hasAnnotations =
     deck > 0 &&
