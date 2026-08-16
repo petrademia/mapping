@@ -285,6 +285,60 @@ h1 {
   cursor: help;
 }
 
+.access-block {
+  border: 1px solid var(--line);
+  padding: 0.65rem 0.7rem;
+  margin-bottom: 0.65rem;
+}
+.access-block-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+.access-block-head input {
+  flex: 1;
+  background: #171b18;
+  border: 1px solid var(--line);
+  color: var(--mist);
+  padding: 0.3rem 0.4rem;
+}
+.access-allof {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+.access-requirement {
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid #222822;
+}
+.access-prob {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--mist);
+  align-self: center;
+}
+.group-members {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  max-height: 10rem;
+  overflow: auto;
+  display: grid;
+  gap: 0.2rem;
+}
+.group-members label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--mist);
+}
+.access-union .explorer-title { color: var(--brass); }
+
 [data-role="starter"] { --swatch: var(--starter); }
 [data-role="extender"] { --swatch: var(--extender); }
 [data-role="interaction"] { --swatch: var(--interaction); }

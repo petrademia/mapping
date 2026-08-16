@@ -12,7 +12,7 @@ export interface YappingExport {
   card_roles: Record<string, Role[]>;
   metadata: {
     source: "mapping";
-    mapping_schema_version: 2;
+    mapping_schema_version: 3;
     opening_hand_size: number;
     deck_size: number;
     extra_deck_size: number;
@@ -71,7 +71,7 @@ export function exportYapping(doc: MappingDocument): YappingExport {
     card_roles: mergedRoles(doc),
     metadata: {
       source: "mapping",
-      mapping_schema_version: 2,
+      mapping_schema_version: 3,
       opening_hand_size: doc.analysis.opening_hand_size,
       deck_size: sectionSize(doc.main),
       extra_deck_size: sectionSize(doc.extra),

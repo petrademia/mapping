@@ -19,7 +19,11 @@ export type CountOperator = (typeof COUNT_OPERATORS)[number];
 
 export type HandCondition =
   | { kind: "card"; card_id: number; op: CountOperator; count: number }
-  | { kind: "role"; role: Role; op: CountOperator; count: number };
+  | { kind: "role"; role: Role; op: CountOperator; count: number }
+  | { kind: "group"; group_id: string; op: CountOperator; count: number };
+
+/** Optional group membership lookup for `kind: "group"` subjects. */
+export type GroupMembership = ReadonlyMap<string, ReadonlySet<number>>;
 
 export interface ProbabilityComparison {
   conditionA: HandCondition;
@@ -68,10 +72,22 @@ export function countForCondition(
   hand: readonly number[],
   deck: readonly MappingCard[],
   condition: HandCondition,
+  groups: GroupMembership = new Map(),
 ): number {
   if (condition.kind === "card") {
     const index = deck.findIndex((card) => card.card_id === condition.card_id);
     return index === -1 ? 0 : (hand[index] ?? 0);
+  }
+  if (condition.kind === "group") {
+    const members = groups.get(condition.group_id);
+    if (!members || members.size === 0) return 0;
+    let total = 0;
+    for (let i = 0; i < deck.length; i += 1) {
+      const copies = hand[i] ?? 0;
+      if (copies === 0) continue;
+      if (members.has(deck[i]!.card_id)) total += copies;
+    }
+    return total;
   }
   let total = 0;
   for (let i = 0; i < deck.length; i += 1) {
@@ -88,11 +104,25 @@ export function conditionHolds(
   hand: readonly number[],
   deck: readonly MappingCard[],
   condition: HandCondition,
+  groups: GroupMembership = new Map(),
 ): boolean {
   return matchesCount(
-    countForCondition(hand, deck, condition),
+    countForCondition(hand, deck, condition, groups),
     condition.op,
     condition.count,
+  );
+}
+
+/** ALL OF requirements. Empty requirement lists do not hold (incomplete condition). */
+export function allRequirementsHold(
+  hand: readonly number[],
+  deck: readonly MappingCard[],
+  requirements: readonly HandCondition[],
+  groups: GroupMembership = new Map(),
+): boolean {
+  if (requirements.length === 0) return false;
+  return requirements.every((requirement) =>
+    conditionHolds(hand, deck, requirement, groups),
   );
 }
 
@@ -153,6 +183,7 @@ export function compareHandConditions(
   deck: readonly MappingCard[],
   handSize: number,
   comparison: ProbabilityComparison,
+  groups: GroupMembership = new Map(),
 ): ProbabilityResult {
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
   if (
@@ -184,8 +215,8 @@ export function compareHandConditions(
   let weightAB = 0n;
 
   forEachHandComposition(deck, handSize, (hand, weight) => {
-    const a = conditionHolds(hand, deck, comparison.conditionA);
-    const b = conditionHolds(hand, deck, comparison.conditionB);
+    const a = conditionHolds(hand, deck, comparison.conditionA, groups);
+    const b = conditionHolds(hand, deck, comparison.conditionB, groups);
     if (a) weightA += weight;
     if (b) weightB += weight;
     if (a && b) weightAB += weight;
@@ -200,6 +231,88 @@ export function compareHandConditions(
     weightA,
     weightB,
     weightAB,
+    total,
+  };
+}
+
+export interface AccessProbabilityRow {
+  id: string;
+  name: string;
+  probability: number;
+  weight: bigint;
+}
+
+export interface AccessProbabilitySummary {
+  conditions: AccessProbabilityRow[];
+  anyAccess: number;
+  anyWeight: bigint;
+  total: bigint;
+}
+
+/**
+ * Exact per-condition probabilities and the union (OR) over all conditions.
+ * A hand matching multiple conditions contributes once to `anyAccess`.
+ */
+export function summarizeAccessConditions(
+  deck: readonly MappingCard[],
+  handSize: number,
+  conditions: readonly {
+    id: string;
+    name: string;
+    requirements: readonly HandCondition[];
+  }[],
+  groups: GroupMembership = new Map(),
+): AccessProbabilitySummary {
+  const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
+  if (
+    !Number.isInteger(handSize) ||
+    handSize < 0 ||
+    handSize > deckSize ||
+    deckSize < 0
+  ) {
+    throw new ProbabilityError("copies and hand_size must fit inside deck_size");
+  }
+
+  const total = combinations(deckSize, handSize);
+  if (total === 0n || conditions.length === 0) {
+    return {
+      conditions: conditions.map((condition) => ({
+        id: condition.id,
+        name: condition.name,
+        probability: 0,
+        weight: 0n,
+      })),
+      anyAccess: 0,
+      anyWeight: 0n,
+      total,
+    };
+  }
+
+  const weights = conditions.map(() => 0n);
+  let anyWeight = 0n;
+
+  forEachHandComposition(deck, handSize, (hand, weight) => {
+    let any = false;
+    for (let i = 0; i < conditions.length; i += 1) {
+      if (
+        allRequirementsHold(hand, deck, conditions[i]!.requirements, groups)
+      ) {
+        weights[i] = weights[i]! + weight;
+        any = true;
+      }
+    }
+    if (any) anyWeight += weight;
+  });
+
+  return {
+    conditions: conditions.map((condition, index) => ({
+      id: condition.id,
+      name: condition.name,
+      probability: ratioToNumber(weights[index]!, total),
+      weight: weights[index]!,
+    })),
+    anyAccess: ratioToNumber(anyWeight, total),
+    anyWeight,
     total,
   };
 }

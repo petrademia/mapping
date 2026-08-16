@@ -95,7 +95,7 @@ describe("import/export", () => {
     expect(exported).not.toHaveProperty("interruption_specs");
     expect(exported).not.toHaveProperty("fixtures");
     expect(exported.metadata.source).toBe("mapping");
-    expect(exported.metadata.mapping_schema_version).toBe(2);
+    expect(exported.metadata.mapping_schema_version).toBe(3);
     expect(exported.metadata.opening_hand_size).toBe(5);
     expect(exported.metadata.deck_size).toBe(exported.main_deck.length);
     expect(JSON.parse(serializeYapping(brandedDemo)).card_roles).toBeTypeOf(
@@ -127,7 +127,7 @@ describe("import/export", () => {
   it("coerces a blank name instead of dropping the document", () => {
     const parsed = parseMappingJson(
       JSON.stringify({
-        schema_version: 2,
+        schema_version: 3,
         name: "   ",
         main: [
           {
@@ -148,7 +148,7 @@ describe("import/export", () => {
   it("collapses duplicate card ids in a section", () => {
     const parsed = parseMappingJson(
       JSON.stringify({
-        schema_version: 2,
+        schema_version: 3,
         name: "dup",
         main: [
           {
