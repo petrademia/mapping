@@ -31,7 +31,7 @@ function tax(
  * claimed optimal tournament deck.
  */
 export const powerPatronArsMagnaDemo: MappingDocument = {
-  schema_version: 6,
+  schema_version: 7,
   name: "power_patron_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
@@ -59,36 +59,40 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       id: "vidolium-access",
       name: "Vidolium Access",
       requirements: [
-        { kind: "card", card_id: 70488851, op: "gte", count: 1 },
+        { id: "powerPatronArsMagnaDemo-req-1", kind: "card", card_id: 70488851, op: "gte", count: 1 },
       ],
       excludes: [],
+      distinct_constraints: [],
     },
     {
       id: "pendulum-treasure-access",
       name: "Pendulum Treasure Access",
       requirements: [
-        { kind: "card", card_id: 26237713, op: "gte", count: 1 },
+        { id: "powerPatronArsMagnaDemo-req-2", kind: "card", card_id: 26237713, op: "gte", count: 1 },
       ],
       excludes: [],
+      distinct_constraints: [],
     },
     {
       id: "medius-access",
       name: "Medius Access",
       requirements: [
-        { kind: "card", card_id: 97556336, op: "gte", count: 1 },
+        { id: "powerPatronArsMagnaDemo-req-3", kind: "card", card_id: 97556336, op: "gte", count: 1 },
       ],
       excludes: [],
+      distinct_constraints: [],
     },
     {
       id: "nervedo-access",
       name: "Nervedo + valid S/T",
       requirements: [
-        { kind: "card", card_id: 17473466, op: "gte", count: 1 },
-        { kind: "group", group_id: "valid-nervedo-st", op: "gte", count: 1 },
+        { id: "powerPatronArsMagnaDemo-req-4", kind: "card", card_id: 17473466, op: "gte", count: 1 },
+        { id: "powerPatronArsMagnaDemo-req-5", kind: "group", group_id: "valid-nervedo-st", op: "gte", count: 1 },
       ],
       excludes: [
-        { kind: "card", card_id: 37279096, op: "gte", count: 1 },
+        { id: "powerPatronArsMagnaDemo-req-6", kind: "card", card_id: 37279096, op: "gte", count: 1 },
       ],
+      distinct_constraints: [],
     },
   ],
   hand_condition_sets: [

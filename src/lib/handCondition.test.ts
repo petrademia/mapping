@@ -22,6 +22,7 @@ import {
   upsertGroup,
   upsertHandCondition,
   type MappingCard,
+  SCHEMA_VERSION,
 } from "./document";
 import {
   openingAtLeastProbability,
@@ -120,19 +121,23 @@ describe("hand conditions: migration from AccessCondition", () => {
         analysis: { opening_hand_size: 5 },
       }),
     );
-    expect(restored.schema_version).toBe(6);
+    expect(restored.schema_version).toBe(SCHEMA_VERSION);
     expect(restored.groups).toEqual([
       { id: "valid-st", name: "Valid Nervedo S/T", card_ids: [2, 3] },
     ]);
     expect(restored.hand_conditions).toHaveLength(1);
     expect(restored.hand_conditions[0]!.name).toBe("Nervedo Access");
-    expect(restored.hand_conditions[0]!.requirements).toEqual([
+    expect(restored.hand_conditions[0]!.requirements).toMatchObject([
       { kind: "card", card_id: 1, op: "gte", count: 1 },
       { kind: "group", group_id: "valid-st", op: "gte", count: 1 },
     ]);
-    expect(restored.hand_conditions[0]!.excludes).toEqual([
+    expect(restored.hand_conditions[0]!.excludes).toMatchObject([
       { kind: "card", card_id: 2, op: "gte", count: 1 },
     ]);
+    expect(restored.hand_conditions[0]!.distinct_constraints).toEqual([]);
+    expect(restored.hand_conditions[0]!.requirements.every((r) => r.id)).toBe(
+      true,
+    );
   });
 
   it("preserves Modeled Engine Access membership for migrated conditions", () => {
@@ -199,7 +204,7 @@ describe("hand conditions: migration from AccessCondition", () => {
         analysis: { opening_hand_size: 5 },
       }),
     );
-    expect(restored.schema_version).toBe(6);
+    expect(restored.schema_version).toBe(SCHEMA_VERSION);
     expect(restored.groups).toEqual([]);
     expect(restored.hand_conditions).toEqual([]);
   });
@@ -226,7 +231,7 @@ describe("hand conditions: migration from AccessCondition", () => {
     });
     doc = setEngineAccessMember(doc, "nervedo", true);
     const restored = parseMappingJson(serializeMapping(doc));
-    expect(restored.schema_version).toBe(6);
+    expect(restored.schema_version).toBe(SCHEMA_VERSION);
     expect(restored.groups).toEqual(doc.groups);
     expect(restored.hand_conditions).toEqual(doc.hand_conditions);
     expect(restored.hand_condition_sets).toEqual(doc.hand_condition_sets);
@@ -242,22 +247,48 @@ describe("hand conditions: migration from AccessCondition", () => {
         {
           id: "c1",
           name: "Medius Access",
-          requirements: [{ kind: "card" as const, card_id: 1, op: "gte" as const, count: 1 }],
+          requirements: [
+            {
+              id: "r1",
+              kind: "card" as const,
+              card_id: 1,
+              op: "gte" as const,
+              count: 1,
+            },
+          ],
           excludes: [],
+          distinct_constraints: [],
         },
         {
           id: "c2",
           name: "Nervedo Access",
           requirements: [
-            { kind: "card" as const, card_id: 2, op: "gte" as const, count: 1 },
+            {
+              id: "r2",
+              kind: "card" as const,
+              card_id: 2,
+              op: "gte" as const,
+              count: 1,
+            },
           ],
-          excludes: [{ kind: "card" as const, card_id: 3, op: "gte" as const, count: 1 }],
+          excludes: [
+            {
+              id: "e1",
+              kind: "card" as const,
+              card_id: 3,
+              op: "gte" as const,
+              count: 1,
+            },
+          ],
+          distinct_constraints: [],
         },
       ],
     };
     const restored = parseMappingJson(serializeMapping(doc));
     expect(restored.hand_conditions).toHaveLength(2);
-    expect(restored.hand_conditions[1]!.excludes).toEqual(doc.hand_conditions[1]!.excludes);
+    expect(restored.hand_conditions[1]!.excludes).toEqual(
+      doc.hand_conditions[1]!.excludes,
+    );
   });
 });
 
@@ -721,7 +752,7 @@ describe("hand conditions: modeled engine access", () => {
     });
     doc = removeGroup(doc, "g1");
     expect(doc.groups).toEqual([]);
-    expect(doc.hand_conditions[0]!.requirements).toEqual([
+    expect(doc.hand_conditions[0]!.requirements).toMatchObject([
       { kind: "card", card_id: 1, op: "gte", count: 1 },
     ]);
     expect(doc.hand_conditions[0]!.excludes).toEqual([]);

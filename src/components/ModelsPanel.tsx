@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  isPresenceRequirement,
+  type DistinctMatchConstraint,
+} from "../lib/distinctMatch";
+import {
+  defaultCondition,
   groupsToMembership,
   newId,
   type Group,
@@ -201,9 +206,10 @@ export function ModelsPanel({
         id: newId("condition"),
         name: "New hand condition",
         requirements: firstCard
-          ? [{ kind: "card", card_id: firstCard, op: "gte", count: 1 }]
+          ? [defaultCondition("card", { card_id: firstCard })]
           : [],
         excludes: [],
+        distinct_constraints: [],
       }),
     );
   }
@@ -238,9 +244,10 @@ export function ModelsPanel({
         id,
         name: "New hand condition",
         requirements: firstCard
-          ? [{ kind: "card", card_id: firstCard, op: "gte", count: 1 }]
+          ? [defaultCondition("card", { card_id: firstCard })]
           : [],
         excludes: [],
+        distinct_constraints: [],
       }),
     );
     return id;
@@ -517,9 +524,9 @@ function ConditionEditor({
 
   function addRequirement(): void {
     const firstCard = doc.main[0]?.card_id;
-    const next: ConditionRequirement = firstCard
-      ? { kind: "card", card_id: firstCard, op: "gte", count: 1 }
-      : { kind: "role", role: "starter", op: "gte", count: 1 };
+    const next = firstCard
+      ? defaultCondition("card", { card_id: firstCard })
+      : defaultCondition("role", { role: "starter" });
     onChange({
       ...condition,
       requirements: [...condition.requirements, next],
@@ -542,14 +549,57 @@ function ConditionEditor({
 
   function addExclusion(): void {
     const firstCard = doc.main[0]?.card_id;
-    const next: ConditionRequirement = firstCard
-      ? { kind: "card", card_id: firstCard, op: "gte", count: 1 }
-      : { kind: "role", role: "starter", op: "gte", count: 1 };
+    const next = firstCard
+      ? defaultCondition("card", { card_id: firstCard })
+      : defaultCondition("role", { role: "starter" });
     onChange({
       ...condition,
       excludes: [...condition.excludes, next],
     });
   }
+
+  function addDistinctConstraint(): void {
+    const eligible = condition.requirements.filter(
+      (requirement) => requirement.id && isPresenceRequirement(requirement),
+    );
+    if (eligible.length < 2) return;
+    const constraint: DistinctMatchConstraint = {
+      id: newId("distinct"),
+      requirement_ids: [eligible[0]!.id!, eligible[1]!.id!],
+      distinct_by: "card_name",
+    };
+    onChange({
+      ...condition,
+      distinct_constraints: [
+        ...(condition.distinct_constraints ?? []),
+        constraint,
+      ],
+    });
+  }
+
+  function updateDistinctConstraint(
+    index: number,
+    next: DistinctMatchConstraint,
+  ): void {
+    const distinct_constraints = (condition.distinct_constraints ?? []).map(
+      (item, i) => (i === index ? next : item),
+    );
+    onChange({ ...condition, distinct_constraints });
+  }
+
+  function removeDistinctConstraint(index: number): void {
+    onChange({
+      ...condition,
+      distinct_constraints: (condition.distinct_constraints ?? []).filter(
+        (_, i) => i !== index,
+      ),
+    });
+  }
+
+  const presenceRequirements = condition.requirements.filter(
+    (requirement) => requirement.id && isPresenceRequirement(requirement),
+  );
+  const canAddDistinct = presenceRequirements.length >= 2;
 
   return (
     <div className="access-block">
@@ -575,7 +625,7 @@ function ConditionEditor({
       ) : (
         condition.requirements.map((requirement, index) => (
           <RequirementEditor
-            key={`require-${condition.id}-${index}`}
+            key={requirement.id ?? `require-${condition.id}-${index}`}
             requirement={requirement}
             doc={doc}
             catalog={catalog}
@@ -599,7 +649,7 @@ function ConditionEditor({
       ) : (
         condition.excludes.map((exclusion, index) => (
           <RequirementEditor
-            key={`exclude-${condition.id}-${index}`}
+            key={exclusion.id ?? `exclude-${condition.id}-${index}`}
             requirement={exclusion}
             doc={doc}
             catalog={catalog}
@@ -612,11 +662,142 @@ function ConditionEditor({
         <button type="button" onClick={addExclusion}>
           + Exclusion
         </button>
+      </div>
+      <p className="access-allof">Distinct matches</p>
+      <p className="empty access-excludes-note">
+        Selected ≥ 1 requirements must be satisfied by different card names.
+        Count predicates (≥ 2, = 2, …) are unchanged and cannot join a
+        distinct constraint.
+      </p>
+      {(condition.distinct_constraints ?? []).length === 0 ? (
+        <p className="empty">No distinct-card constraints.</p>
+      ) : (
+        (condition.distinct_constraints ?? []).map((constraint, index) => (
+          <DistinctConstraintEditor
+            key={constraint.id}
+            constraint={constraint}
+            requirements={condition.requirements}
+            doc={doc}
+            catalog={catalog}
+            onChange={(next) => updateDistinctConstraint(index, next)}
+            onRemove={() => removeDistinctConstraint(index)}
+          />
+        ))
+      )}
+      <div className="row-actions">
+        <button
+          type="button"
+          onClick={addDistinctConstraint}
+          disabled={!canAddDistinct}
+          title={
+            canAddDistinct
+              ? undefined
+              : "Need at least two Requires rows of the form ≥ 1"
+          }
+        >
+          + Distinct constraint
+        </button>
         {probability !== undefined ? (
           <span className="access-prob">
             Probability: {formatPercent(probability)}
           </span>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function requirementLabel(
+  requirement: ConditionRequirement,
+  doc: MappingDocument,
+  catalog: Catalog,
+): string {
+  const subject =
+    requirement.kind === "card"
+      ? displayName(requirement.card_id, undefined, catalog)
+      : requirement.kind === "role"
+        ? ROLE_LABELS[requirement.role]
+        : doc.groups.find((group) => group.id === requirement.group_id)?.name ??
+          requirement.group_id;
+  const op = OP_LABELS[requirement.op];
+  return `${subject} ${op} ${requirement.count}`;
+}
+
+function DistinctConstraintEditor({
+  constraint,
+  requirements,
+  doc,
+  catalog,
+  onChange,
+  onRemove,
+}: {
+  constraint: DistinctMatchConstraint;
+  requirements: readonly ConditionRequirement[];
+  doc: MappingDocument;
+  catalog: Catalog;
+  onChange: (constraint: DistinctMatchConstraint) => void;
+  onRemove: () => void;
+}) {
+  const eligible = requirements.filter(
+    (requirement) => requirement.id && isPresenceRequirement(requirement),
+  );
+  const selected = new Set(constraint.requirement_ids);
+  const missing = constraint.requirement_ids.filter(
+    (id) => !requirements.some((requirement) => requirement.id === id),
+  );
+  const unsupported = constraint.requirement_ids.filter((id) => {
+    const requirement = requirements.find((item) => item.id === id);
+    return requirement !== undefined && !isPresenceRequirement(requirement);
+  });
+
+  function toggle(requirementId: string): void {
+    const next = selected.has(requirementId)
+      ? constraint.requirement_ids.filter((id) => id !== requirementId)
+      : [...constraint.requirement_ids, requirementId];
+    onChange({ ...constraint, requirement_ids: next });
+  }
+
+  return (
+    <div className="distinct-constraint">
+      <p className="access-excludes-note">
+        These requirements must be satisfied by different card names:
+      </p>
+      {eligible.length === 0 ? (
+        <p className="empty">No ≥ 1 requirements available.</p>
+      ) : (
+        <ul className="distinct-requirement-list">
+          {eligible.map((requirement) => (
+            <li key={requirement.id}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selected.has(requirement.id!)}
+                  onChange={() => toggle(requirement.id!)}
+                />{" "}
+                {requirementLabel(requirement, doc, catalog)}
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
+      {selected.size < 2 ? (
+        <p className="hand-fail">Select at least two requirements.</p>
+      ) : null}
+      {missing.length > 0 ? (
+        <p className="hand-fail">
+          References removed requirements; save repairs this constraint.
+        </p>
+      ) : null}
+      {unsupported.length > 0 ? (
+        <p className="hand-fail">
+          Only ≥ 1 requirements can participate in distinct matching.
+        </p>
+      ) : null}
+      <p className="explorer-notation">Distinct by: card name</p>
+      <div className="row-actions">
+        <button type="button" className="ghost" onClick={onRemove}>
+          Remove constraint
+        </button>
       </div>
     </div>
   );
@@ -643,8 +824,10 @@ function RequirementEditor({
           value={requirement.kind}
           onChange={(event) => {
             const kind = event.target.value as ConditionRequirement["kind"];
+            const id = requirement.id;
             if (kind === "card") {
               onChange({
+                ...(id ? { id } : {}),
                 kind: "card",
                 card_id: doc.main[0]?.card_id ?? 0,
                 op: requirement.op,
@@ -652,6 +835,7 @@ function RequirementEditor({
               });
             } else if (kind === "role") {
               onChange({
+                ...(id ? { id } : {}),
                 kind: "role",
                 role: "starter",
                 op: requirement.op,
@@ -659,6 +843,7 @@ function RequirementEditor({
               });
             } else {
               onChange({
+                ...(id ? { id } : {}),
                 kind: "group",
                 group_id: doc.groups[0]?.id ?? "",
                 op: requirement.op,

@@ -3,13 +3,22 @@ import type { MappingCard } from "./document";
 import type { ConditionRequirement } from "./handExplorer";
 
 function requirementKey(requirement: ConditionRequirement): string {
+  const id = requirement.id ?? "";
   if (requirement.kind === "card") {
-    return `card:${requirement.card_id}:${requirement.op}:${requirement.count}`;
+    return `${id}:card:${requirement.card_id}:${requirement.op}:${requirement.count}`;
   }
   if (requirement.kind === "role") {
-    return `role:${requirement.role}:${requirement.op}:${requirement.count}`;
+    return `${id}:role:${requirement.role}:${requirement.op}:${requirement.count}`;
   }
-  return `group:${requirement.group_id}:${requirement.op}:${requirement.count}`;
+  return `${id}:group:${requirement.group_id}:${requirement.op}:${requirement.count}`;
+}
+
+function distinctKey(constraint: {
+  id: string;
+  requirement_ids: string[];
+  distinct_by: string;
+}): string {
+  return `${constraint.id}:${constraint.distinct_by}:${constraint.requirement_ids.join(",")}`;
 }
 
 function cardKey(card: MappingCard): string {
@@ -43,7 +52,10 @@ export function modelsAnalysisKey(input: {
     .map((condition) => {
       const requires = condition.requirements.map(requirementKey).join("&");
       const excludes = condition.excludes.map(requirementKey).join("&");
-      return `${condition.id}|${requires}|${excludes}`;
+      const distinct = (condition.distinct_constraints ?? [])
+        .map(distinctKey)
+        .join("&");
+      return `${condition.id}|${requires}|${excludes}|${distinct}`;
     })
     .join(";");
   const sets = input.hand_condition_sets
