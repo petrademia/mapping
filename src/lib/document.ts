@@ -20,7 +20,6 @@ import {
 } from "./taxonomy";
 
 export const SCHEMA_VERSION = 3;
-export const LEGACY_SCHEMA_VERSIONS = [1, 2] as const;
 
 export type DeckSection = "main" | "extra" | "side";
 
