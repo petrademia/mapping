@@ -156,15 +156,38 @@ human-modeled hand-composition constraint, not a claim that Citrinitas is
 
 MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Hand Conditions are strategically independent routes (they may converge on the same choke point).
 
-**Modeled Engine Access** is derived: the user explicitly selects which Hand
-Conditions count as engine access. MAPPING computes the exact probability of
-the union (OR) of the selected conditions, never summing probabilities or
-assuming independence. It also reports the exact access-count distribution:
-how many of the selected conditions a random hand satisfies
-(`P(N >= 1)`, `P(N >= 2)`, ... and `P(N = k)` buckets). More than one
-satisfied condition is a combinatorial property of the user's definitions,
-not evidence of two independent combo routes. Do not label this combo
-success, playability, or win rate.
+### Condition Sets and exact event analysis
+
+A **Condition Set** groups Hand Conditions as alternative ways of satisfying a
+modeled outcome (`ANY of` the members, OR semantics). Example:
+
+```text
+Normal Engine Access
+  ANY OF
+    Medius Access
+    Vidolium Access
+    Nervedo Access
+```
+
+For each set MAPPING reports, exactly, the union probability
+`P(C1 ∪ C2 ∪ ...)`, the multiplicity distribution
+(`P(N >= 1)`, `P(N >= 2)`, ... and `P(N = k)` buckets), and the pairwise
+intersections `P(A ∩ B)` of its members. The user never declares conditions
+mutually exclusive: overlap is derived from exact hand evaluation, and
+probabilities are never summed or averaged.
+
+Treating each condition as an event, MAPPING also exposes:
+
+- `P(A)`, `P(B)`, `P(A ∩ B)`, `P(A ∪ B)` for any two conditions;
+- `P(A | B) = P(A ∩ B) / P(B)` when `P(B) > 0`, otherwise undefined;
+- multiplicity buckets `P(N = k)` that are mutually exclusive and jointly
+  exhaustive (`Σ P(N = k) = 1`).
+
+**Modeled Engine Access** is just the Condition Set with the fixed id
+`modeled-engine-access` (a normal set, not a separate mechanism). The Deck
+Profile reads that set. More than one satisfied condition is a combinatorial
+property of the user's definitions, not evidence of two independent combo
+routes. Do not label this combo success, playability, or win rate.
 
 If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy. v0 does not generalize membership in a condition set from a condition's name.
 
@@ -261,7 +284,7 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; paste-add appends without replacing
-- define Hand Conditions (Requires / Excludes), Groups, and Engine Access membership; inspect modeled engine access and its access-count distribution
+- define Hand Conditions (Requires / Excludes), Groups, and Condition Sets (ANY of members); inspect per-set union, pairwise overlap, and multiplicity distribution
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
 - inspect the Deck Profile: opening composition, access composition, interaction, and GF/GS context comparison
 - compare two opening-hand conditions with exact joint/conditional probabilities

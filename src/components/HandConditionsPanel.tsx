@@ -4,6 +4,7 @@ import {
   newId,
   type Group,
   type HandCondition,
+  type HandConditionSet,
 } from "../lib/handCondition";
 import {
   analysisContextLabel,
@@ -15,21 +16,23 @@ import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import {
   analysisContextOf,
-  engineAccessConditionIds,
-  isEngineAccessCondition,
   removeGroup,
   removeHandCondition,
+  removeHandConditionSet,
   sectionSize,
-  setEngineAccessMember,
+  setConditionSetMember,
   upsertGroup,
   upsertHandCondition,
+  upsertHandConditionSet,
   type MappingDocument,
 } from "../lib/document";
 import {
+  analyzeHandConditions,
   COUNT_OPERATORS,
-  summarizeHandConditions,
+  pairKey,
   type ConditionRequirement,
   type CountOperator,
+  type HandEventAnalysis,
 } from "../lib/handExplorer";
 import { ProbabilityError } from "../lib/probability";
 import { ROLES, type Role } from "../lib/taxonomy";
@@ -75,11 +78,11 @@ export function HandConditionsPanel({
   const summary = useMemo(() => {
     if (deck === 0) return null;
     try {
-      return summarizeHandConditions(
+      return analyzeHandConditions(
         doc.main,
         sample,
         doc.hand_conditions,
-        engineAccessConditionIds(doc),
+        doc.hand_condition_sets,
         groupsToMembership(doc.groups),
       );
     } catch (caught) {
@@ -112,6 +115,17 @@ export function HandConditionsPanel({
         id: newId("group"),
         name: "New group",
         card_ids: [],
+      }),
+    );
+  }
+
+  function addSet(): void {
+    onChange(
+      upsertHandConditionSet(doc, {
+        id: newId("set"),
+        name: "New condition set",
+        condition_ids: [],
+        aggregation: "any",
       }),
     );
   }
@@ -188,10 +202,6 @@ export function HandConditionsPanel({
               doc={doc}
               catalog={catalog}
               probability={probability}
-              member={isEngineAccessCondition(doc, condition.id)}
-              onMembershipChange={(member) =>
-                onChange(setEngineAccessMember(doc, condition.id, member))
-              }
               onChange={(next) => onChange(upsertHandCondition(doc, next))}
               onRemove={() => onChange(removeHandCondition(doc, condition.id))}
             />
@@ -202,124 +212,46 @@ export function HandConditionsPanel({
         + Add Hand Condition
       </button>
 
-      <h3 className="panel-subhead">Modeled Engine Access</h3>
+      <h3 className="panel-subhead">Condition Sets</h3>
       <p className="note">
-        Select which Hand Conditions count as engine access. Modeled Engine
-        Access is the OR of the selected conditions, counted per hand without
-        double counting. Two satisfied conditions do not imply two independent
-        routes.
+        A Condition Set groups Hand Conditions as alternative ways to satisfy a
+        modeled outcome (ANY of the members). MAPPING derives overlap from exact
+        evaluation, so it never sums or averages overlapping probabilities and
+        never asks whether conditions are mutually exclusive.
       </p>
-      {doc.hand_conditions.length === 0 ? (
-        <p className="empty">Add a Hand Condition first.</p>
+      {doc.hand_condition_sets.length === 0 ? (
+        <p className="empty">No condition sets yet.</p>
       ) : (
-        <ul className="engine-members">
-          {doc.hand_conditions.map((condition) => {
-            const probability =
-              summary && !("error" in summary)
-                ? summary.conditions.find((row) => row.id === condition.id)
-                    ?.probability
-                : undefined;
-            const member = isEngineAccessCondition(doc, condition.id);
-            return (
-              <li key={condition.id}>
-                <label className="engine-member">
-                  <input
-                    type="checkbox"
-                    checked={member}
-                    onChange={(event) =>
-                      onChange(
-                        setEngineAccessMember(
-                          doc,
-                          condition.id,
-                          event.target.checked,
-                        ),
-                      )
-                    }
-                  />
-                  <span className="explorer-title">{condition.name}</span>
-                  <span className="engine-member-prob">
-                    {probability !== undefined
-                      ? formatPercent(probability)
-                      : "—"}
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
+        doc.hand_condition_sets.map((set) => {
+          const setSummary =
+            summary && !("error" in summary)
+              ? summary.sets.find((row) => row.id === set.id)
+              : undefined;
+          return (
+            <SetEditor
+              key={set.id}
+              set={set}
+              doc={doc}
+              summary={summary && !("error" in summary) ? summary : undefined}
+              setSummary={setSummary}
+              context={context}
+              opening={opening}
+              sample={sample}
+              deck={deck}
+              onSetChange={(next) => onChange(upsertHandConditionSet(doc, next))}
+              onToggleMember={(conditionId, member) =>
+                onChange(
+                  setConditionSetMember(doc, set.id, conditionId, member),
+                )
+              }
+              onRemove={() => onChange(removeHandConditionSet(doc, set.id))}
+            />
+          );
+        })
       )}
-      {deck === 0 ? (
-        <p className="empty">Add main-deck cards to compute access rates.</p>
-      ) : summary && "error" in summary ? (
-        <p className="error">{summary.error}</p>
-      ) : summary ? (
-        summary.accessDistribution.atLeast.length === 0 ? (
-          <p className="empty">
-            Select at least one condition above as engine access.
-          </p>
-        ) : (
-          <>
-            <dl className="explorer-results">
-              {summary.accessDistribution.atLeast.map((p, index) => (
-                <div
-                  key={`at-least-${index + 1}`}
-                  className={
-                    index === 0
-                      ? "explorer-row access-union"
-                      : "explorer-row"
-                  }
-                >
-                  <dt>
-                    <span className="explorer-title">
-                      At least {index + 1}{" "}
-                      {index === 0 ? "condition" : "conditions"}
-                    </span>
-                    {index === 0 ? (
-                      <span className="explorer-notation">
-                        Modeled Engine Access ·{" "}
-                        {isOpeningHandObservation(context)
-                          ? `opening ${opening}`
-                          : `first ${sample} cards seen`}
-                      </span>
-                    ) : null}
-                  </dt>
-                  <dd>{formatPercent(p)}</dd>
-                </div>
-              ))}
-            </dl>
-            <dl className="explorer-results access-exact">
-              {summary.accessDistribution.exact
-                .slice(0, summary.accessDistribution.exact.length - 1)
-                .map((p, count) => (
-                  <div key={`exact-${count}`} className="explorer-row">
-                    <dt>
-                      <span className="explorer-title">
-                        Exactly {count} {count === 1 ? "condition" : "conditions"}
-                      </span>
-                    </dt>
-                    <dd>{formatPercent(p)}</dd>
-                  </div>
-                ))}
-              {summary.accessDistribution.exact.length > 1 ? (
-                <div className="explorer-row">
-                  <dt>
-                    <span className="explorer-title">
-                      Exactly {summary.accessDistribution.exact.length - 1}+
-                    </span>
-                  </dt>
-                  <dd>
-                    {formatPercent(
-                      summary.accessDistribution.exact[
-                        summary.accessDistribution.exact.length - 1
-                      ]!,
-                    )}
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
-          </>
-        )
-      ) : null}
+      <button type="button" onClick={addSet}>
+        + Add Condition Set
+      </button>
     </section>
   );
 }
@@ -399,8 +331,6 @@ function ConditionEditor({
   doc,
   catalog,
   probability,
-  member,
-  onMembershipChange,
   onChange,
   onRemove,
 }: {
@@ -408,8 +338,6 @@ function ConditionEditor({
   doc: MappingDocument;
   catalog: Catalog;
   probability: number | undefined;
-  member: boolean;
-  onMembershipChange: (member: boolean) => void;
   onChange: (condition: HandCondition) => void;
   onRemove: () => void;
 }) {
@@ -473,14 +401,6 @@ function ConditionEditor({
             onChange({ ...condition, name: event.target.value })
           }
         />
-        <label className="engine-member-toggle">
-          <input
-            type="checkbox"
-            checked={member}
-            onChange={(event) => onMembershipChange(event.target.checked)}
-          />
-          Engine access
-        </label>
         <button type="button" className="ghost" onClick={onRemove}>
           Delete
         </button>
@@ -691,6 +611,154 @@ function RequirementEditor({
       <button type="button" className="ghost" onClick={onRemove}>
         Remove
       </button>
+    </div>
+  );
+}
+
+function SetEditor({
+  set,
+  doc,
+  summary,
+  setSummary,
+  context,
+  opening,
+  sample,
+  deck,
+  onSetChange,
+  onToggleMember,
+  onRemove,
+}: {
+  set: HandConditionSet;
+  doc: MappingDocument;
+  summary: HandEventAnalysis | undefined;
+  setSummary: import("../lib/handExplorer").ConditionSetSummary | undefined;
+  context: import("../lib/analysisContext").AnalysisContext;
+  opening: number;
+  sample: number;
+  deck: number;
+  onSetChange: (set: HandConditionSet) => void;
+  onToggleMember: (conditionId: string, member: boolean) => void;
+  onRemove: () => void;
+}) {
+  const members = new Set(set.condition_ids);
+  const conditionName = (id: string): string => {
+    const condition = doc.hand_conditions.find((item) => item.id === id);
+    return condition?.name ?? "unknown";
+  };
+
+  return (
+    <div className="access-block">
+      <div className="access-block-head">
+        <input
+          value={set.name}
+          aria-label="Condition set name"
+          onChange={(event) => onSetChange({ ...set, name: event.target.value })}
+        />
+        <button type="button" className="ghost" onClick={onRemove}>
+          Delete set
+        </button>
+      </div>
+      {doc.hand_conditions.length === 0 ? (
+        <p className="empty">Add a Hand Condition first.</p>
+      ) : (
+        <ul className="engine-members">
+          {doc.hand_conditions.map((condition) => {
+            const probability = summary?.conditions.find(
+              (row) => row.id === condition.id,
+            )?.probability;
+            const member = members.has(condition.id);
+            return (
+              <li key={condition.id}>
+                <label className="engine-member">
+                  <input
+                    type="checkbox"
+                    checked={member}
+                    onChange={(event) =>
+                      onToggleMember(condition.id, event.target.checked)
+                    }
+                  />
+                  <span className="explorer-title">{condition.name}</span>
+                  <span className="engine-member-prob">
+                    {probability !== undefined
+                      ? formatPercent(probability)
+                      : "—"}
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {setSummary && setSummary.conditionIds.length > 0 ? (
+        <>
+          <dl className="explorer-results">
+            <div className="explorer-row access-union">
+              <dt>
+                <span className="explorer-title">Any condition</span>
+                <span className="explorer-notation">
+                  {isOpeningHandObservation(context)
+                    ? `opening ${opening}`
+                    : `first ${sample} cards seen`}
+                </span>
+              </dt>
+              <dd>{formatPercent(setSummary.union)}</dd>
+            </div>
+            {setSummary.distribution.atLeast.slice(1).map((p, index) => (
+              <div key={`set-at-least-${set.id}-${index + 2}`} className="explorer-row">
+                <dt>
+                  <span className="explorer-title">
+                    At least {index + 2} conditions
+                  </span>
+                </dt>
+                <dd>{formatPercent(p)}</dd>
+              </div>
+            ))}
+          </dl>
+          <dl className="explorer-results access-exact">
+            {setSummary.distribution.exact.map((p, count) => (
+              <div key={`set-exact-${set.id}-${count}`} className="explorer-row">
+                <dt>
+                  <span className="explorer-title">
+                    Exactly {count} {count === 1 ? "condition" : "conditions"}
+                  </span>
+                </dt>
+                <dd>{formatPercent(p)}</dd>
+              </div>
+            ))}
+          </dl>
+          {setSummary.conditionIds.length >= 2 ? (
+            <>
+              <p className="access-allof access-relationships-label">
+                Relationships (both)
+              </p>
+              <dl className="explorer-results">
+                {setSummary.conditionIds.map((aId, i) =>
+                  setSummary.conditionIds.slice(i + 1).map((bId) => {
+                    const overlap = summary?.overlaps.get(pairKey(aId, bId));
+                    if (!overlap) return null;
+                    return (
+                      <div key={`pair-${set.id}-${aId}-${bId}`} className="explorer-row">
+                        <dt>
+                          <span className="explorer-title">
+                            {conditionName(aId)} ∩ {conditionName(bId)}
+                          </span>
+                        </dt>
+                        <dd>{formatPercent(overlap.intersection)}</dd>
+                      </div>
+                    );
+                  }),
+                )}
+              </dl>
+            </>
+          ) : null}
+        </>
+      ) : (
+        <p className="empty">
+          {deck === 0
+            ? "Add main-deck cards to compute set probabilities."
+            : "Select at least one condition above as a member of this set."}
+        </p>
+      )}
     </div>
   );
 }
