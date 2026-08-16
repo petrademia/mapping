@@ -233,6 +233,37 @@ export function copiesForRole(
   );
 }
 
+/**
+ * Annotation coverage: how many distinct card ENTRIES have a classified
+ * (non-null) Opening Quality per turn order, out of the total entry count.
+ * A card entry is one deck row regardless of its copy count.
+ */
+export function openingQualityCoverage(
+  cards: readonly { taxonomy: CardTaxonomy }[],
+): {
+  going_first: { classified: number; unclassified: number; total: number };
+  going_second: { classified: number; unclassified: number; total: number };
+} {
+  let gfClassified = 0;
+  let gsClassified = 0;
+  for (const card of cards) {
+    if (card.taxonomy.opening_quality.going_first !== null) gfClassified += 1;
+    if (card.taxonomy.opening_quality.going_second !== null) gsClassified += 1;
+  }
+  return {
+    going_first: {
+      classified: gfClassified,
+      unclassified: cards.length - gfClassified,
+      total: cards.length,
+    },
+    going_second: {
+      classified: gsClassified,
+      unclassified: cards.length - gsClassified,
+      total: cards.length,
+    },
+  };
+}
+
 /** Copies with a specific opening quality in the given turn order (null = unclassified). */
 export function copiesForOpeningQuality(
   cards: readonly { quantity: number; taxonomy: CardTaxonomy }[],

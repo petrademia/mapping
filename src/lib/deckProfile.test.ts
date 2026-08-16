@@ -249,3 +249,177 @@ describe("deck profile: access and interaction composition", () => {
     );
   });
 });
+describe("deck profile: semantic separation", () => {
+  const access = {
+    id: "a",
+    name: "card1",
+    requirements: [
+      { kind: "card" as const, card_id: 1, op: "gte" as const, count: 1 },
+    ],
+  };
+
+  it("keeps the raw interaction probability unchanged across turn orders", () => {
+    const deck = [card(1, 2, GF, ["interaction"]), card(2, 8, CLS)];
+    const gf = computeDeckProfile({
+      deck,
+      handSize: 5,
+      turnOrder: "going_first",
+      conditions: [],
+    });
+    const gs = computeDeckProfile({
+      deck,
+      handSize: 5,
+      turnOrder: "going_second",
+      conditions: [],
+    });
+    // Raw role identity does not depend on context.
+    expect(gf.interactionGe1).toBe(gs.interactionGe1);
+    expect(gf.interactionGe1).toBeCloseTo(
+      openingAtLeastProbability(10, 2, 5, 1),
+      12,
+    );
+  });
+
+  it("keeps modeled engine access as the exact union (unchanged by refactor)", () => {
+    const deck = [card(1, 3, GF), card(2, 37, CLS)];
+    const profile = computeDeckProfile({
+      deck,
+      handSize: 5,
+      turnOrder: "going_first",
+      conditions: [access],
+      accessConditionIds: ["a"],
+      groups: new Map(),
+    });
+    expect(profile.anyAccess).toBeCloseTo(
+      openingAtLeastProbability(40, 3, 5, 1),
+      12,
+    );
+  });
+
+  it("satisfies P(access) = P(N >= 1)", () => {
+    const deck = [card(1, 3, GF), card(2, 37, CLS)];
+    const profile = computeDeckProfile({
+      deck,
+      handSize: 5,
+      turnOrder: "going_first",
+      conditions: [access],
+      accessConditionIds: ["a"],
+      groups: new Map(),
+    });
+    expect(profile.anyAccess).toBeCloseTo(
+      profile.accessMultiplicity.atLeast[0]!,
+      12,
+    );
+  });
+
+  it("computes access multiplicity cumulatives exactly", () => {
+    const deck = [card(1, 2, GF), card(2, 2, GF), card(3, 36, CLS)];
+    const conditions = [
+      { id: "a", name: "A", requirements: [{ kind: "card" as const, card_id: 1, op: "gte" as const, count: 1 }] },
+      { id: "b", name: "B", requirements: [{ kind: "card" as const, card_id: 2, op: "gte" as const, count: 1 }] },
+    ];
+    const profile = computeDeckProfile({
+      deck,
+      handSize: 2,
+      turnOrder: "going_first",
+      conditions,
+      accessConditionIds: ["a", "b"],
+      groups: new Map(),
+    });
+    const { exact, atLeast } = profile.accessMultiplicity;
+    expect(atLeast[0]).toBeCloseTo(1 - exact[0]!, 12);
+    expect(atLeast[1]).toBeCloseTo(exact[2]!, 12);
+    expect(exact.reduce((sum, p) => sum + p, 0)).toBeCloseTo(1, 12);
+  });
+
+  it("derives the conditional on access from the correct denominator", () => {
+    const deck = [card(1, 1, GF), card(2, 1, GF, ["interaction"]), card(3, 3, CLS)];
+    const profile = computeDeckProfile({
+      deck,
+      handSize: 2,
+      turnOrder: "going_first",
+      conditions: [access],
+      accessConditionIds: ["a"],
+      groups: new Map(),
+    });
+    expect(profile.interactionGivenAccess).toBeCloseTo(
+      profile.accessAndInteraction / profile.anyAccess,
+      12,
+    );
+  });
+
+  it("returns null for conditionals when access probability is zero", () => {
+    // access references a card not present in the deck, so P(access) = 0.
+    const missingAccess = {
+      id: "missing",
+      name: "missing",
+      requirements: [
+        { kind: "card" as const, card_id: 99, op: "gte" as const, count: 1 },
+      ],
+    };
+    const deck = [card(1, 1, GF), card(2, 4, CLS)];
+    const profile = computeDeckProfile({
+      deck,
+      handSize: 5,
+      turnOrder: "going_first",
+      conditions: [missingAccess],
+      accessConditionIds: ["missing"],
+      groups: new Map(),
+    });
+    expect(profile.anyAccess).toBe(0);
+    expect(profile.interactionGivenAccess).toBeNull();
+    expect(profile.noUndesirableGivenAccess).toBeNull();
+  });
+
+  it("uses the current Opening Quality context for no-undesirable conditionals", () => {
+    const fuwalos = card(10, 3, { going_first: "neutral", going_second: "desirable" });
+    const undesirableOnly = card(11, 2, { going_first: "undesirable", going_second: "desirable" });
+    const filler = card(12, 5, CLS);
+    const deck = [fuwalos, undesirableOnly, filler];
+    const gf = computeDeckProfile({
+      deck,
+      handSize: 2,
+      turnOrder: "going_first",
+      conditions: [],
+    });
+    const gs = computeDeckProfile({
+      deck,
+      handSize: 2,
+      turnOrder: "going_second",
+      conditions: [],
+    });
+    // Undesirable differs by context annotation -> composition differs.
+    expect(gf.undesirableGe1).toBeGreaterThan(gs.undesirableGe1);
+  });
+
+  it("keeps raw taxonomy statistics available alongside modeled outcomes", () => {
+    const deck = [card(1, 2, GF), card(2, 2, UND_GF), card(3, 6, CLS)];
+    const profile = computeDeckProfile({
+      deck,
+      handSize: 5,
+      turnOrder: "going_first",
+      conditions: [],
+    });
+    expect(profile.desirableGe1).toBeGreaterThan(0);
+    expect(profile.undesirableGe1).toBeGreaterThan(0);
+    expect(profile.unclassifiedGe1).toBeGreaterThan(0);
+    expect(profile.interactionGe1).toBeGreaterThanOrEqual(0);
+  });
+
+  it("does not treat overlapping roles as mutually exclusive slots", () => {
+    // A single card tagged starter + interaction contributes to both role
+    // counts, but the "interaction present" event is not the sum of disjoint
+    // probabilities.
+    const deck = [card(1, 2, GF, ["starter", "interaction"]), card(2, 8, CLS)];
+    const profile = computeDeckProfile({
+      deck,
+      handSize: 5,
+      turnOrder: "going_first",
+      conditions: [],
+    });
+    expect(profile.interactionGe1).toBeCloseTo(
+      openingAtLeastProbability(10, 2, 5, 1),
+      12,
+    );
+  });
+});

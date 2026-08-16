@@ -222,21 +222,29 @@ why each predicate passed or failed.
 
 ### Deck Profile
 
-The **Deck Profile** panel reports transparent, named percentages for the
-selected Analysis Context, never a single aggregate score:
+The **Deck Profile** panel is a compact strategic summary that separates
+**modeled outcomes** from raw annotation diagnostics. It never reports a
+single aggregate "Deck Quality" score:
 
-| Block | Metric |
+| Layer | What it shows |
 | --- | --- |
-| **Modeled Engine Access** | P(at least one engine-access condition) |
-| **Opening Composition** | P(≥ 1 desirable), P(≥ 1 neutral), P(≥ 1 undesirable), P(≥ 2 undesirable), P(≥ 1 unclassified) |
-| **Access Composition** | P(access and no undesirable), P(access and ≥ 1 undesirable) |
-| **Interaction** | P(≥ 1 interaction), P(access and ≥ 1 interaction) |
-| **Context comparison** | ≥ 1 desirable / undesirable / ≥ 2 undesirable under Going First vs Going Second |
+| **Modeled Outcomes** | Engine Access (P(any selected engine-access condition)), Access + Interaction-tagged, Access + No Undesirable |
+| **Access Multiplicity** | P(N ≥ 1), P(N ≥ 2), P(N ≥ 3) over the selected access conditions (not "resilience") |
+| **Conditional on Access** | P(Interaction-tagged \| Access), P(No Undesirable \| Access) |
+| **Annotation & composition analysis** (collapsed) | Opening Quality composition, Access composition, interaction-tagged cards, context comparison, and **Annotation Coverage** (x / N card entries classified per turn order) |
 
-Every percentage has an explicit mathematical interpretation (exact opening-hand
-hypergeometric / composition enumeration). Do **not** read “hands with ≥ 1
-undesirable” as “bad hands”: an undesirable-tagged card in a hand can still
-produce a strong line.
+Every percentage has an explicit mathematical interpretation (exact
+opening-hand hypergeometric / composition enumeration). Do **not** read
+"hands with ≥ 1 undesirable" as "bad hands": an undesirable-tagged card in a
+hand can still produce a strong line. Do **not** read "≥ 1 interaction-tagged
+card" as "usable interaction": that is a raw taxonomy event, and usable
+interaction should be modeled with Hand Conditions instead. The user is never
+asked whether conditions are mutually exclusive; overlap is derived from exact
+evaluation.
+
+Raw taxonomy and Opening Quality annotation statistics live in
+**Taxonomy / Annotation Analysis** (role slots + opening-quality slots) and
+never compete visually with modeled outcomes.
 
 ### Coming next (not implemented)
 
@@ -316,7 +324,8 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 - define Hand Conditions (Requires / Excludes), Groups, and Condition Sets (ANY of members); inspect per-set union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Condition Sets, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
-- inspect the Deck Profile: opening composition, access composition, interaction, and GF/GS context comparison
+- inspect the Deck Profile: modeled outcomes (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
+- inspect raw taxonomy density and per-context opening-quality counts separately from modeled outcomes
 - compare two opening-hand conditions with exact joint/conditional probabilities
 - save locally (browser `localStorage` plus file download)
 - Save YDK exports the current list for Omega / external tools

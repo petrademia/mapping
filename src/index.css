@@ -299,6 +299,23 @@ h1 {
 .probs dd { margin: 0; font-family: "Red Hat Mono", ui-monospace, monospace; }
 .error { color: var(--danger); }
 
+.panel-details {
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.5rem;
+}
+.panel-details summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin-bottom: 0.4rem;
+}
+.panel-details article {
+  margin-bottom: 0.5rem;
+}
+
 .condition-block { margin-bottom: 0.75rem; }
 .condition-controls {
   display: grid;

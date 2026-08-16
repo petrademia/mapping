@@ -10,9 +10,14 @@ import {
 import { groupsToMembership } from "../lib/handCondition";
 import { computeDeckProfile } from "../lib/deckProfile";
 import { ProbabilityError } from "../lib/probability";
+import { openingQualityCoverage } from "../lib/taxonomy";
 
 function formatChance(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
+}
+
+function formatChanceOrDash(value: number | null): string {
+  return value === null ? "—" : formatChance(value);
 }
 
 interface Props {
@@ -90,6 +95,10 @@ export function DeckProfile({ doc, onHandSize }: Props) {
         card.taxonomy.opening_quality.going_second !== null,
     );
 
+  const coverage = openingQualityCoverage(doc.main);
+  const coveragePercent = (classified: number, total: number): string =>
+    total === 0 ? "0%" : formatChance(classified / total);
+
   return (
     <section className="panel">
       <header>
@@ -106,12 +115,12 @@ export function DeckProfile({ doc, onHandSize }: Props) {
         </label>
       </header>
       <p className="note">
-        Exact opening-hand deck profile under{" "}
+        Exact opening-hand profile under{" "}
         {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. Opening quality uses the{" "}
-        {context.turn_order === "going_first" ? "going-first" : "going-second"}{" "}
-        annotation. Not combo success, win rate, or YAPPING utility. A hand with
-        an undesirable-tagged card is not necessarily a bad hand.
+        {sampleSizeDescription(context, opening)}. Modeled outcomes come from
+        the configured Hand Conditions; raw composition statistics below are
+        descriptive annotations, not strategic verdicts. Not combo success, win
+        rate, or YAPPING utility.
       </p>
       {deck === 0 ? (
         <p className="empty">Add main-deck cards to profile the deck.</p>
@@ -125,103 +134,202 @@ export function DeckProfile({ doc, onHandSize }: Props) {
       ) : profile ? (
         <div className="probs">
           <article>
-            <h3>Modeled Engine Access</h3>
-            <p className="hero">
-              At least one engine-access condition{" "}
-              <strong>{formatChance(profile.anyAccess)}</strong>
-            </p>
+            <h3>Modeled Outcomes</h3>
             <p className="explorer-notation">
-              UNION over the Hand Conditions selected as engine access;
+              Union over the Hand Conditions selected as engine access;
               overlapping conditions are not double-counted.
             </p>
-          </article>
-
-          <article data-quality="unclassified">
-            <h3>Opening Composition</h3>
             <dl>
               <div>
-                <dt>Hands with &gt;= 1 desirable card</dt>
-                <dd>{formatChance(profile.desirableGe1)}</dd>
+                <dt>Engine Access</dt>
+                <dd>{formatChance(profile.anyAccess)}</dd>
               </div>
               <div>
-                <dt>Hands with &gt;= 1 neutral card</dt>
-                <dd>{formatChance(profile.neutralGe1)}</dd>
-              </div>
-              <div>
-                <dt>Hands with &gt;= 1 undesirable card</dt>
-                <dd>{formatChance(profile.undesirableGe1)}</dd>
-              </div>
-              <div>
-                <dt>Hands with &gt;= 2 undesirable cards</dt>
-                <dd>{formatChance(profile.undesirableGe2)}</dd>
-              </div>
-              <div>
-                <dt>Hands with &gt;= 1 unclassified card</dt>
-                <dd>{formatChance(profile.unclassifiedGe1)}</dd>
-              </div>
-            </dl>
-          </article>
-
-          <article data-quality="undesirable">
-            <h3>Access Composition</h3>
-            <dl>
-              <div>
-                <dt>Access + no undesirable card</dt>
-                <dd>{formatChance(profile.accessNoUndesirable)}</dd>
-              </div>
-              <div>
-                <dt>Access + &gt;= 1 undesirable card</dt>
-                <dd>{formatChance(profile.accessUndesirableGe1)}</dd>
-              </div>
-            </dl>
-          </article>
-
-          <article data-role="interaction">
-            <h3>Interaction</h3>
-            <dl>
-              <div>
-                <dt>Hands with &gt;= 1 interaction card</dt>
-                <dd>{formatChance(profile.interactionGe1)}</dd>
-              </div>
-              <div>
-                <dt>Access + &gt;= 1 interaction card</dt>
+                <dt>Access + Interaction-tagged card</dt>
                 <dd>{formatChance(profile.accessAndInteraction)}</dd>
               </div>
+              <div>
+                <dt>Access + No Undesirable</dt>
+                <dd>{formatChance(profile.accessNoUndesirable)}</dd>
+              </div>
             </dl>
           </article>
 
-          {comparison ? (
+          <article>
+            <h3>Access Multiplicity</h3>
+            <p className="explorer-notation">
+              How many of the selected access conditions a random hand
+              satisfies. Not resilience: routes may converge after an
+              interruption.
+            </p>
+            <dl>
+              {profile.accessMultiplicity.atLeast.map((p, index) => (
+                <div key={`multi-${index}`}>
+                  <dt>At least {index + 1} access condition{index === 0 ? "" : "s"}</dt>
+                  <dd>{formatChance(p)}</dd>
+                </div>
+              ))}
+              {profile.accessMultiplicity.atLeast.length === 0 ? (
+                <div>
+                  <dt>At least 1 access condition</dt>
+                  <dd>0%</dd>
+                </div>
+              ) : null}
+            </dl>
+          </article>
+
+          <article>
+            <h3>Conditional on Access</h3>
+            <p className="explorer-notation">
+              Among hands with modeled engine access, the percentage that also
+              satisfy the stated raw annotation event.
+            </p>
+            <dl>
+              <div>
+                <dt>Interaction-tagged card</dt>
+                <dd>
+                  {formatChanceOrDash(profile.interactionGivenAccess)}
+                </dd>
+              </div>
+              <div>
+                <dt>No undesirable</dt>
+                <dd>{formatChanceOrDash(profile.noUndesirableGivenAccess)}</dd>
+              </div>
+            </dl>
+          </article>
+
+          <details className="panel-details">
+            <summary>Annotation &amp; composition analysis</summary>
+
             <article>
-              <h3>Context comparison</h3>
+              <h3>Annotation Coverage</h3>
               <p className="explorer-notation">
-                Turn order uses going-first vs going-second annotations on the
-                same deck (both at opening hand sample size).
+                Opening Quality cards classified per turn order. Unclassified is
+                incomplete annotation, not a neutral verdict.
               </p>
               <dl>
                 <div>
-                  <dt>&gt;= 1 desirable (GF / GS)</dt>
+                  <dt>Going First classified</dt>
                   <dd>
-                    {formatChance(comparison.going_first.desirableGe1)} /{" "}
-                    {formatChance(comparison.going_second.desirableGe1)}
+                    {coverage.going_first.classified} /{" "}
+                    {coverage.going_first.total} ·{" "}
+                    {coveragePercent(
+                      coverage.going_first.classified,
+                      coverage.going_first.total,
+                    )}
                   </dd>
                 </div>
                 <div>
-                  <dt>&gt;= 1 undesirable (GF / GS)</dt>
+                  <dt>Going Second classified</dt>
                   <dd>
-                    {formatChance(comparison.going_first.undesirableGe1)} /{" "}
-                    {formatChance(comparison.going_second.undesirableGe1)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>&gt;= 2 undesirable (GF / GS)</dt>
-                  <dd>
-                    {formatChance(comparison.going_first.undesirableGe2)} /{" "}
-                    {formatChance(comparison.going_second.undesirableGe2)}
+                    {coverage.going_second.classified} /{" "}
+                    {coverage.going_second.total} ·{" "}
+                    {coveragePercent(
+                      coverage.going_second.classified,
+                      coverage.going_second.total,
+                    )}
                   </dd>
                 </div>
               </dl>
             </article>
-          ) : null}
+
+            <article data-quality="unclassified">
+              <h3>Opening Quality Composition</h3>
+              <p className="explorer-notation">
+                Raw annotation statistics using the currently selected{" "}
+                {context.turn_order === "going_first" ? "going-first" : "going-second"}{" "}
+                Opening Quality annotation.
+              </p>
+              <dl>
+                <div>
+                  <dt>Contains &gt;= 1 desirable-tagged card</dt>
+                  <dd>{formatChance(profile.desirableGe1)}</dd>
+                </div>
+                <div>
+                  <dt>Contains &gt;= 1 neutral-tagged card</dt>
+                  <dd>{formatChance(profile.neutralGe1)}</dd>
+                </div>
+                <div>
+                  <dt>Contains &gt;= 1 undesirable-tagged card</dt>
+                  <dd>{formatChance(profile.undesirableGe1)}</dd>
+                </div>
+                <div>
+                  <dt>Contains &gt;= 2 undesirable-tagged cards</dt>
+                  <dd>{formatChance(profile.undesirableGe2)}</dd>
+                </div>
+                <div>
+                  <dt>Contains &gt;= 1 unclassified card</dt>
+                  <dd>{formatChance(profile.unclassifiedGe1)}</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article data-quality="undesirable">
+              <h3>Access Composition</h3>
+              <dl>
+                <div>
+                  <dt>Access + no undesirable-tagged card</dt>
+                  <dd>{formatChance(profile.accessNoUndesirable)}</dd>
+                </div>
+                <div>
+                  <dt>Access + &gt;= 1 undesirable-tagged card</dt>
+                  <dd>{formatChance(profile.accessUndesirableGe1)}</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article data-role="interaction">
+              <h3>Interaction-tagged cards</h3>
+              <p className="explorer-notation">
+                Raw taxonomy event. An interaction-tagged card is not
+                automatically usable interaction in every context - model that
+                with Hand Conditions instead.
+              </p>
+              <dl>
+                <div>
+                  <dt>Contains &gt;= 1 interaction-tagged card</dt>
+                  <dd>{formatChance(profile.interactionGe1)}</dd>
+                </div>
+                <div>
+                  <dt>Access + interaction-tagged card</dt>
+                  <dd>{formatChance(profile.accessAndInteraction)}</dd>
+                </div>
+              </dl>
+            </article>
+
+            {comparison ? (
+              <article>
+                <h3>Context comparison</h3>
+                <p className="explorer-notation">
+                  Turn order uses going-first vs going-second annotations on the
+                  same deck (both at opening hand sample size).
+                </p>
+                <dl>
+                  <div>
+                    <dt>&gt;= 1 desirable (GF / GS)</dt>
+                    <dd>
+                      {formatChance(comparison.going_first.desirableGe1)} /{" "}
+                      {formatChance(comparison.going_second.desirableGe1)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>&gt;= 1 undesirable (GF / GS)</dt>
+                    <dd>
+                      {formatChance(comparison.going_first.undesirableGe1)} /{" "}
+                      {formatChance(comparison.going_second.undesirableGe1)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>&gt;= 2 undesirable (GF / GS)</dt>
+                    <dd>
+                      {formatChance(comparison.going_first.undesirableGe2)} /{" "}
+                      {formatChance(comparison.going_second.undesirableGe2)}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            ) : null}
+          </details>
         </div>
       ) : null}
     </section>
