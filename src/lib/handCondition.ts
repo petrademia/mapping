@@ -14,6 +14,8 @@ function parseOperator(value: unknown): CountOperator {
 export interface Group {
   id: string;
   name: string;
+  /** Optional human note (intent); omitted when blank. Not used by math. */
+  notes?: string;
   card_ids: number[];
 }
 
@@ -25,6 +27,8 @@ export interface Group {
 export interface HandCondition {
   id: string;
   name: string;
+  /** Optional human note (intent); omitted when blank. Not used by math. */
+  notes?: string;
   /** ALL OF these requirements. Empty means incomplete (never holds). */
   requirements: ConditionRequirement[];
   /** NONE OF these exclusion predicates may hold. Empty means no exclusions. */
@@ -41,12 +45,19 @@ export type SetAggregation = (typeof SET_AGGREGATIONS)[number];
 export interface HandConditionSet {
   id: string;
   name: string;
+  /** Optional human note (intent); omitted when blank. Not used by math. */
+  notes?: string;
   condition_ids: string[];
   aggregation: SetAggregation;
 }
 
 export function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function optionalNotes(raw: string | undefined): string | undefined {
+  const notes = raw?.trim() ?? "";
+  return notes.length > 0 ? notes : undefined;
 }
 
 export function normalizeGroup(raw: Group): Group {
@@ -62,7 +73,10 @@ export function normalizeGroup(raw: Group): Group {
     seen.add(cardId);
     card_ids.push(cardId);
   }
-  return { id, name, card_ids };
+  const notes = optionalNotes(raw.notes);
+  return notes === undefined
+    ? { id, name, card_ids }
+    : { id, name, notes, card_ids };
 }
 
 export function normalizeCondition(raw: ConditionRequirement): ConditionRequirement {
@@ -111,13 +125,15 @@ export function normalizeHandCondition(raw: HandCondition): HandCondition {
   const excludes = Array.isArray(raw.excludes)
     ? raw.excludes.map(normalizeCondition)
     : [];
-  return {
+  const notes = optionalNotes(raw.notes);
+  const base = {
     id,
     // Keep the trimmed name; the UI shows a placeholder when it is empty.
     name: raw.name.trim(),
     requirements,
     excludes,
   };
+  return notes === undefined ? base : { ...base, notes };
 }
 
 export function normalizeHandConditionSet(raw: HandConditionSet): HandConditionSet {
@@ -136,13 +152,15 @@ export function normalizeHandConditionSet(raw: HandConditionSet): HandConditionS
     ids.add(trimmed);
     condition_ids.push(trimmed);
   }
-  return {
+  const notes = optionalNotes(raw.notes);
+  const base = {
     id,
     // Keep the trimmed name; the UI shows a placeholder when it is empty.
     name: raw.name.trim(),
     condition_ids,
     aggregation,
   };
+  return notes === undefined ? base : { ...base, notes };
 }
 
 export function groupsToMembership(
@@ -202,6 +220,7 @@ export function parseGroup(raw: unknown): Group {
   return normalizeGroup({
     id: String(record.id ?? ""),
     name: String(record.name ?? ""),
+    notes: typeof record.notes === "string" ? record.notes : undefined,
     card_ids,
   });
 }
@@ -220,6 +239,7 @@ export function parseHandCondition(raw: unknown): HandCondition {
   return normalizeHandCondition({
     id: String(record.id ?? ""),
     name: String(record.name ?? ""),
+    notes: typeof record.notes === "string" ? record.notes : undefined,
     requirements,
     excludes,
   });
@@ -236,6 +256,7 @@ export function parseHandConditionSet(raw: unknown): HandConditionSet {
   return normalizeHandConditionSet({
     id: String(record.id ?? ""),
     name: String(record.name ?? ""),
+    notes: typeof record.notes === "string" ? record.notes : undefined,
     condition_ids,
     aggregation: (record.aggregation ?? "any") as SetAggregation,
   });

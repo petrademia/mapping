@@ -53,6 +53,27 @@ const ROLE_LABELS: Record<Role, string> = {
   interaction: "Interaction",
 };
 
+function EntityNotes({
+  value,
+  label,
+  onChange,
+}: {
+  value: string | undefined;
+  label: string;
+  onChange: (notes: string) => void;
+}) {
+  return (
+    <textarea
+      className="entity-notes"
+      value={value ?? ""}
+      placeholder="Optional notes…"
+      aria-label={label}
+      rows={2}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
 }
@@ -378,6 +399,11 @@ function GroupEditor({
           Delete group
         </button>
       </div>
+      <EntityNotes
+        value={group.notes}
+        label={`Notes for ${group.name || "group"}`}
+        onChange={(notes) => onChange({ ...group, notes })}
+      />
       <input
         type="search"
         value={filter}
@@ -491,6 +517,11 @@ function ConditionEditor({
           Delete
         </button>
       </div>
+      <EntityNotes
+        value={condition.notes}
+        label={`Notes for ${condition.name || "hand condition"}`}
+        onChange={(notes) => onChange({ ...condition, notes })}
+      />
       <p className="access-allof">Requires</p>
       {condition.requirements.length === 0 ? (
         <p className="empty">Add at least one requirement.</p>
@@ -761,6 +792,11 @@ function ModeledOutcomeEditor({
           Delete outcome
         </button>
       </div>
+      <EntityNotes
+        value={set.notes}
+        label={`Notes for ${set.name || "modeled outcome"}`}
+        onChange={(notes) => onSetChange({ ...set, notes })}
+      />
       <p className="access-allof">ANY OF</p>
       {doc.hand_conditions.length === 0 ? (
         <p className="empty">Add a Hand Condition first.</p>
