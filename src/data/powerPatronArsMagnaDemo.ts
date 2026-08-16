@@ -1,11 +1,27 @@
 import type { MappingDocument } from "../lib/document";
-import type { CardTaxonomy } from "../lib/taxonomy";
+import {
+  type CardTaxonomy,
+  type ContextualOpeningQuality,
+  type OpeningQualityValue,
+} from "../lib/taxonomy";
 
+type QualityArg = OpeningQualityValue | ContextualOpeningQuality;
+
+/**
+ * Accepts a legacy scalar quality (applied to both contexts) or a contextual
+ * `{ going_first, going_second }` object.
+ */
 function tax(
   roles: CardTaxonomy["roles"] = [],
-  opening_quality: CardTaxonomy["opening_quality"] = null,
+  opening_quality: QualityArg = null,
 ): CardTaxonomy {
-  return { roles, opening_quality };
+  return {
+    roles,
+    opening_quality:
+      typeof opening_quality === "object" && opening_quality !== null
+        ? opening_quality
+        : { going_first: opening_quality, going_second: opening_quality },
+  };
 }
 
 /**
@@ -15,7 +31,7 @@ function tax(
  * claimed optimal tournament deck.
  */
 export const powerPatronArsMagnaDemo: MappingDocument = {
-  schema_version: 3,
+  schema_version: 4,
   name: "power_patron_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
@@ -134,7 +150,10 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       card_id: 42141493,
       name: "Mulcharmy Fuwalos",
       quantity: 3,
-      taxonomy: tax(["interaction"], "desirable"),
+      taxonomy: tax(["interaction"], {
+        going_first: "neutral",
+        going_second: "desirable",
+      }),
     },
     {
       card_id: 14558129,

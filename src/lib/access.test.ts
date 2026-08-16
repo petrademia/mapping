@@ -21,7 +21,7 @@ import { summarizeAccessConditions } from "./handExplorer";
 import type { CardTaxonomy } from "./taxonomy";
 
 function tax(roles: CardTaxonomy["roles"] = []): CardTaxonomy {
-  return { roles, opening_quality: null };
+  return { roles, opening_quality: { going_first: null, going_second: null } };
 }
 
 function card(
@@ -256,7 +256,7 @@ describe("access conditions", () => {
       ],
     });
     const restored = parseMappingJson(serializeMapping(doc));
-    expect(restored.schema_version).toBe(3);
+    expect(restored.schema_version).toBe(4);
     expect(restored.access_groups).toEqual(doc.access_groups);
     expect(restored.access_conditions).toEqual(doc.access_conditions);
   });
@@ -292,7 +292,10 @@ describe("access conditions", () => {
           {
             card_id: 1,
             quantity: 1,
-            taxonomy: { roles: ["starter"], opening_quality: null },
+            taxonomy: {
+              roles: ["starter"],
+              opening_quality: { going_first: null, going_second: null },
+            },
           },
         ],
         extra: [],
@@ -300,7 +303,7 @@ describe("access conditions", () => {
         analysis: { opening_hand_size: 5 },
       }),
     );
-    expect(restored.schema_version).toBe(3);
+    expect(restored.schema_version).toBe(4);
     expect(restored.access_groups).toEqual([]);
     expect(restored.access_conditions).toEqual([]);
   });

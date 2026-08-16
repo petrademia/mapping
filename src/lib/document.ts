@@ -23,7 +23,7 @@ import {
   type Role,
 } from "./taxonomy";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export type DeckSection = "main" | "extra" | "side";
 
@@ -224,10 +224,34 @@ export function setCardRoles(
   const existing = doc[section].find((card) => card.card_id === cardId);
   return setCardTaxonomy(doc, section, cardId, {
     roles: uniqueRoles(roles),
-    opening_quality: existing?.taxonomy.opening_quality ?? null,
+    opening_quality:
+      existing?.taxonomy.opening_quality ?? {
+        ...EMPTY_TAXONOMY.opening_quality,
+      },
   });
 }
 
+export function setCardContextualOpeningQuality(
+  doc: MappingDocument,
+  section: DeckSection,
+  cardId: number,
+  turnOrder: "going_first" | "going_second",
+  opening_quality: OpeningQualityValue,
+): MappingDocument {
+  const existing = doc[section].find((card) => card.card_id === cardId);
+  const current = existing?.taxonomy.opening_quality ?? {
+    ...EMPTY_TAXONOMY.opening_quality,
+  };
+  return setCardTaxonomy(doc, section, cardId, {
+    roles: existing?.taxonomy.roles ?? [],
+    opening_quality: {
+      ...current,
+      [turnOrder]: opening_quality,
+    },
+  });
+}
+
+/** Legacy convenience: applies the same judgment to both contexts. */
 export function setCardOpeningQuality(
   doc: MappingDocument,
   section: DeckSection,
@@ -237,7 +261,10 @@ export function setCardOpeningQuality(
   const existing = doc[section].find((card) => card.card_id === cardId);
   return setCardTaxonomy(doc, section, cardId, {
     roles: existing?.taxonomy.roles ?? [],
-    opening_quality,
+    opening_quality: {
+      going_first: opening_quality,
+      going_second: opening_quality,
+    },
   });
 }
 
@@ -410,7 +437,7 @@ function deckName(value: unknown): string {
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
   const version = Number(data.schema_version);
-  if (![1, 2, SCHEMA_VERSION].includes(version)) {
+  if (![1, 2, 3, SCHEMA_VERSION].includes(version)) {
     throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
   }
   const legacyFlatRoles = version === 1;
@@ -486,7 +513,10 @@ function serializeCard(card: MappingCard): Record<string, unknown> {
     quantity: card.quantity,
     taxonomy: {
       roles: [...card.taxonomy.roles],
-      opening_quality: card.taxonomy.opening_quality,
+      opening_quality: {
+        going_first: card.taxonomy.opening_quality.going_first,
+        going_second: card.taxonomy.opening_quality.going_second,
+      },
     },
   };
   if (card.name) entry.name = card.name;

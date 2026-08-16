@@ -3,7 +3,12 @@ import {
   sectionSize,
   type MappingDocument,
 } from "./document";
-import { uniqueRoles, type OpeningQualityValue, type Role } from "./taxonomy";
+import {
+  openingQualityForTurn,
+  uniqueRoles,
+  type OpeningQualityValue,
+  type Role,
+} from "./taxonomy";
 
 export interface YappingExport {
   name: string;
@@ -12,7 +17,7 @@ export interface YappingExport {
   card_roles: Record<string, Role[]>;
   metadata: {
     source: "mapping";
-    mapping_schema_version: 3;
+    mapping_schema_version: 4;
     opening_hand_size: number;
     deck_size: number;
     extra_deck_size: number;
@@ -20,8 +25,11 @@ export interface YappingExport {
     side_deck: number[];
     /** Role dimension only (Taxonomy v0). */
     roles: Role[];
-    /** Opening quality by card id; omitted entries are unclassified. */
-    card_opening_quality: Record<string, Exclude<OpeningQualityValue, null>>;
+    /** Contextual opening quality by card id; omitted entries are unclassified. */
+    card_opening_quality: Record<
+      "going_first" | "going_second",
+      Record<string, Exclude<OpeningQualityValue, null>>
+    >;
   };
 }
 
@@ -41,19 +49,26 @@ function mergedRoles(doc: MappingDocument): Record<string, Role[]> {
   return result;
 }
 
-function mergedOpeningQuality(
+type QualityById = Record<string, Exclude<OpeningQualityValue, null>>;
+
+function mergedOpeningQualityForTurn(
   doc: MappingDocument,
-): Record<string, Exclude<OpeningQualityValue, null>> {
+  turnOrder: "going_first" | "going_second",
+): QualityById {
   const qualities = new Map<number, Exclude<OpeningQualityValue, null>>();
   for (const section of [doc.main, doc.extra, doc.side] as const) {
     for (const card of section) {
-      if (card.taxonomy.opening_quality === null) continue;
+      const quality = openingQualityForTurn(
+        card.taxonomy.opening_quality,
+        turnOrder,
+      );
+      if (quality === null) continue;
       if (!qualities.has(card.card_id)) {
-        qualities.set(card.card_id, card.taxonomy.opening_quality);
+        qualities.set(card.card_id, quality);
       }
     }
   }
-  const result: Record<string, Exclude<OpeningQualityValue, null>> = {};
+  const result: QualityById = {};
   for (const [cardId, quality] of qualities) {
     result[String(cardId)] = quality;
   }
@@ -71,14 +86,17 @@ export function exportYapping(doc: MappingDocument): YappingExport {
     card_roles: mergedRoles(doc),
     metadata: {
       source: "mapping",
-      mapping_schema_version: 3,
+      mapping_schema_version: 4,
       opening_hand_size: doc.analysis.opening_hand_size,
       deck_size: sectionSize(doc.main),
       extra_deck_size: sectionSize(doc.extra),
       side_deck_size: sectionSize(doc.side),
       side_deck,
       roles: ["starter", "extender", "interaction"],
-      card_opening_quality: mergedOpeningQuality(doc),
+      card_opening_quality: {
+        going_first: mergedOpeningQualityForTurn(doc, "going_first"),
+        going_second: mergedOpeningQualityForTurn(doc, "going_second"),
+      },
     },
   };
 }
