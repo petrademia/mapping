@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { brandedDemo } from "./data/brandedDemo";
+import { AccessConditionsPanel } from "./components/AccessConditionsPanel";
 import { DeckEditor } from "./components/DeckEditor";
+import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
 import { ImportExport } from "./components/ImportExport";
 import { ProbabilityPanel } from "./components/ProbabilityPanel";
 import { RoleSummary } from "./components/RoleSummary";
@@ -92,6 +94,23 @@ export function App() {
           <RoleSummary doc={doc} />
           <ProbabilityPanel
             doc={doc}
+            onHandSize={(size) => {
+              if (!Number.isInteger(size) || size < 0) return;
+              setDoc(setOpeningHandSize(doc, size));
+            }}
+          />
+          <HandProbabilityExplorer
+            doc={doc}
+            catalog={catalog}
+            onHandSize={(size) => {
+              if (!Number.isInteger(size) || size < 0) return;
+              setDoc(setOpeningHandSize(doc, size));
+            }}
+          />
+          <AccessConditionsPanel
+            doc={doc}
+            catalog={catalog}
+            onChange={setDoc}
             onHandSize={(size) => {
               if (!Number.isInteger(size) || size < 0) return;
               setDoc(setOpeningHandSize(doc, size));

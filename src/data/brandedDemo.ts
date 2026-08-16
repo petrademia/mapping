@@ -10,9 +10,11 @@ function tax(
 
 /** Branded demo with Taxonomy v0 annotations (migrated from flat roles). */
 export const brandedDemo: MappingDocument = {
-  schema_version: 2,
+  schema_version: 3,
   name: "branded_albaz_v1",
   analysis: { opening_hand_size: 5 },
+  access_groups: [],
+  access_conditions: [],
   main: [
     {
       card_id: 73819701,

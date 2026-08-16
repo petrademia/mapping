@@ -59,6 +59,7 @@ MAPPING provides:
 
 - deck composition and quantities
 - human taxonomy hypotheses (Role + Opening Quality)
+- human Access Conditions (modeled opening-hand engine access)
 
 YAPPING is expected to measure (not implemented here):
 
@@ -71,6 +72,28 @@ YAPPING is expected to measure (not implemented here):
 - route similarity
 - choke-point redundancy
 
+### Taxonomy vs Access Conditions vs YAPPING
+
+| Layer | What it is |
+| --- | --- |
+| **Taxonomy** | Card-level human role hypothesis (`starter` / `extender` / `interaction`) |
+| **Access Condition** | Hand-level human access hypothesis (ALL OF card/role/group requirements) |
+| **YAPPING** | Strategic validation / game-tree outcomes |
+
+Example: classifying `Nervedo` as `starter` can be misleading if Nervedo alone does not establish the line. Prefer an Access Condition such as:
+
+```text
+Nervedo Access
+  ALL OF
+    Nervedo >= 1
+    Valid Nervedo S/T >= 1   (user-defined group; exclude Nervedo itself)
+```
+
+MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Access Conditions are strategically independent routes (they may converge on the same choke point).
+
+**Modeled Engine Access** is the exact probability that at least one configured Access Condition is satisfied. Conditions that overlap are not double-counted. Do not label this combo success, playability, or win rate.
+
+If a requirement needs “another” card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects.
 ## Card metadata versus taxonomy
 
 **Card metadata** (id, name) comes from **MyCard** [`ygopro-database`](https://github.com/mycard/ygopro-database) `locales/en-US/cards.cdb`. Ids are Konami/MyCard passwords.
@@ -85,30 +108,48 @@ That is the chance a random opening contains some number of cards you tagged. It
 
 Joint events such as `P(starter ≥ 1 AND extender ≥ 1)` are not shown as products of marginals. Roles overlap and draws are without replacement.
 
+### Opening-hand explorer (two conditions)
+
+The explorer lets you compare exactly two opening-hand conditions (card or role, with count operators). It reports exact combinatorial:
+
+- `P(A)`, `P(B)`, `P(A ∩ B)`
+- `P(B | A)`, `P(A | B)`
+
+MAPPING distinguishes **occurrence** from **strategic value**:
+
+| Question | Owner |
+| --- | --- |
+| `P(Q)` — how often does hand condition Q occur? | MAPPING |
+| `E[U \| Q]` — expected utility / outcome given Q | YAPPING (future) |
+
+Do not read explorer percentages as “good hand” or “bad hand”. Impossible predicates (e.g. `card ≥ 2` with one copy) yield `0%`; conditionals with a zero-probability antecedent show as undefined (`—`), not `0%`.
+
 ## v0 scope
 
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities and Taxonomy v0 annotations
+- define Access Conditions and Groups; inspect modeled engine access
 - inspect main/extra/side sizes, overlapping role density, and opening-quality counts
 - inspect per-role and undesirable composition probabilities
+- compare two opening-hand conditions with exact joint/conditional probabilities
 - save locally (browser `localStorage` plus file download)
 - export a YAPPING-readable archetype JSON
 
 ## Non-goals
 
-Automatic role or opening-quality inference, card-effect parsing, route annotation, access targets, combo dependencies, choke-point modeling, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, OCGCore, accounts, cloud sync, and a replacement for existing deckbuilding sites.
+Automatic role or opening-quality inference, card-effect parsing, route graphs, access targets, choke-point tagging, combo dependencies, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, nested Boolean query builders, drag-and-drop, strategic hand scoring, OCGCore, accounts, cloud sync, and a replacement for existing deckbuilding sites.
 
 ## Stack
 
-Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hypergeometric math, and import/export. There is no application server.
+Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hypergeometric math, access conditions, and import/export. There is no application server.
 
 ## Schema
 
-MAPPING owns a versioned document (`schema_version: 2`):
+MAPPING owns a versioned document (`schema_version: 3`):
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "name": "branded_albaz_v1",
   "main": [{
     "card_id": 62962630,
@@ -120,13 +161,24 @@ MAPPING owns a versioned document (`schema_version: 2`):
   }],
   "extra": [],
   "side": [],
+  "access_groups": [
+    { "id": "valid-nervedo-st", "name": "Valid Nervedo S/T", "card_ids": [111, 222] }
+  ],
+  "access_conditions": [{
+    "id": "nervedo-access",
+    "name": "Nervedo Access",
+    "requirements": [
+      { "kind": "card", "card_id": 123, "op": "gte", "count": 1 },
+      { "kind": "group", "group_id": "valid-nervedo-st", "op": "gte", "count": 1 }
+    ]
+  }],
   "analysis": { "opening_hand_size": 5 }
 }
 ```
 
 Unclassified opening quality is serialized as `"opening_quality": null`, never silently as `"neutral"`.
 
-Schema v1 documents (flat `roles` array + optional `vocabulary`) are accepted on load and migrated: `brick` → `undesirable`; `recovery` / `engine_requirement` dropped; schema bumped to 2.
+Schema v1/v2 documents are accepted on load and migrated to v3 (empty access groups/conditions when absent).
 
 YAPPING currently loads `configs/archetypes/*.json` with:
 
