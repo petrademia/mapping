@@ -35,6 +35,7 @@ import {
   type HandEventAnalysis,
 } from "../lib/handExplorer";
 import { ProbabilityError } from "../lib/probability";
+import { sortCheckedFirst } from "../lib/sortCheckedFirst";
 import { openingQualityCoverage, ROLES, type Role } from "../lib/taxonomy";
 
 const OP_LABELS: Record<CountOperator, string> = {
@@ -355,11 +356,14 @@ function GroupEditor({
 }) {
   const needle = filter.trim().toLowerCase();
   const members = new Set(group.card_ids);
-  const cards = doc.main.filter((card) => {
-    if (!needle) return true;
-    const name = displayName(card.card_id, card.name, catalog).toLowerCase();
-    return name.includes(needle) || String(card.card_id).includes(needle);
-  });
+  const cards = sortCheckedFirst(
+    doc.main.filter((card) => {
+      if (!needle) return true;
+      const name = displayName(card.card_id, card.name, catalog).toLowerCase();
+      return name.includes(needle) || String(card.card_id).includes(needle);
+    }),
+    (card) => members.has(card.card_id),
+  );
 
   return (
     <div className="access-block">
@@ -762,7 +766,9 @@ function ModeledOutcomeEditor({
         <p className="empty">Add a Hand Condition first.</p>
       ) : (
         <ul className="engine-members">
-          {doc.hand_conditions.map((condition) => {
+          {sortCheckedFirst(doc.hand_conditions, (condition) =>
+            members.has(condition.id),
+          ).map((condition) => {
             const probability = summary?.conditions.find(
               (row) => row.id === condition.id,
             )?.probability;
