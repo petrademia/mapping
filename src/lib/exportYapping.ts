@@ -3,37 +3,59 @@ import {
   sectionSize,
   type MappingDocument,
 } from "./document";
-import { uniqueRoles } from "./roles";
+import { uniqueRoles, type OpeningQualityValue, type Role } from "./taxonomy";
 
 export interface YappingExport {
   name: string;
   main_deck: number[];
   extra_deck: number[];
-  card_roles: Record<string, string[]>;
+  card_roles: Record<string, Role[]>;
   metadata: {
     source: "mapping";
-    mapping_schema_version: 1;
+    mapping_schema_version: 2;
     opening_hand_size: number;
     deck_size: number;
     extra_deck_size: number;
     side_deck_size: number;
     side_deck: number[];
-    vocabulary: string[];
+    /** Role dimension only (Taxonomy v0). */
+    roles: Role[];
+    /** Opening quality by card id; omitted entries are unclassified. */
+    card_opening_quality: Record<string, Exclude<OpeningQualityValue, null>>;
   };
 }
 
-function mergedRoles(doc: MappingDocument): Record<string, string[]> {
-  const roles = new Map<number, string[]>();
+function mergedRoles(doc: MappingDocument): Record<string, Role[]> {
+  const roles = new Map<number, Role[]>();
   for (const section of [doc.main, doc.extra, doc.side] as const) {
     for (const card of section) {
       const current = roles.get(card.card_id) ?? [];
-      roles.set(card.card_id, uniqueRoles([...current, ...card.roles]));
+      roles.set(card.card_id, uniqueRoles([...current, ...card.taxonomy.roles]));
     }
   }
-  const result: Record<string, string[]> = {};
+  const result: Record<string, Role[]> = {};
   for (const [cardId, cardRoles] of roles) {
     if (cardRoles.length === 0) continue;
     result[String(cardId)] = cardRoles;
+  }
+  return result;
+}
+
+function mergedOpeningQuality(
+  doc: MappingDocument,
+): Record<string, Exclude<OpeningQualityValue, null>> {
+  const qualities = new Map<number, Exclude<OpeningQualityValue, null>>();
+  for (const section of [doc.main, doc.extra, doc.side] as const) {
+    for (const card of section) {
+      if (card.taxonomy.opening_quality === null) continue;
+      if (!qualities.has(card.card_id)) {
+        qualities.set(card.card_id, card.taxonomy.opening_quality);
+      }
+    }
+  }
+  const result: Record<string, Exclude<OpeningQualityValue, null>> = {};
+  for (const [cardId, quality] of qualities) {
+    result[String(cardId)] = quality;
   }
   return result;
 }
@@ -49,13 +71,14 @@ export function exportYapping(doc: MappingDocument): YappingExport {
     card_roles: mergedRoles(doc),
     metadata: {
       source: "mapping",
-      mapping_schema_version: 1,
+      mapping_schema_version: 2,
       opening_hand_size: doc.analysis.opening_hand_size,
       deck_size: sectionSize(doc.main),
       extra_deck_size: sectionSize(doc.extra),
       side_deck_size: sectionSize(doc.side),
       side_deck,
-      vocabulary: doc.vocabulary,
+      roles: ["starter", "extender", "interaction"],
+      card_opening_quality: mergedOpeningQuality(doc),
     },
   };
 }

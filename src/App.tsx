@@ -19,7 +19,9 @@ export function App() {
     () => loadStored() ?? brandedDemo,
   );
   const [catalog, setCatalog] = useState<Catalog>(new Map());
-  const [status, setStatus] = useState("Local draft. Roles are deck-specific.");
+  const [status, setStatus] = useState(
+    "Local draft. Taxonomy annotations are deck-specific hypotheses.",
+  );
 
   useEffect(() => {
     saveStored(doc);
@@ -36,8 +38,8 @@ export function App() {
           <p className="eyebrow">Yu-Gi-Oh! analysis family</p>
           <h1>MAPPING</h1>
           <p className="tag">
-            Cards map to functional roles, then to deck composition, then to
-            YAPPING configuration.
+            Annotate Role and Opening Quality hypotheses per deck card, inspect
+            composition, then export configuration for YAPPING.
           </p>
         </div>
         <div className="deck-meta">

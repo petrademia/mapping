@@ -1,6 +1,6 @@
 # MAPPING
 
-MAPPING is a local, human-in-the-loop deck semantics editor. Given a Yu-Gi-Oh! deck list, you assign **analytical roles** to cards, inspect role density and theoretical opening-hand composition probabilities, and export configuration that [YAPPING](https://github.com/petrademia/yapping) can load.
+MAPPING is a local, human-in-the-loop deck semantics editor. Given a Yu-Gi-Oh! deck list, you assign **Taxonomy v0** annotations to cards, inspect role and opening-quality density plus theoretical opening-hand composition probabilities, and export configuration that [YAPPING](https://github.com/petrademia/yapping) can load.
 
 It is not a combo solver, replay parser, or full deckbuilding website.
 
@@ -13,71 +13,130 @@ deck + semantics        search + measurement    replay trajectories
 
 Later, YAPPING solver outcomes can flow back into this UI. That display path is out of scope for v0.
 
-## Card metadata versus analytical roles
+## Taxonomy v0
 
-**Card metadata** comes from the OCGCore/YGOPro card database (`cards.cdb`): id, name, monster/spell/trap, level, and so on.
+Two independent dimensions on each **deck card** (not on a global card definition):
 
-**Analytical roles** are labels you attach in a specific deck or configuration: `starter`, `extender`, `interaction`, `recovery`, `brick`, `engine_requirement`, or any other string. They are not card types.
+```text
+TAXONOMY
+Role                    Opening Quality
+├── starter             ├── desirable
+├── extender            ├── neutral
+└── interaction         └── undesirable
+                        (null = unclassified)
+```
 
-A card may carry several roles at once. Three copies of a card that is both `starter` and `extender` add three slots to each role. Role-density totals can exceed deck size on purpose. MAPPING does not force a single bucket per card.
+| Dimension | Cardinality | Values |
+| --- | --- | --- |
+| **Role** | multi-select | `starter`, `extender`, `interaction` |
+| **Opening Quality** | single-select | `desirable`, `neutral`, `undesirable`, or `null` |
 
-Roles are contextual: `role(card, deck)`, not `role(card)`. The same card can be an extender here and a brick in another deck. v0 does not guess roles with a model.
+- `null` means the user has not evaluated opening quality.
+- `neutral` means the user evaluated it and considers it neither desirable nor undesirable.
+- Do not flatten these into one tag list. They have different meanings and constraints.
+- Annotations are **human deckbuilding hypotheses** for a specific deck/configuration: `Role(card, deck)`, not objective card properties.
+- MAPPING does not encode combo routes, access targets, choke points, or card-effect semantics.
+
+Removed from the built-in taxonomy (do not use as Role values): `recovery`, `brick`, `engine_requirement`. Legacy `brick` migrates to Opening Quality `undesirable`. `recovery` and `engine_requirement` are dropped on schema migration without remapping.
+
+### Role definitions (hypotheses)
+
+- **starter** — meaningful initial engine access from an opening hand in this deck.
+- **extender** — meaningful additional engine capability when some access already exists. May coexist with starter.
+- **interaction** — meaningful ability to interact with the opponent from the relevant opening-hand context. Subtypes (hand trap, board breaker, etc.) are out of v0.
+
+### Opening quality definitions (hypotheses)
+
+- **desirable** — naturally opening the card is generally desirable in this deck.
+- **neutral** — explicitly evaluated as neither meaningfully desirable nor undesirable.
+- **undesirable** — naturally opening the card is generally undesirable (replaces manual `brick`).
+
+A card may hold zero, one, or several roles. Three copies tagged starter + extender contribute +3 to each role's slot count. Role-density totals can exceed deck size. Opening-quality slots are mutually exclusive per card entry and should sum to main-deck size when including unclassified.
+
+## MAPPING vs YAPPING
+
+MAPPING provides:
+
+- deck composition and quantities
+- human taxonomy hypotheses (Role + Opening Quality)
+
+YAPPING is expected to measure (not implemented here):
+
+- starter / extender strength
+- draw value
+- recovery value
+- interruption resilience
+- going-first / going-second value
+- marginal deck value
+- route similarity
+- choke-point redundancy
+
+## Card metadata versus taxonomy
+
+**Card metadata** (id, name) comes from **MyCard** [`ygopro-database`](https://github.com/mycard/ygopro-database) `locales/en-US/cards.cdb`. Ids are Konami/MyCard passwords.
+
+Taxonomy lives on the deck card entry only.
 
 ## Opening chances are not combo success
 
-The probability panel reports **composition probabilities** for the main deck: hypergeometric `P(X = k)` and `P(X ≥ 1)` for each role independently, with a configurable opening-hand size (default 5).
+The probability panel reports **composition probabilities** for the main deck: hypergeometric chances for role and undesirable opening-quality counts, with a configurable opening-hand size (default 5).
 
-That is the chance a random opening contains some number of cards that you tagged with that role. It is not `E[utility | starter ≥ 1]`, combo quality, or interruption resilience. Those require YAPPING solver outcomes.
+That is the chance a random opening contains some number of cards you tagged. It is not win rate, combo quality, or interruption resilience.
 
-Joint events such as `P(starter ≥ 1 AND extender ≥ 1)` are not shown in v0. Roles overlap and draws are without replacement, so those events are not independent products.
+Joint events such as `P(starter ≥ 1 AND extender ≥ 1)` are not shown as products of marginals. Roles overlap and draws are without replacement.
 
 ## v0 scope
 
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
-- edit quantities and multi-label roles
-- inspect main/extra/side sizes and overlapping role density
-- inspect per-role composition probabilities
+- edit quantities and Taxonomy v0 annotations
+- inspect main/extra/side sizes, overlapping role density, and opening-quality counts
+- inspect per-role and undesirable composition probabilities
 - save locally (browser `localStorage` plus file download)
 - export a YAPPING-readable archetype JSON
 
 ## Non-goals
 
-OCGCore, combo search, minimax, MCTS, RL, policy/value models, replay parsing, automatic role inference, automatic ratio optimization, accounts, cloud sync, tournament or marketplace features, collection management, and a replacement for existing deckbuilding sites.
+Automatic role or opening-quality inference, card-effect parsing, route annotation, access targets, combo dependencies, choke-point modeling, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, OCGCore, accounts, cloud sync, and a replacement for existing deckbuilding sites.
 
 ## Stack
 
-Client-only Vite + React + TypeScript. Vitest covers the role model, hypergeometric math, and import/export. There is no application server.
-
-Why this stack: fast local `npm run dev`, strict types, tests without a browser, and persistence that is just files plus `localStorage`. A backend is not required for v0.
-
-Card names are a generated lookup in `public/catalog.json`, extracted from the sibling YAPPING `assets/cards.cdb` (the same SQLite texts table YAPPING uses). Regenerate with `npm run extract-catalog` when that database changes. Unknown ids still work; they display as `#<id>`.
+Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hypergeometric math, and import/export. There is no application server.
 
 ## Schema
 
-MAPPING owns a versioned document:
+MAPPING owns a versioned document (`schema_version: 2`):
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "name": "branded_albaz_v1",
-  "vocabulary": ["starter", "extender", "interaction", "recovery", "brick", "engine_requirement"],
-  "main": [{ "card_id": 62962630, "quantity": 3, "roles": ["starter", "extender"] }],
+  "main": [{
+    "card_id": 62962630,
+    "quantity": 3,
+    "taxonomy": {
+      "roles": ["starter", "extender"],
+      "opening_quality": "desirable"
+    }
+  }],
   "extra": [],
   "side": [],
   "analysis": { "opening_hand_size": 5 }
 }
 ```
 
+Unclassified opening quality is serialized as `"opening_quality": null`, never silently as `"neutral"`.
+
+Schema v1 documents (flat `roles` array + optional `vocabulary`) are accepted on load and migrated: `brick` → `undesirable`; `recovery` / `engine_requirement` dropped; schema bumped to 2.
+
 YAPPING currently loads `configs/archetypes/*.json` with:
 
 - `name`
 - `main_deck` / `extra_deck`: repeated card ids, one entry per copy
-- `card_roles`: `{ "<id>": ["starter", "extender"] }`
+- `card_roles`: `{ "<id>": ["starter", "extender"] }` (Role dimension only)
+- `metadata.card_opening_quality`: explicit opening-quality map (unclassified omitted)
 - optional interruption specs, fixtures, predicates, weights, and objectives that MAPPING does not author
 
-**Export for YAPPING** is a deterministic conversion (`exportYapping()`), not a second role model. It expands quantities into repeated ids, unions roles by card id, and stores opening-hand size plus side-deck copies under `metadata`. It does not emit combo fixtures or interruption policies.
-
-Round-trip the `.mapping.json` file if you need lossless main/extra/side plus per-section roles. Feed the `.yapping.json` file to `yapping.load_archetype`.
+**Export for YAPPING** is a deterministic conversion (`exportYapping()`). Round-trip the `.mapping.json` file if you need lossless main/extra/side plus taxonomy. Feed the `.yapping.json` file to `yapping.load_archetype`.
 
 ## Develop
 
@@ -87,10 +146,13 @@ npm install
 npm run dev
 ```
 
+Dev server: http://localhost:51173 (pinned in `vite.config.ts`; see `~/Projects/PORTS.md`).
+
 ```bash
 npm test
 npm run typecheck
 npm run build
+npm run extract-catalog
 ```
 
-The first-run demo is the realistic Branded list from YAPPING `configs/archetypes/branded.json`, including that file's existing role annotations.
+The first-run demo is the Branded list from YAPPING `configs/archetypes/branded.json`, with Taxonomy v0 annotations (legacy flat roles migrated).

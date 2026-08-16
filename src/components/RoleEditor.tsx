@@ -1,70 +1,38 @@
-import { useState } from "react";
-import { addRole, removeRole } from "../lib/roles";
+import { ROLES, toggleRole, type Role } from "../lib/taxonomy";
+
+const LABELS: Record<Role, string> = {
+  starter: "Starter",
+  extender: "Extender",
+  interaction: "Interaction",
+};
 
 interface Props {
-  roles: string[];
-  vocabulary: string[];
-  onChange: (roles: string[]) => void;
-  onAddVocabulary: (role: string) => void;
+  roles: Role[];
+  onChange: (roles: Role[]) => void;
 }
 
-export function RoleEditor({ roles, vocabulary, onChange, onAddVocabulary }: Props) {
-  const [draft, setDraft] = useState("");
+export function RoleEditor({ roles, onChange }: Props) {
   const assigned = new Set(roles);
-  const unused = vocabulary.filter((role) => !assigned.has(role));
-
-  function submitDraft(): void {
-    const role = draft.trim();
-    if (!role) return;
-    onAddVocabulary(role);
-    onChange(addRole(roles, role));
-    setDraft("");
-  }
-
   return (
-    <div className="roles">
-      {roles.map((role) => (
-        <button
-          key={role}
-          type="button"
-          className="chip on"
-          data-role={role}
-          onClick={() => onChange(removeRole(roles, role))}
-        >
-          {role}
-          <span aria-hidden="true">×</span>
-        </button>
-      ))}
-      {unused.length > 0 ? (
-        <select
-          aria-label="Add role"
-          value=""
-          onChange={(event) => {
-            const role = event.target.value;
-            if (role) onChange(addRole(roles, role));
-          }}
-        >
-          <option value="">add role</option>
-          {unused.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
-      ) : null}
-      <input
-        className="role-draft"
-        value={draft}
-        placeholder="custom role"
-        aria-label="Add custom role"
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            submitDraft();
-          }
-        }}
-      />
+    <div className="taxonomy-block">
+      <span className="taxonomy-label">Role</span>
+      <div className="roles" role="group" aria-label="Roles">
+        {ROLES.map((role) => {
+          const on = assigned.has(role);
+          return (
+            <button
+              key={role}
+              type="button"
+              className={on ? "chip on" : "chip"}
+              data-role={role}
+              aria-pressed={on}
+              onClick={() => onChange(toggleRole(roles, role))}
+            >
+              {LABELS[role]}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
