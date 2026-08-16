@@ -1,20 +1,29 @@
-import { DEFAULT_ROLES, uniqueRoles } from "./roles";
+import {
+  EMPTY_TAXONOMY,
+  mergeTaxonomies,
+  migrateLegacyRoles,
+  normalizeTaxonomy,
+  uniqueRoles,
+  type CardTaxonomy,
+  type OpeningQualityValue,
+  type Role,
+} from "./taxonomy";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
+export const LEGACY_SCHEMA_VERSION = 1;
 
 export type DeckSection = "main" | "extra" | "side";
 
 export interface MappingCard {
   card_id: number;
   quantity: number;
-  roles: string[];
+  taxonomy: CardTaxonomy;
   name?: string;
 }
 
 export interface MappingDocument {
   schema_version: typeof SCHEMA_VERSION;
   name: string;
-  vocabulary: string[];
   main: MappingCard[];
   extra: MappingCard[];
   side: MappingCard[];
@@ -23,13 +32,10 @@ export interface MappingDocument {
   };
 }
 
-const SECTIONS: DeckSection[] = ["main", "extra", "side"];
-
 export function createDocument(name: string): MappingDocument {
   return {
     schema_version: SCHEMA_VERSION,
     name,
-    vocabulary: [...DEFAULT_ROLES],
     main: [],
     extra: [],
     side: [],
@@ -47,7 +53,7 @@ export function normalizeCard(card: MappingCard): MappingCard {
   const normalized: MappingCard = {
     card_id: card.card_id,
     quantity: card.quantity,
-    roles: uniqueRoles(card.roles),
+    taxonomy: normalizeTaxonomy(card.taxonomy),
   };
   const name = card.name?.trim();
   if (name) normalized.name = name;
@@ -66,20 +72,12 @@ export function expandCopies(cards: readonly MappingCard[]): number[] {
   return ids;
 }
 
-function withVocabulary(doc: MappingDocument, roles: readonly string[]): string[] {
-  return uniqueRoles([...doc.vocabulary, ...roles]);
-}
-
 function replaceSection(
   doc: MappingDocument,
   section: DeckSection,
   cards: MappingCard[],
 ): MappingDocument {
-  const vocabulary = withVocabulary(
-    doc,
-    cards.flatMap((card) => card.roles),
-  );
-  return { ...doc, [section]: cards, vocabulary };
+  return { ...doc, [section]: cards };
 }
 
 export function addCard(
@@ -123,10 +121,35 @@ export function setQuantity(
   }
   const index = doc[section].findIndex((card) => card.card_id === cardId);
   if (index === -1) {
-    return addCard(doc, section, { card_id: cardId, quantity, roles: [] });
+    return addCard(doc, section, {
+      card_id: cardId,
+      quantity,
+      taxonomy: { ...EMPTY_TAXONOMY },
+    });
   }
   const cards = doc[section].map((card, cardIndex) =>
     cardIndex === index ? { ...card, quantity } : card,
+  );
+  return replaceSection(doc, section, cards);
+}
+
+export function setCardTaxonomy(
+  doc: MappingDocument,
+  section: DeckSection,
+  cardId: number,
+  taxonomy: CardTaxonomy,
+): MappingDocument {
+  const normalized = normalizeTaxonomy(taxonomy);
+  const index = doc[section].findIndex((card) => card.card_id === cardId);
+  if (index === -1) {
+    return addCard(doc, section, {
+      card_id: cardId,
+      quantity: 1,
+      taxonomy: normalized,
+    });
+  }
+  const cards = doc[section].map((card, cardIndex) =>
+    cardIndex === index ? { ...card, taxonomy: normalized } : card,
   );
   return replaceSection(doc, section, cards);
 }
@@ -135,21 +158,26 @@ export function setCardRoles(
   doc: MappingDocument,
   section: DeckSection,
   cardId: number,
-  roles: readonly string[],
+  roles: readonly Role[],
 ): MappingDocument {
-  const normalized = uniqueRoles(roles);
-  const index = doc[section].findIndex((card) => card.card_id === cardId);
-  if (index === -1) {
-    return addCard(doc, section, {
-      card_id: cardId,
-      quantity: 1,
-      roles: normalized,
-    });
-  }
-  const cards = doc[section].map((card, cardIndex) =>
-    cardIndex === index ? { ...card, roles: normalized } : card,
-  );
-  return replaceSection(doc, section, cards);
+  const existing = doc[section].find((card) => card.card_id === cardId);
+  return setCardTaxonomy(doc, section, cardId, {
+    roles: uniqueRoles(roles),
+    opening_quality: existing?.taxonomy.opening_quality ?? null,
+  });
+}
+
+export function setCardOpeningQuality(
+  doc: MappingDocument,
+  section: DeckSection,
+  cardId: number,
+  opening_quality: OpeningQualityValue,
+): MappingDocument {
+  const existing = doc[section].find((card) => card.card_id === cardId);
+  return setCardTaxonomy(doc, section, cardId, {
+    roles: existing?.taxonomy.roles ?? [],
+    opening_quality,
+  });
 }
 
 export function setDeckName(doc: MappingDocument, name: string): MappingDocument {
@@ -166,25 +194,34 @@ export function setOpeningHandSize(
   return { ...doc, analysis: { opening_hand_size: openingHandSize } };
 }
 
-export function addVocabularyRole(
-  doc: MappingDocument,
-  role: string,
-): MappingDocument {
-  return { ...doc, vocabulary: uniqueRoles([...doc.vocabulary, role]) };
-}
-
-function parseCard(raw: unknown): MappingCard {
+function parseCard(raw: unknown, legacyFlatRoles: boolean): MappingCard {
   if (raw === null || typeof raw !== "object") {
     throw new Error("card entries must be objects");
   }
   const record = raw as Record<string, unknown>;
-  const roles = Array.isArray(record.roles)
-    ? record.roles.map((role) => String(role))
-    : [];
+  let taxonomy: CardTaxonomy;
+  if (legacyFlatRoles) {
+    const roles = Array.isArray(record.roles)
+      ? record.roles.map((role) => String(role))
+      : [];
+    taxonomy = migrateLegacyRoles(roles);
+  } else if (record.taxonomy !== undefined) {
+    taxonomy = normalizeTaxonomy(
+      (record.taxonomy ?? {}) as {
+        roles?: string[];
+        opening_quality?: unknown;
+      },
+    );
+  } else if (Array.isArray(record.roles)) {
+    // Defensive: nested taxonomy missing but flat roles present on v2 payload.
+    taxonomy = migrateLegacyRoles(record.roles.map((role) => String(role)));
+  } else {
+    taxonomy = { ...EMPTY_TAXONOMY };
+  }
   const card: MappingCard = {
     card_id: Number(record.card_id),
     quantity: Number(record.quantity),
-    roles,
+    taxonomy,
   };
   if (typeof record.name === "string") card.name = record.name;
   return normalizeCard(card);
@@ -203,7 +240,7 @@ function collapseCards(cards: MappingCard[]): MappingCard[] {
     merged.set(card.card_id, {
       card_id: card.card_id,
       quantity: existing.quantity + card.quantity,
-      roles: uniqueRoles([...existing.roles, ...card.roles]),
+      taxonomy: mergeTaxonomies(existing.taxonomy, card.taxonomy),
       name: existing.name || card.name,
     });
   }
@@ -216,39 +253,65 @@ function deckName(value: unknown): string {
 
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
-  if (data.schema_version !== SCHEMA_VERSION) {
-    throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
+  const version = data.schema_version;
+  if (version !== SCHEMA_VERSION && version !== LEGACY_SCHEMA_VERSION) {
+    throw new Error(`unsupported schema_version: ${String(version)}`);
   }
+  const legacyFlatRoles = version === LEGACY_SCHEMA_VERSION;
   const analysis = (data.analysis ?? {}) as Record<string, unknown>;
   const openingHandSize = Number(analysis.opening_hand_size ?? 5);
   if (!Number.isInteger(openingHandSize) || openingHandSize < 0) {
     throw new Error("analysis.opening_hand_size must be a non-negative integer");
   }
-  const vocabulary = Array.isArray(data.vocabulary)
-    ? uniqueRoles(data.vocabulary.map((role) => String(role)))
-    : [...DEFAULT_ROLES];
-  const doc: MappingDocument = {
+  return {
     schema_version: SCHEMA_VERSION,
     name: deckName(data.name),
-    vocabulary,
-    main: collapseCards(Array.isArray(data.main) ? data.main.map(parseCard) : []),
-    extra: collapseCards(Array.isArray(data.extra) ? data.extra.map(parseCard) : []),
-    side: collapseCards(Array.isArray(data.side) ? data.side.map(parseCard) : []),
+    main: collapseCards(
+      Array.isArray(data.main)
+        ? data.main.map((card) => parseCard(card, legacyFlatRoles))
+        : [],
+    ),
+    extra: collapseCards(
+      Array.isArray(data.extra)
+        ? data.extra.map((card) => parseCard(card, legacyFlatRoles))
+        : [],
+    ),
+    side: collapseCards(
+      Array.isArray(data.side)
+        ? data.side.map((card) => parseCard(card, legacyFlatRoles))
+        : [],
+    ),
     analysis: { opening_hand_size: openingHandSize },
-  };
-  return {
-    ...doc,
-    vocabulary: uniqueRoles([
-      ...doc.vocabulary,
-      ...SECTIONS.flatMap((section) =>
-        doc[section].flatMap((card) => card.roles),
-      ),
-    ]),
   };
 }
 
+/**
+ * Serialize with explicit `opening_quality: null` so unclassified stays
+ * distinguishable from `"neutral"` after round-trip.
+ */
 export function serializeMapping(doc: MappingDocument): string {
-  return `${JSON.stringify({ ...doc, name: deckName(doc.name) }, null, 2)}\n`;
+  const payload = {
+    schema_version: SCHEMA_VERSION,
+    name: deckName(doc.name),
+    main: doc.main.map(serializeCard),
+    extra: doc.extra.map(serializeCard),
+    side: doc.side.map(serializeCard),
+    analysis: doc.analysis,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
+function serializeCard(card: MappingCard): Record<string, unknown> {
+  const entry: Record<string, unknown> = {
+    card_id: card.card_id,
+    quantity: card.quantity,
+    taxonomy: {
+      roles: [...card.taxonomy.roles],
+      opening_quality: card.taxonomy.opening_quality,
+    },
+  };
+  if (card.name) entry.name = card.name;
+  return entry;
 }
 
 export function documentFromParsed(
@@ -265,7 +328,7 @@ export function documentFromParsed(
       normalizeCard({
         card_id: row.card_id,
         quantity: row.quantity,
-        roles: [],
+        taxonomy: { ...EMPTY_TAXONOMY },
         name: names.get(row.card_id),
       }),
     );

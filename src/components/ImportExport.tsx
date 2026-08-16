@@ -106,7 +106,7 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
             addCard(doc, addSection, {
               card_id: cardId,
               quantity,
-              roles: [],
+              taxonomy: { roles: [], opening_quality: null },
               name: catalog.get(cardId),
             }),
           );

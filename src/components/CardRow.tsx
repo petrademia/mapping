@@ -1,26 +1,26 @@
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import type { MappingCard } from "../lib/document";
+import type { OpeningQualityValue, Role } from "../lib/taxonomy";
+import { OpeningQualityEditor } from "./OpeningQualityEditor";
 import { QuantityEditor } from "./QuantityEditor";
 import { RoleEditor } from "./RoleEditor";
 
 interface Props {
   card: MappingCard;
   catalog: Catalog;
-  vocabulary: string[];
   onQuantity: (quantity: number) => void;
-  onRoles: (roles: string[]) => void;
-  onAddVocabulary: (role: string) => void;
+  onRoles: (roles: Role[]) => void;
+  onOpeningQuality: (value: OpeningQualityValue) => void;
   onRemove: () => void;
 }
 
 export function CardRow({
   card,
   catalog,
-  vocabulary,
   onQuantity,
   onRoles,
-  onAddVocabulary,
+  onOpeningQuality,
   onRemove,
 }: Props) {
   return (
@@ -32,12 +32,11 @@ export function CardRow({
       <td>
         <QuantityEditor value={card.quantity} onChange={onQuantity} />
       </td>
-      <td>
-        <RoleEditor
-          roles={card.roles}
-          vocabulary={vocabulary}
-          onChange={onRoles}
-          onAddVocabulary={onAddVocabulary}
+      <td className="taxonomy-cell">
+        <RoleEditor roles={card.taxonomy.roles} onChange={onRoles} />
+        <OpeningQualityEditor
+          value={card.taxonomy.opening_quality}
+          onChange={onOpeningQuality}
         />
       </td>
       <td>

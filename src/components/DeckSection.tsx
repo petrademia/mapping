@@ -1,8 +1,8 @@
 import type { Catalog } from "../lib/catalog";
 import {
-  addVocabularyRole,
   removeCard,
   sectionSize,
+  setCardOpeningQuality,
   setCardRoles,
   setQuantity,
   type DeckSection,
@@ -39,7 +39,7 @@ export function DeckSection({ doc, section, catalog, onChange }: Props) {
             <tr>
               <th>Card</th>
               <th>Qty</th>
-              <th>Roles</th>
+              <th>Taxonomy</th>
               <th></th>
             </tr>
           </thead>
@@ -49,15 +49,21 @@ export function DeckSection({ doc, section, catalog, onChange }: Props) {
                 key={card.card_id}
                 card={card}
                 catalog={catalog}
-                vocabulary={doc.vocabulary}
                 onQuantity={(quantity) =>
                   onChange(setQuantity(doc, section, card.card_id, quantity))
                 }
                 onRoles={(roles) =>
                   onChange(setCardRoles(doc, section, card.card_id, roles))
                 }
-                onAddVocabulary={(role) =>
-                  onChange(addVocabularyRole(doc, role))
+                onOpeningQuality={(openingQuality) =>
+                  onChange(
+                    setCardOpeningQuality(
+                      doc,
+                      section,
+                      card.card_id,
+                      openingQuality,
+                    ),
+                  )
                 }
                 onRemove={() => onChange(removeCard(doc, section, card.card_id))}
               />
