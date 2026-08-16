@@ -204,12 +204,13 @@ export function DeckProfile({ doc, onHandSize }: Props) {
             <article>
               <h3>Annotation Coverage</h3>
               <p className="explorer-notation">
-                Opening Quality cards classified per turn order. Unclassified is
-                incomplete annotation, not a neutral verdict.
+                Opening Quality slots classified per turn order (physical
+                copies). Unclassified is incomplete annotation, not a neutral
+                verdict.
               </p>
               <dl>
                 <div>
-                  <dt>Going First classified</dt>
+                  <dt>Going First slots classified</dt>
                   <dd>
                     {coverage.going_first.classified} /{" "}
                     {coverage.going_first.total} ·{" "}
@@ -220,7 +221,7 @@ export function DeckProfile({ doc, onHandSize }: Props) {
                   </dd>
                 </div>
                 <div>
-                  <dt>Going Second classified</dt>
+                  <dt>Going Second slots classified</dt>
                   <dd>
                     {coverage.going_second.classified} /{" "}
                     {coverage.going_second.total} ·{" "}

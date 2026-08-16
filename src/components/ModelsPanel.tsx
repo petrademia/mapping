@@ -35,7 +35,7 @@ import {
   type HandEventAnalysis,
 } from "../lib/handExplorer";
 import { ProbabilityError } from "../lib/probability";
-import { ROLES, type Role } from "../lib/taxonomy";
+import { openingQualityCoverage, ROLES, type Role } from "../lib/taxonomy";
 
 const OP_LABELS: Record<CountOperator, string> = {
   eq: "=",
@@ -54,6 +54,24 @@ const ROLE_LABELS: Record<Role, string> = {
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
+}
+
+function formatPercentOrDash(value: number | null): string {
+  return value === null ? "—" : formatPercent(value);
+}
+
+function coverageWarning(
+  turnOrder: "going_first" | "going_second",
+  doc: MappingDocument,
+): string | null {
+  const coverage = openingQualityCoverage(doc.main);
+  const cov =
+    turnOrder === "going_first" ? coverage.going_first : coverage.going_second;
+  if (cov.total === 0 || cov.classified >= cov.total) return null;
+  const fraction = cov.classified / cov.total;
+  return `Only ${formatPercent(fraction)} of deck slots have Opening Quality classified for ${
+    turnOrder === "going_first" ? "Going First" : "Going Second"
+  }; interpret this distribution with incomplete coverage.`;
 }
 
 interface Props {
@@ -93,6 +111,7 @@ export function ModelsPanel({
         doc.hand_conditions,
         doc.hand_condition_sets,
         groupsToMembership(doc.groups),
+        context.turn_order,
       );
     } catch (caught) {
       return {
@@ -102,7 +121,7 @@ export function ModelsPanel({
             : "Cannot compute hand condition probabilities.",
       };
     }
-  }, [doc.main, doc.hand_conditions, doc.groups, doc.hand_condition_sets, deck, sample]);
+  }, [doc.main, doc.hand_conditions, doc.groups, doc.hand_condition_sets, context.turn_order, deck, sample]);
 
   function addCondition(): void {
     const firstCard = doc.main[0]?.card_id;
@@ -723,6 +742,7 @@ function ModeledOutcomeEditor({
     ? doc.hand_conditions.find((condition) => condition.id === inlineConditionId)
     : undefined;
   const n = setSummary?.conditionIds.length ?? 0;
+  const warning = coverageWarning(context.turn_order, doc);
 
   return (
     <div className="access-block">
@@ -876,6 +896,74 @@ function ModeledOutcomeEditor({
               </>
             ) : null}
           </details>
+          {setSummary.openingQuality ? (
+            <details className="panel-details">
+              <summary>Opening Quality</summary>
+              <p className="explorer-notation">
+                Among hands satisfying this outcome
+                ({formatPercent(setSummary.union)}), by the{" "}
+                {context.turn_order === "going_first"
+                  ? "Going First"
+                  : "Going Second"}{" "}
+                Opening Quality annotation.
+              </p>
+              {setSummary.openingQuality.undesirable[0] === null ? (
+                <p className="empty">
+                  No hands currently satisfy this modeled outcome.
+                </p>
+              ) : (
+                <dl className="explorer-results">
+                  <div className="explorer-row">
+                    <dt>
+                      <span className="explorer-title">No undesirable</span>
+                    </dt>
+                    <dd>
+                      {formatPercent(
+                        setSummary.openingQuality.undesirable[0]!,
+                      )}
+                    </dd>
+                  </div>
+                  <div className="explorer-row">
+                    <dt>
+                      <span className="explorer-title">
+                        Exactly 1 undesirable
+                      </span>
+                    </dt>
+                    <dd>
+                      {formatPercent(
+                        setSummary.openingQuality.undesirable[1]!,
+                      )}
+                    </dd>
+                  </div>
+                  <div className="explorer-row">
+                    <dt>
+                      <span className="explorer-title">
+                        2+ undesirable
+                      </span>
+                    </dt>
+                    <dd>
+                      {formatPercent(
+                        setSummary.openingQuality.undesirable[2]!,
+                      )}
+                    </dd>
+                  </div>
+                  <div className="explorer-row">
+                    <dt>
+                      <span className="explorer-title">
+                        Contains &gt;= 1 desirable
+                      </span>
+                    </dt>
+                    <dd>
+                      {formatPercentOrDash(
+                        setSummary.openingQuality.desirableGe1,
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+              {warning ? <p className="empty">{warning}</p> : null}
+            </details>
+          ) : null}
         </>
       ) : (
         <p className="empty">

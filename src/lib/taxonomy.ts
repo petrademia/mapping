@@ -234,32 +234,38 @@ export function copiesForRole(
 }
 
 /**
- * Annotation coverage: how many distinct card ENTRIES have a classified
- * (non-null) Opening Quality per turn order, out of the total entry count.
- * A card entry is one deck row regardless of its copy count.
+ * Annotation coverage in deck SLOTS (physical copies), consistent with
+ * Taxonomy Density. A card entry is classified when its contextual
+ * Opening Quality is non-null; each of its copies counts as a classified slot.
  */
 export function openingQualityCoverage(
-  cards: readonly { taxonomy: CardTaxonomy }[],
+  cards: readonly { quantity: number; taxonomy: CardTaxonomy }[],
 ): {
   going_first: { classified: number; unclassified: number; total: number };
   going_second: { classified: number; unclassified: number; total: number };
 } {
   let gfClassified = 0;
   let gsClassified = 0;
+  let total = 0;
   for (const card of cards) {
-    if (card.taxonomy.opening_quality.going_first !== null) gfClassified += 1;
-    if (card.taxonomy.opening_quality.going_second !== null) gsClassified += 1;
+    total += card.quantity;
+    if (card.taxonomy.opening_quality.going_first !== null) {
+      gfClassified += card.quantity;
+    }
+    if (card.taxonomy.opening_quality.going_second !== null) {
+      gsClassified += card.quantity;
+    }
   }
   return {
     going_first: {
       classified: gfClassified,
-      unclassified: cards.length - gfClassified,
-      total: cards.length,
+      unclassified: total - gfClassified,
+      total,
     },
     going_second: {
       classified: gsClassified,
-      unclassified: cards.length - gsClassified,
-      total: cards.length,
+      unclassified: total - gsClassified,
+      total,
     },
   };
 }

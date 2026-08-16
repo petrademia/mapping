@@ -177,6 +177,26 @@ buckets) plus the pairwise intersections `P(A ∩ B)` of its members. The user
 never declares conditions mutually exclusive: overlap is derived from exact
 hand evaluation, and probabilities are never summed or averaged.
 
+### Opening Quality among matching hands
+
+Each Modeled Outcome also exposes (behind an "Opening Quality" disclosure) the
+conditional Opening Quality distribution of the hands that satisfy it, under
+the current Analysis Context's turn order. With `U(H)` = number of
+Undesirable-classified physical cards drawn:
+
+- `P(U = 0 | S)` - No undesirable;
+- `P(U = 1 | S)` - Exactly 1 undesirable;
+- `P(U >= 2 | S)` - 2+ undesirable;
+- `P(D >= 1 | S)` - Contains >= 1 desirable.
+
+The three Undesirable buckets partition the matching-hand sample space
+(`P(U = 0 | S) + P(U = 1 | S) + P(U >= 2 | S) = 100%`). When `P(S) = 0` the
+values render as "—". These are exact conditionals
+`P(quality ∩ S) / P(S)` from the same hand enumeration, never card-slot
+approximations. Opening Quality describes the matching hands; it never changes
+which hands belong to the outcome, and it is not a hand score. A lightweight
+warning appears when a large portion of deck slots is unclassified.
+
 A Hand Condition is a reusable Boolean pattern; its **name** may document a
 strategic assertion (for example `Medius + Vidolium — Through 1 Ash`) while
 its **predicate** is the actual rule. Renaming a condition never changes its
@@ -250,7 +270,7 @@ single aggregate "Deck Quality" score:
 | **Modeled Outcomes** | Engine Access (P(any selected engine-access condition)), Access + Interaction-tagged, Access + No Undesirable |
 | **Access Multiplicity** | P(N ≥ 1), P(N ≥ 2), P(N ≥ 3) over the selected access conditions (not "resilience") |
 | **Conditional on Access** | P(Interaction-tagged \| Access), P(No Undesirable \| Access) |
-| **Annotation & composition analysis** (collapsed) | Opening Quality composition, Access composition, interaction-tagged cards, context comparison, and **Annotation Coverage** (x / N card entries classified per turn order) |
+| **Annotation & composition analysis** (collapsed) | Opening Quality composition, Access composition, interaction-tagged cards, context comparison, and **Annotation Coverage** (x / N deck slots classified per turn order) |
 
 Every percentage has an explicit mathematical interpretation (exact
 opening-hand hypergeometric / composition enumeration). Do **not** read

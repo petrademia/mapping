@@ -4,7 +4,7 @@ import {
   ProbabilityError,
   ratioToNumber,
 } from "./probability";
-import type { Role } from "./taxonomy";
+import { openingQualityForTurn, type Role } from "./taxonomy";
 
 export const COUNT_OPERATORS = [
   "eq",
@@ -418,6 +418,29 @@ export interface ConditionSetSummary {
   union: number;
   unionWeight: bigint;
   distribution: AccessCountDistribution;
+  /**
+   * Opening Quality distribution among hands that satisfy the set, for the
+   * analyzed turn order. Present only when the analysis was given a turn
+   * order. `null` bucket values mean the set is satisfied by zero hands.
+   */
+  openingQuality?: OutcomeQualityDistribution;
+}
+
+/**
+ * Conditional Opening Quality distribution among hands that satisfy a
+ * Modeled Outcome S, under one turn order. Undesirable buckets partition the
+ * matching hands: U = 0, U = 1, U >= 2 (where U counts physical copies of
+ * Undesirable-classified cards drawn).
+ */
+export interface OutcomeQualityDistribution {
+  /** [P(U = 0 | S), P(U = 1 | S), P(U >= 2 | S)]. Null when P(S) = 0. */
+  undesirable: (number | null)[];
+  /** P(D >= 1 | S); null when P(S) = 0. */
+  desirableGe1: number | null;
+  /** P(D >= 2 | S); null when P(S) = 0. */
+  desirableGe2: number | null;
+  /** Weight of the denominator (matching hands). */
+  unionWeight: bigint;
 }
 
 /** Exact pairwise intersection P(A ∩ B) for two conditions. */
@@ -455,6 +478,10 @@ export function pairKey(aId: string, bId: string): string {
  * satisfied set drives per-condition weights, per-set union/multiplicity
  * buckets, and pairwise intersection weights. No probabilities are summed and
  * no independence is assumed.
+ *
+ * When `turnOrder` is provided, each set also accumulates an Opening Quality
+ * distribution over the physical cards drawn (Undesirable and Desirable
+ * counts under that turn order's annotation).
  */
 export function analyzeHandConditions(
   deck: readonly MappingCard[],
@@ -462,6 +489,7 @@ export function analyzeHandConditions(
   conditions: readonly HandConditionLike[],
   sets: readonly HandConditionSetLike[],
   groups: GroupMembership = new Map(),
+  turnOrder?: "going_first" | "going_second",
 ): HandEventAnalysis {
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
   if (
@@ -496,6 +524,26 @@ export function analyzeHandConditions(
     new Array<bigint>(members.length + 1).fill(0n),
   );
   const pairWeights = new Map<string, bigint>();
+  // Quality buckets per set: index 0 = U=0, 1 = U=1, 2 = U>=2.
+  const setUndesirableWeights = setSpecs.map(() => [0n, 0n, 0n] as bigint[]);
+  const setDesirableGe1Weights = setSpecs.map(() => 0n);
+  const setDesirableGe2Weights = setSpecs.map(() => 0n);
+
+  const qualityOf = (card: MappingCard): ReturnType<typeof openingQualityForTurn> =>
+    turnOrder ? openingQualityForTurn(card.taxonomy.opening_quality, turnOrder) : null;
+
+  function countQuality(
+    hand: readonly number[],
+    target: "desirable" | "undesirable",
+  ): number {
+    if (!turnOrder) return 0;
+    let totalCount = 0;
+    for (let i = 0; i < deck.length; i += 1) {
+      const copies = hand[i] ?? 0;
+      if (copies > 0 && qualityOf(deck[i]!) === target) totalCount += copies;
+    }
+    return totalCount;
+  }
 
   if (total > 0n) {
     forEachHandComposition(deck, handSize, (hand, weight) => {
@@ -522,6 +570,9 @@ export function analyzeHandConditions(
         }
       }
 
+      const undesirable = countQuality(hand, "undesirable");
+      const desirable = countQuality(hand, "desirable");
+
       for (let s = 0; s < setSpecs.length; s += 1) {
         let count = 0;
         for (const index of setMembers[s]!) {
@@ -529,6 +580,17 @@ export function analyzeHandConditions(
         }
         if (count > 0) setUnionWeights[s] = setUnionWeights[s]! + weight;
         setBucketWeights[s]![count] = setBucketWeights[s]![count]! + weight;
+        if (count > 0 && turnOrder) {
+          const bucket = undesirable >= 2 ? 2 : undesirable;
+          setUndesirableWeights[s]![bucket] =
+            setUndesirableWeights[s]![bucket]! + weight;
+          if (desirable >= 1) {
+            setDesirableGe1Weights[s] = setDesirableGe1Weights[s]! + weight;
+          }
+          if (desirable >= 2) {
+            setDesirableGe2Weights[s] = setDesirableGe2Weights[s]! + weight;
+          }
+        }
       }
     });
   }
@@ -568,9 +630,43 @@ export function analyzeHandConditions(
         union: ratioToNumber(setUnionWeights[index]!, total),
         unionWeight: setUnionWeights[index]!,
         distribution: { exact, atLeast, weights },
+        ...(turnOrder
+          ? {
+              openingQuality: buildOutcomeQuality(
+                setUnionWeights[index]!,
+                setUndesirableWeights[index]!,
+                setDesirableGe1Weights[index]!,
+                setDesirableGe2Weights[index]!,
+              ),
+            }
+          : {}),
       };
     }),
     overlaps,
+  };
+}
+
+function buildOutcomeQuality(
+  unionWeight: bigint,
+  undesirableWeights: readonly bigint[],
+  desirableGe1Weight: bigint,
+  desirableGe2Weight: bigint,
+): OutcomeQualityDistribution {
+  if (unionWeight === 0n) {
+    return {
+      undesirable: [null, null, null],
+      desirableGe1: null,
+      desirableGe2: null,
+      unionWeight,
+    };
+  }
+  return {
+    undesirable: undesirableWeights.map((weight) =>
+      ratioToNumber(weight, unionWeight),
+    ) as (number | null)[],
+    desirableGe1: ratioToNumber(desirableGe1Weight, unionWeight),
+    desirableGe2: ratioToNumber(desirableGe2Weight, unionWeight),
+    unionWeight,
   };
 }
 
