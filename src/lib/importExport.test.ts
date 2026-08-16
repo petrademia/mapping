@@ -9,7 +9,7 @@ import {
   setCardTaxonomy,
   setQuantity,
 } from "./document";
-import { parseYdk } from "./ydk";
+import { parseYdk, serializeYdk } from "./ydk";
 import { exportYapping, serializeYapping } from "./exportYapping";
 
 describe("import/export", () => {
@@ -127,6 +127,36 @@ describe("import/export", () => {
     ]);
     expect(parsed.extra).toEqual([{ card_id: 4063756, quantity: 2 }]);
     expect(parsed.side).toEqual([{ card_id: 14558129, quantity: 1 }]);
+  });
+
+  it("serializes YDK with expanded copies and empty section headers", () => {
+    const text = serializeYdk({
+      main: [
+        { card_id: 70488851, quantity: 3 },
+        { card_id: 26237713, quantity: 1 },
+      ],
+      extra: [{ card_id: 4063756, quantity: 2 }],
+      side: [],
+    });
+    expect(text).toBe(`#created by mapping
+#main
+70488851
+70488851
+70488851
+26237713
+#extra
+4063756
+4063756
+!side
+`);
+    expect(parseYdk(text)).toEqual({
+      main: [
+        { card_id: 70488851, quantity: 3 },
+        { card_id: 26237713, quantity: 1 },
+      ],
+      extra: [{ card_id: 4063756, quantity: 2 }],
+      side: [],
+    });
   });
 
   it("coerces a blank name instead of dropping the document", () => {
