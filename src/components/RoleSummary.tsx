@@ -33,10 +33,15 @@ interface Props {
 export function RoleSummary({ doc }: Props) {
   const deck = sectionSize(doc.main);
   const density = roleDensity(doc.main);
-  const qualities = openingQualityDensity(doc.main);
+  const qualitiesGF = openingQualityDensity(doc.main, "going_first");
+  const qualitiesGS = openingQualityDensity(doc.main, "going_second");
   const roleSlotSum = ROLES.reduce((sum, role) => sum + density[role], 0);
-  const qualitySlotSum = QUALITY_ORDER.reduce(
-    (sum, key) => sum + qualities[key],
+  const qualitySlotSumGF = QUALITY_ORDER.reduce(
+    (sum, key) => sum + qualitiesGF[key],
+    0,
+  );
+  const qualitySlotSumGS = QUALITY_ORDER.reduce(
+    (sum, key) => sum + qualitiesGS[key],
     0,
   );
 
@@ -86,12 +91,32 @@ export function RoleSummary({ doc }: Props) {
       </div>
       <h3 className="panel-subhead">Opening quality slots</h3>
       <p className="note">
-        Mutually exclusive per card entry. Counts should sum to main deck size
-        when including unclassified ({qualitySlotSum} / {deck}).
+        Mutually exclusive per card entry, evaluated per turn order. Counts
+        should sum to main deck size when including unclassified (GF{" "}
+        {qualitySlotSumGF} / {deck}; GS {qualitySlotSumGS} / {deck}).
       </p>
+      <p className="panel-subhead">Going First</p>
       <div className="density">
         {QUALITY_ORDER.map((key) => {
-          const slots = qualities[key];
+          const slots = qualitiesGF[key];
+          return (
+            <div key={key} className="density-row" data-quality={key}>
+              <span className="swatch" aria-hidden="true" />
+              <span className="role-label">{QUALITY_LABELS[key]} slots</span>
+              <div className="track">
+                <div className="fill" style={{ width: `${percent(slots, deck)}%` }} />
+              </div>
+              <span className="frac">
+                {slots} / {deck}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="panel-subhead">Going Second</p>
+      <div className="density">
+        {QUALITY_ORDER.map((key) => {
+          const slots = qualitiesGS[key];
           return (
             <div key={key} className="density-row" data-quality={key}>
               <span className="swatch" aria-hidden="true" />

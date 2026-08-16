@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { combinations, openingAtLeastProbability } from "./probability";
-import { computeDeckProfile, type DeckProfile } from "./deckProfile";
+import { computeDeckProfile } from "./deckProfile";
 import type { MappingCard } from "./document";
 import type { CardTaxonomy, ContextualOpeningQuality } from "./taxonomy";
-
-function tax(cq: ContextualOpeningQuality): CardTaxonomy {
-  return { roles: [], opening_quality: cq };
-}
 
 function card(
   card_id: number,
@@ -18,28 +14,12 @@ function card(
 }
 
 const GF: ContextualOpeningQuality = { going_first: "desirable", going_second: null };
-const GS: ContextualOpeningQuality = { going_first: null, going_second: "desirable" };
 const UND_GF: ContextualOpeningQuality = {
   going_first: "undesirable",
   going_second: null,
 };
 const NEU: ContextualOpeningQuality = { going_first: "neutral", going_second: null };
 const CLS: ContextualOpeningQuality = { going_first: null, going_second: null };
-
-type MinimalProfile = Pick<
-  DeckProfile,
-  | "desirableGe1"
-  | "neutralGe1"
-  | "undesirableGe1"
-  | "undesirableGe2"
-  | "unclassifiedGe1"
-  | "anyAccess"
-  | "accessNoUndesirable"
-  | "accessUndesirableGe1"
-  | "interactionGe1"
-  | "accessAndInteraction"
-  | "total"
->;
 
 describe("deck profile: opening composition", () => {
   it("computes >=1 desirable as exact hypergeometric", () => {
@@ -265,23 +245,3 @@ describe("deck profile: access and interaction composition", () => {
     );
   });
 });
-
-function profile(
-  d: Partial<MinimalProfile> & Pick<MinimalProfile, "total">,
-): MinimalProfile {
-  return {
-    desirableGe1: 0,
-    neutralGe1: 0,
-    undesirableGe1: 0,
-    undesirableGe2: 0,
-    unclassifiedGe1: 0,
-    anyAccess: 0,
-    accessNoUndesirable: 0,
-    accessUndesirableGe1: 0,
-    interactionGe1: 0,
-    accessAndInteraction: 0,
-    ...d,
-  };
-}
-
-void profile;

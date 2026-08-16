@@ -1,4 +1,7 @@
-import type { OpeningQualityValue } from "../lib/taxonomy";
+import type {
+  ContextualOpeningQuality,
+  OpeningQualityValue,
+} from "../lib/taxonomy";
 
 const OPTIONS: { value: OpeningQualityValue; label: string }[] = [
   { value: null, label: "Unclassified" },
@@ -7,36 +10,52 @@ const OPTIONS: { value: OpeningQualityValue; label: string }[] = [
   { value: "undesirable", label: "Undesirable" },
 ];
 
+const CONTEXTS: {
+  key: keyof ContextualOpeningQuality;
+  label: string;
+}[] = [
+  { key: "going_first", label: "Going First" },
+  { key: "going_second", label: "Going Second" },
+];
+
 interface Props {
-  value: OpeningQualityValue;
-  onChange: (value: OpeningQualityValue) => void;
+  value: ContextualOpeningQuality;
+  onChange: (
+    turnOrder: "going_first" | "going_second",
+    value: OpeningQualityValue,
+  ) => void;
 }
 
 export function OpeningQualityEditor({ value, onChange }: Props) {
   return (
     <div className="taxonomy-block">
       <span className="taxonomy-label">Opening quality</span>
-      <div
-        className="opening-quality"
-        role="radiogroup"
-        aria-label="Opening quality"
-      >
-        {OPTIONS.map((option) => {
-          const selected = value === option.value;
-          const qualityKey =
-            option.value === null ? "unclassified" : option.value;
+      <div className="opening-quality-contexts">
+        {CONTEXTS.map((context) => {
+          const current = value[context.key];
           return (
-            <button
-              key={qualityKey}
-              type="button"
-              className={selected ? "chip on" : "chip"}
-              data-quality={qualityKey}
-              role="radio"
-              aria-checked={selected}
-              onClick={() => onChange(option.value)}
-            >
-              {option.label}
-            </button>
+            <label key={context.key} className="quality-context">
+              <span>{context.label}</span>
+              <select
+                value={current === null ? "" : current}
+                aria-label={`Opening quality ${context.label}`}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  const next =
+                    raw === "" ? null : (raw as OpeningQualityValue);
+                  onChange(context.key, next);
+                }}
+              >
+                {OPTIONS.map((option) => (
+                  <option
+                    key={option.label}
+                    value={option.value === null ? "" : option.value}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           );
         })}
       </div>

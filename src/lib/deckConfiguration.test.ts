@@ -8,7 +8,7 @@ import {
 } from "./document";
 import { computeDeckProfile } from "./deckProfile";
 import { combinations } from "./probability";
-import type { ContextualOpeningQuality } from "./taxonomy";
+import type { ContextualOpeningQuality, Role } from "./taxonomy";
 
 const CLS: ContextualOpeningQuality = { going_first: null, going_second: null };
 
@@ -68,8 +68,11 @@ describe("deck configuration boundary", () => {
       card_id: 10,
       quantity: 2,
       taxonomy: {
-        roles: ["interaction"],
-        opening_quality: { going_first: "undesirable", going_second: "undesirable" },
+        roles: ["interaction"] as Role[],
+        opening_quality: {
+          going_first: "undesirable" as const,
+          going_second: "undesirable" as const,
+        },
       },
     };
     const a: DeckConfiguration = {
