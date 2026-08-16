@@ -5,9 +5,16 @@ import {
   type AccessCondition,
   type AccessGroup,
 } from "../lib/access";
+import {
+  analysisContextLabel,
+  isOpeningHandObservation,
+  observedCards,
+  sampleSizeDescription,
+} from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import {
+  analysisContextOf,
   removeAccessCondition,
   removeAccessGroup,
   sectionSize,
@@ -58,14 +65,16 @@ export function AccessConditionsPanel({
 }: Props) {
   const [groupFilter, setGroupFilter] = useState("");
   const deck = sectionSize(doc.main);
-  const hand = doc.analysis.opening_hand_size;
+  const opening = doc.analysis.opening_hand_size;
+  const context = analysisContextOf(doc);
+  const sample = observedCards(context, opening);
 
   const summary = useMemo(() => {
     if (deck === 0) return null;
     try {
       return summarizeAccessConditions(
         doc.main,
-        hand,
+        sample,
         doc.access_conditions,
         groupsToMembership(doc.access_groups),
       );
@@ -77,7 +86,7 @@ export function AccessConditionsPanel({
             : "Cannot compute access probabilities.",
       };
     }
-  }, [doc.main, doc.access_conditions, doc.access_groups, deck, hand]);
+  }, [doc.main, doc.access_conditions, doc.access_groups, deck, sample]);
 
   function addCondition(): void {
     const firstCard = doc.main[0]?.card_id;
@@ -112,16 +121,22 @@ export function AccessConditionsPanel({
             type="number"
             min={0}
             max={Math.max(deck, 0)}
-            value={hand}
+            value={opening}
             onChange={(event) => onHandSize(Number(event.target.value))}
           />
         </label>
       </header>
       <p className="note">
-        Human-defined opening-hand access hypotheses (ALL OF within a condition;
-        OR across conditions for modeled access). Not combo routes, resilience,
-        or YAPPING utility. If a combo needs “Nervedo + another S/T”, exclude
-        Nervedo from that group so one copy cannot satisfy both requirements.
+        Human-defined access hypotheses evaluated under{" "}
+        {analysisContextLabel(context, opening)} —{" "}
+        {sampleSizeDescription(context, opening)}. ALL OF within a condition; OR
+        across conditions for modeled access. Not combo routes, resilience, or
+        YAPPING utility.
+        {!isOpeningHandObservation(context)
+          ? " Satisfaction among first cards seen does not imply the line was available during the opponent's first turn."
+          : ""}{" "}
+        If a combo needs “Nervedo + another S/T”, exclude Nervedo from that
+        group so one copy cannot satisfy both requirements.
       </p>
 
       <h3 className="panel-subhead">Groups</h3>
@@ -196,7 +211,12 @@ export function AccessConditionsPanel({
               <span className="explorer-title">
                 At least one access condition
               </span>
-              <span className="explorer-notation">Modeled Engine Access</span>
+              <span className="explorer-notation">
+                Modeled Engine Access ·{" "}
+                {isOpeningHandObservation(context)
+                  ? `opening ${opening}`
+                  : `first ${sample} cards seen`}
+              </span>
             </dt>
             <dd>{formatPercent(summary.anyAccess)}</dd>
           </div>

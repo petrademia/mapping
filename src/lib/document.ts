@@ -7,6 +7,10 @@ import {
   type AccessCondition,
   type AccessGroup,
 } from "./access";
+import {
+  normalizeAnalysisContext,
+  type AnalysisContext,
+} from "./analysisContext";
 import type { HandCondition } from "./handExplorer";
 import {
   EMPTY_TAXONOMY,
@@ -30,6 +34,13 @@ export interface MappingCard {
   name?: string;
 }
 
+export interface MappingAnalysis {
+  /** Base opening-hand size (always the initial draw; default 5). */
+  opening_hand_size: number;
+  turn_order: AnalysisContext["turn_order"];
+  observation_point: AnalysisContext["observation_point"];
+}
+
 export interface MappingDocument {
   schema_version: typeof SCHEMA_VERSION;
   name: string;
@@ -38,8 +49,24 @@ export interface MappingDocument {
   side: MappingCard[];
   access_groups: AccessGroup[];
   access_conditions: AccessCondition[];
-  analysis: {
-    opening_hand_size: number;
+  analysis: MappingAnalysis;
+}
+
+function defaultAnalysis(
+  overrides: Partial<MappingAnalysis> = {},
+): MappingAnalysis {
+  const context = normalizeAnalysisContext({
+    turn_order: overrides.turn_order,
+    observation_point: overrides.observation_point,
+  });
+  const opening_hand_size = overrides.opening_hand_size ?? 5;
+  if (!Number.isInteger(opening_hand_size) || opening_hand_size < 0) {
+    throw new Error("opening_hand_size must be a non-negative integer");
+  }
+  return {
+    opening_hand_size,
+    turn_order: context.turn_order,
+    observation_point: context.observation_point,
   };
 }
 
@@ -52,7 +79,7 @@ export function createDocument(name: string): MappingDocument {
     side: [],
     access_groups: [],
     access_conditions: [],
-    analysis: { opening_hand_size: 5 },
+    analysis: defaultAnalysis(),
   };
 }
 
@@ -201,10 +228,30 @@ export function setOpeningHandSize(
   doc: MappingDocument,
   openingHandSize: number,
 ): MappingDocument {
-  if (!Number.isInteger(openingHandSize) || openingHandSize < 0) {
-    throw new Error("opening_hand_size must be a non-negative integer");
-  }
-  return { ...doc, analysis: { opening_hand_size: openingHandSize } };
+  return {
+    ...doc,
+    analysis: defaultAnalysis({
+      ...doc.analysis,
+      opening_hand_size: openingHandSize,
+    }),
+  };
+}
+
+export function setAnalysisContext(
+  doc: MappingDocument,
+  context: AnalysisContext,
+): MappingDocument {
+  return {
+    ...doc,
+    analysis: defaultAnalysis({
+      ...doc.analysis,
+      ...normalizeAnalysisContext(context),
+    }),
+  };
+}
+
+export function analysisContextOf(doc: MappingDocument): AnalysisContext {
+  return normalizeAnalysisContext(doc.analysis);
 }
 
 export function upsertAccessGroup(
@@ -347,10 +394,15 @@ export function parseMappingJson(text: string): MappingDocument {
   }
   const legacyFlatRoles = version === 1;
   const analysis = (data.analysis ?? {}) as Record<string, unknown>;
-  const openingHandSize = Number(analysis.opening_hand_size ?? 5);
-  if (!Number.isInteger(openingHandSize) || openingHandSize < 0) {
-    throw new Error("analysis.opening_hand_size must be a non-negative integer");
-  }
+  const parsedAnalysis = defaultAnalysis({
+    opening_hand_size: Number(analysis.opening_hand_size ?? 5),
+    turn_order:
+      analysis.turn_order === "going_second" ? "going_second" : "going_first",
+    observation_point:
+      analysis.observation_point === "first_turn"
+        ? "first_turn"
+        : "opening_hand",
+  });
   const access_groups = Array.isArray(data.access_groups)
     ? data.access_groups.map(parseAccessGroup)
     : [];
@@ -377,7 +429,7 @@ export function parseMappingJson(text: string): MappingDocument {
     ),
     access_groups,
     access_conditions,
-    analysis: { opening_hand_size: openingHandSize },
+    analysis: parsedAnalysis,
   };
 }
 

@@ -12,7 +12,11 @@ function tax(
 export const brandedDemo: MappingDocument = {
   schema_version: 3,
   name: "branded_albaz_v1",
-  analysis: { opening_hand_size: 5 },
+  analysis: {
+    opening_hand_size: 5,
+    turn_order: "going_first",
+    observation_point: "opening_hand",
+  },
   access_groups: [],
   access_conditions: [],
   main: [
