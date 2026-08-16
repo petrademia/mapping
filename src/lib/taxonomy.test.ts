@@ -291,7 +291,7 @@ describe("Taxonomy v0 deck context and density", () => {
       opening_quality: { going_first: "desirable", going_second: null },
     });
     const restored = parseMappingJson(serializeMapping(doc));
-    expect(restored.schema_version).toBe(5);
+    expect(restored.schema_version).toBe(6);
     expect(restored.main[0]?.taxonomy).toEqual({
       roles: ["starter", "extender"],
       opening_quality: { going_first: "desirable", going_second: null },
@@ -344,7 +344,7 @@ describe("Taxonomy v0 deck context and density", () => {
         analysis: { opening_hand_size: 5 },
       }),
     );
-    expect(migrated.schema_version).toBe(5);
+    expect(migrated.schema_version).toBe(6);
     expect(migrated).not.toHaveProperty("vocabulary");
     expect(migrated.main[0]?.taxonomy).toEqual({
       roles: ["starter"],

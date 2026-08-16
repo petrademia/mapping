@@ -15,7 +15,7 @@ import {
   compareHandConditions,
   COUNT_OPERATORS,
   type CountOperator,
-  type HandCondition,
+  type ConditionRequirement,
   type ProbabilityResult,
 } from "../lib/handExplorer";
 import { ProbabilityError } from "../lib/probability";
@@ -56,7 +56,7 @@ function defaultDraft(): ConditionDraft {
   };
 }
 
-function toCondition(draft: ConditionDraft): HandCondition | null {
+function toCondition(draft: ConditionDraft): ConditionRequirement | null {
   if (!Number.isInteger(draft.count) || draft.count < 0) return null;
   if (draft.kind === "card") {
     if (draft.card_id === null) return null;

@@ -31,14 +31,14 @@ function tax(
  * claimed optimal tournament deck.
  */
 export const powerPatronArsMagnaDemo: MappingDocument = {
-  schema_version: 5,
+  schema_version: 6,
   name: "power_patron_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
     turn_order: "going_first",
     observation_point: "opening_hand",
   },
-  access_groups: [
+  groups: [
     {
       id: "valid-nervedo-st",
       name: "Valid Nervedo S/T",
@@ -54,7 +54,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       ],
     },
   ],
-  access_conditions: [
+  hand_conditions: [
     {
       id: "vidolium-access",
       name: "Vidolium Access",
@@ -91,6 +91,20 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       ],
     },
   ],
+  hand_condition_sets: [
+    {
+      id: "modeled-engine-access",
+      name: "Modeled Engine Access",
+      condition_ids: [
+        "vidolium-access",
+        "pendulum-treasure-access",
+        "medius-access",
+        "nervedo-access",
+      ],
+      aggregation: "any",
+    },
+  ],
+  engine_access_set_id: "modeled-engine-access",
   main: [
     {
       card_id: 70488851,

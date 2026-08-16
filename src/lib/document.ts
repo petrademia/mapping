@@ -1,17 +1,20 @@
 import {
-  normalizeAccessCondition,
-  normalizeAccessGroup,
-  parseAccessCondition,
-  parseAccessGroup,
-  serializeRequirement,
-  type AccessCondition,
-  type AccessGroup,
-} from "./access";
+  normalizeGroup,
+  normalizeHandCondition,
+  normalizeHandConditionSet,
+  parseGroup,
+  parseHandCondition,
+  parseHandConditionSet,
+  serializeCondition,
+  type Group,
+  type HandCondition,
+  type HandConditionSet,
+} from "./handCondition";
 import {
   normalizeAnalysisContext,
   type AnalysisContext,
 } from "./analysisContext";
-import type { HandCondition } from "./handExplorer";
+import type { ConditionRequirement } from "./handExplorer";
 import {
   EMPTY_TAXONOMY,
   mergeTaxonomies,
@@ -23,7 +26,14 @@ import {
   type Role,
 } from "./taxonomy";
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
+
+/**
+ * The fixed-id Hand Condition Set backing the "Modeled Engine Access"
+ * analysis. The user explicitly selects which Hand Conditions are members.
+ */
+export const ENGINE_ACCESS_SET_ID = "modeled-engine-access";
+export const ENGINE_ACCESS_SET_NAME = "Modeled Engine Access";
 
 export type DeckSection = "main" | "extra" | "side";
 
@@ -47,8 +57,11 @@ export interface MappingDocument {
   main: MappingCard[];
   extra: MappingCard[];
   side: MappingCard[];
-  access_groups: AccessGroup[];
-  access_conditions: AccessCondition[];
+  groups: Group[];
+  hand_conditions: HandCondition[];
+  hand_condition_sets: HandConditionSet[];
+  /** id of the HandConditionSet that defines Modeled Engine Access. */
+  engine_access_set_id: string | null;
   analysis: MappingAnalysis;
 }
 
@@ -102,8 +115,17 @@ export function createDocument(name: string): MappingDocument {
     main: [],
     extra: [],
     side: [],
-    access_groups: [],
-    access_conditions: [],
+    groups: [],
+    hand_conditions: [],
+    hand_condition_sets: [
+      {
+        id: ENGINE_ACCESS_SET_ID,
+        name: ENGINE_ACCESS_SET_NAME,
+        condition_ids: [],
+        aggregation: "any",
+      },
+    ],
+    engine_access_set_id: ENGINE_ACCESS_SET_ID,
     analysis: defaultAnalysis(),
   };
 }
@@ -327,27 +349,27 @@ export function analysisContextOf(doc: MappingDocument): AnalysisContext {
   return normalizeAnalysisContext(doc.analysis);
 }
 
-export function upsertAccessGroup(
+export function upsertGroup(
   doc: MappingDocument,
-  group: AccessGroup,
+  group: Group,
 ): MappingDocument {
-  const normalized = normalizeAccessGroup(group);
-  const index = doc.access_groups.findIndex((item) => item.id === normalized.id);
-  const access_groups =
+  const normalized = normalizeGroup(group);
+  const index = doc.groups.findIndex((item) => item.id === normalized.id);
+  const groups =
     index === -1
-      ? [...doc.access_groups, normalized]
-      : doc.access_groups.map((item, i) => (i === index ? normalized : item));
-  return { ...doc, access_groups };
+      ? [...doc.groups, normalized]
+      : doc.groups.map((item, i) => (i === index ? normalized : item));
+  return { ...doc, groups };
 }
 
-export function removeAccessGroup(
+export function removeGroup(
   doc: MappingDocument,
   groupId: string,
 ): MappingDocument {
   return {
     ...doc,
-    access_groups: doc.access_groups.filter((group) => group.id !== groupId),
-    access_conditions: doc.access_conditions.map((condition) => ({
+    groups: doc.groups.filter((group) => group.id !== groupId),
+    hand_conditions: doc.hand_conditions.map((condition) => ({
       ...condition,
       requirements: condition.requirements.filter(
         (requirement) =>
@@ -361,65 +383,147 @@ export function removeAccessGroup(
   };
 }
 
-export function upsertAccessCondition(
+export function upsertHandCondition(
   doc: MappingDocument,
-  condition: AccessCondition,
+  condition: HandCondition,
 ): MappingDocument {
-  const normalized = normalizeAccessCondition(condition);
-  const index = doc.access_conditions.findIndex(
+  const normalized = normalizeHandCondition(condition);
+  const index = doc.hand_conditions.findIndex(
     (item) => item.id === normalized.id,
   );
-  const access_conditions =
+  const hand_conditions =
     index === -1
-      ? [...doc.access_conditions, normalized]
-      : doc.access_conditions.map((item, i) =>
+      ? [...doc.hand_conditions, normalized]
+      : doc.hand_conditions.map((item, i) =>
           i === index ? normalized : item,
         );
-  return { ...doc, access_conditions };
+  return { ...doc, hand_conditions };
 }
 
-export function removeAccessCondition(
+export function removeHandCondition(
   doc: MappingDocument,
   conditionId: string,
 ): MappingDocument {
   return {
     ...doc,
-    access_conditions: doc.access_conditions.filter(
+    hand_conditions: doc.hand_conditions.filter(
       (condition) => condition.id !== conditionId,
     ),
+    // A deleted condition also leaves every set (including Engine Access).
+    hand_condition_sets: doc.hand_condition_sets.map((set) => ({
+      ...set,
+      condition_ids: set.condition_ids.filter((id) => id !== conditionId),
+    })),
   };
 }
 
-export function setAccessConditionRequirements(
+export function setHandConditionRequirements(
   doc: MappingDocument,
   conditionId: string,
-  requirements: readonly HandCondition[],
+  requirements: readonly ConditionRequirement[],
 ): MappingDocument {
-  const index = doc.access_conditions.findIndex(
+  const index = doc.hand_conditions.findIndex(
     (condition) => condition.id === conditionId,
   );
   if (index === -1) return doc;
-  const current = doc.access_conditions[index]!;
-  return upsertAccessCondition(doc, {
+  const current = doc.hand_conditions[index]!;
+  return upsertHandCondition(doc, {
     ...current,
     requirements: [...requirements],
   });
 }
 
-export function setAccessConditionExcludes(
+export function setHandConditionExcludes(
   doc: MappingDocument,
   conditionId: string,
-  excludes: readonly HandCondition[],
+  excludes: readonly ConditionRequirement[],
 ): MappingDocument {
-  const index = doc.access_conditions.findIndex(
+  const index = doc.hand_conditions.findIndex(
     (condition) => condition.id === conditionId,
   );
   if (index === -1) return doc;
-  const current = doc.access_conditions[index]!;
-  return upsertAccessCondition(doc, {
+  const current = doc.hand_conditions[index]!;
+  return upsertHandCondition(doc, {
     ...current,
     excludes: [...excludes],
   });
+}
+
+export function upsertHandConditionSet(
+  doc: MappingDocument,
+  set: HandConditionSet,
+): MappingDocument {
+  const normalized = normalizeHandConditionSet(set);
+  const index = doc.hand_condition_sets.findIndex(
+    (item) => item.id === normalized.id,
+  );
+  const hand_condition_sets =
+    index === -1
+      ? [...doc.hand_condition_sets, normalized]
+      : doc.hand_condition_sets.map((item, i) =>
+          i === index ? normalized : item,
+        );
+  return { ...doc, hand_condition_sets };
+}
+
+export function removeHandConditionSet(
+  doc: MappingDocument,
+  setId: string,
+): MappingDocument {
+  return {
+    ...doc,
+    hand_condition_sets: doc.hand_condition_sets.filter(
+      (set) => set.id !== setId,
+    ),
+    engine_access_set_id:
+      doc.engine_access_set_id === setId ? null : doc.engine_access_set_id,
+  };
+}
+
+/** The HandConditionSet that defines Modeled Engine Access, if present. */
+export function engineAccessSet(doc: MappingDocument): HandConditionSet | null {
+  if (!doc.engine_access_set_id) return null;
+  return (
+    doc.hand_condition_sets.find((set) => set.id === doc.engine_access_set_id) ??
+    null
+  );
+}
+
+/** ids of the Hand Conditions selected as Modeled Engine Access members. */
+export function engineAccessConditionIds(doc: MappingDocument): string[] {
+  return engineAccessSet(doc)?.condition_ids ?? [];
+}
+
+export function isEngineAccessCondition(
+  doc: MappingDocument,
+  conditionId: string,
+): boolean {
+  return engineAccessConditionIds(doc).includes(conditionId);
+}
+
+/**
+ * Add or remove a Hand Condition from the Modeled Engine Access set.
+ * The set is created on demand if the document has no engine-access set yet.
+ */
+export function setEngineAccessMember(
+  doc: MappingDocument,
+  conditionId: string,
+  member: boolean,
+): MappingDocument {
+  const set = engineAccessSet(doc) ?? {
+    id: ENGINE_ACCESS_SET_ID,
+    name: ENGINE_ACCESS_SET_NAME,
+    condition_ids: [],
+    aggregation: "any" as const,
+  };
+  const condition_ids = member
+    ? [...set.condition_ids, conditionId]
+    : set.condition_ids.filter((id) => id !== conditionId);
+  const next = upsertHandConditionSet(doc, {
+    ...set,
+    condition_ids: [...new Set(condition_ids)],
+  });
+  return { ...next, engine_access_set_id: set.id };
 }
 
 function parseCard(raw: unknown, legacyFlatRoles: boolean): MappingCard {
@@ -482,9 +586,10 @@ function deckName(value: unknown): string {
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
   const version = Number(data.schema_version);
-  if (![1, 2, 3, 4, SCHEMA_VERSION].includes(version)) {
+  if (![1, 2, 3, 4, 5, SCHEMA_VERSION].includes(version)) {
     throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
   }
+  const legacy = version < 6;
   const legacyFlatRoles = version === 1;
   const analysis = (data.analysis ?? {}) as Record<string, unknown>;
   const parsedAnalysis = defaultAnalysis({
@@ -496,12 +601,66 @@ export function parseMappingJson(text: string): MappingDocument {
         ? "first_turn"
         : "opening_hand",
   });
-  const access_groups = Array.isArray(data.access_groups)
-    ? data.access_groups.map(parseAccessGroup)
+  const rawGroups = data.groups ?? data.access_groups;
+  const groups = Array.isArray(rawGroups) ? rawGroups.map(parseGroup) : [];
+  const rawConditions = data.hand_conditions ?? data.access_conditions;
+  const hand_conditions = Array.isArray(rawConditions)
+    ? rawConditions.map(parseHandCondition)
     : [];
-  const access_conditions = Array.isArray(data.access_conditions)
-    ? data.access_conditions.map(parseAccessCondition)
+  const hand_condition_sets = Array.isArray(data.hand_condition_sets)
+    ? data.hand_condition_sets.map(parseHandConditionSet)
     : [];
+
+  let engineAccessId: string | null = null;
+  const explicitEngineId =
+    typeof data.engine_access_set_id === "string"
+      ? data.engine_access_set_id
+      : null;
+  const hasEngineSet = hand_condition_sets.some(
+    (set) => set.id === ENGINE_ACCESS_SET_ID,
+  );
+  if (explicitEngineId && hand_condition_sets.some((set) => set.id === explicitEngineId)) {
+    engineAccessId = explicitEngineId;
+  } else if (hasEngineSet) {
+    engineAccessId = ENGINE_ACCESS_SET_ID;
+  }
+  if (legacy) {
+    // v1-v5 Access Conditions were all treated as Modeled Engine Access
+    // members; preserve that membership through the engine-access set.
+    const engineSet: HandConditionSet = {
+      id: ENGINE_ACCESS_SET_ID,
+      name: ENGINE_ACCESS_SET_NAME,
+      condition_ids: hand_conditions.map((condition) => condition.id),
+      aggregation: "any",
+    };
+    const withoutDefault = hand_condition_sets.filter(
+      (set) => set.id !== ENGINE_ACCESS_SET_ID,
+    );
+    return {
+      schema_version: SCHEMA_VERSION,
+      name: deckName(data.name),
+      main: collapseCards(
+        Array.isArray(data.main)
+          ? data.main.map((card) => parseCard(card, legacyFlatRoles))
+          : [],
+      ),
+      extra: collapseCards(
+        Array.isArray(data.extra)
+          ? data.extra.map((card) => parseCard(card, legacyFlatRoles))
+          : [],
+      ),
+      side: collapseCards(
+        Array.isArray(data.side)
+          ? data.side.map((card) => parseCard(card, legacyFlatRoles))
+          : [],
+      ),
+      groups,
+      hand_conditions,
+      hand_condition_sets: [...withoutDefault, engineSet],
+      engine_access_set_id: ENGINE_ACCESS_SET_ID,
+      analysis: parsedAnalysis,
+    };
+  }
   return {
     schema_version: SCHEMA_VERSION,
     name: deckName(data.name),
@@ -520,8 +679,10 @@ export function parseMappingJson(text: string): MappingDocument {
         ? data.side.map((card) => parseCard(card, legacyFlatRoles))
         : [],
     ),
-    access_groups,
-    access_conditions,
+    groups,
+    hand_conditions,
+    hand_condition_sets,
+    engine_access_set_id: engineAccessId,
     analysis: parsedAnalysis,
   };
 }
@@ -537,17 +698,24 @@ export function serializeMapping(doc: MappingDocument): string {
     main: doc.main.map(serializeCard),
     extra: doc.extra.map(serializeCard),
     side: doc.side.map(serializeCard),
-    access_groups: doc.access_groups.map((group) => ({
+    groups: doc.groups.map((group) => ({
       id: group.id,
       name: group.name,
       card_ids: [...group.card_ids],
     })),
-    access_conditions: doc.access_conditions.map((condition) => ({
+    hand_conditions: doc.hand_conditions.map((condition) => ({
       id: condition.id,
       name: condition.name,
-      requirements: condition.requirements.map(serializeRequirement),
-      excludes: condition.excludes.map(serializeRequirement),
+      requirements: condition.requirements.map(serializeCondition),
+      excludes: condition.excludes.map(serializeCondition),
     })),
+    hand_condition_sets: doc.hand_condition_sets.map((set) => ({
+      id: set.id,
+      name: set.name,
+      condition_ids: [...set.condition_ids],
+      aggregation: set.aggregation,
+    })),
+    engine_access_set_id: doc.engine_access_set_id,
     analysis: doc.analysis,
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
