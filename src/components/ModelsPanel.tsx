@@ -63,12 +63,21 @@ interface Props {
   onHandSize: (size: number) => void;
 }
 
-export function HandConditionsPanel({
+type ModelsView = "groups" | "conditions" | "outcomes";
+
+const VIEWS: { key: ModelsView; label: string }[] = [
+  { key: "groups", label: "Groups" },
+  { key: "conditions", label: "Hand Conditions" },
+  { key: "outcomes", label: "Modeled Outcomes" },
+];
+
+export function ModelsPanel({
   doc,
   catalog,
   onChange,
   onHandSize,
 }: Props) {
+  const [view, setView] = useState<ModelsView>("groups");
   const [groupFilter, setGroupFilter] = useState("");
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
@@ -119,21 +128,43 @@ export function HandConditionsPanel({
     );
   }
 
-  function addSet(): void {
+  function addOutcome(): void {
     onChange(
       upsertHandConditionSet(doc, {
-        id: newId("set"),
-        name: "New condition set",
+        id: newId("outcome"),
+        name: "New modeled outcome",
         condition_ids: [],
         aggregation: "any",
       }),
     );
   }
 
+  /** Create a Hand Condition and return its id (for inline outcome authoring). */
+  function createConditionForOutcome(): string {
+    const id = newId("condition");
+    const firstCard = doc.main[0]?.card_id;
+    onChange(
+      upsertHandCondition(doc, {
+        id,
+        name: "New hand condition",
+        requirements: firstCard
+          ? [{ kind: "card", card_id: firstCard, op: "gte", count: 1 }]
+          : [],
+        excludes: [],
+      }),
+    );
+    return id;
+  }
+
+  const analysis =
+    summary && !("error" in summary) ? summary : undefined;
+  const probabilityOf = (conditionId: string): number | undefined =>
+    analysis?.conditions.find((row) => row.id === conditionId)?.probability;
+
   return (
     <section className="panel">
       <header>
-        <h2>Hand Conditions</h2>
+        <h2>Models</h2>
         <label>
           Opening hand
           <input
@@ -146,112 +177,142 @@ export function HandConditionsPanel({
         </label>
       </header>
       <p className="note">
-        Human-defined hand hypotheses evaluated under{" "}
+        Define Groups, then reusable Hand Conditions, then combine conditions
+        into Modeled Outcomes. Everything is evaluated under{" "}
         {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. ALL OF Requires and NONE OF
-        Excludes within a condition; OR across selected Engine Access
-        conditions. Not combo routes, resilience, or YAPPING utility.
-        {!isOpeningHandObservation(context)
-          ? " Satisfaction among first cards seen does not imply the line was available during the opponent's first turn."
-          : ""}{" "}
-        An exclusion rejects a hand without judging it strategically
-        (Citrinitas in hand is not "bad", the modeled line just requires its
-        absence). If a combo needs "Nervedo + another S/T", exclude Nervedo from
-        that group so one copy cannot satisfy both requirements.
+        {sampleSizeDescription(context, opening)}. Not combo routes,
+        resilience, or YAPPING utility.
       </p>
 
-      <h3 className="panel-subhead">Groups</h3>
-      <p className="note">
-        Named Main Deck card sets for conditions. Deck-specific helpers — not
-        taxonomy labels.
-      </p>
-      {doc.groups.length === 0 ? (
-        <p className="empty">No groups yet.</p>
-      ) : (
-        doc.groups.map((group) => (
-          <GroupEditor
-            key={group.id}
-            group={group}
-            doc={doc}
-            catalog={catalog}
-            filter={groupFilter}
-            onFilter={setGroupFilter}
-            onChange={(next) => onChange(upsertGroup(doc, next))}
-            onRemove={() => onChange(removeGroup(doc, group.id))}
-          />
-        ))
-      )}
-      <button type="button" onClick={addGroup}>
-        + Add group
-      </button>
+      <nav className="context-presets models-nav" aria-label="Models">
+        {VIEWS.map((entry) => (
+          <button
+            key={entry.key}
+            type="button"
+            className={`context-chip${view === entry.key ? " on" : ""}`}
+            onClick={() => setView(entry.key)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
 
-      <h3 className="panel-subhead">Conditions</h3>
-      {doc.hand_conditions.length === 0 ? (
-        <p className="empty">No hand conditions yet.</p>
-      ) : (
-        doc.hand_conditions.map((condition) => {
-          const probability =
-            summary && !("error" in summary)
-              ? summary.conditions.find((row) => row.id === condition.id)
-                  ?.probability
-              : undefined;
-          return (
-            <ConditionEditor
-              key={condition.id}
-              condition={condition}
-              doc={doc}
-              catalog={catalog}
-              probability={probability}
-              onChange={(next) => onChange(upsertHandCondition(doc, next))}
-              onRemove={() => onChange(removeHandCondition(doc, condition.id))}
-            />
-          );
-        })
-      )}
-      <button type="button" onClick={addCondition}>
-        + Add Hand Condition
-      </button>
+      {view === "groups" ? (
+        <>
+          <h3 className="panel-subhead">Groups</h3>
+          <p className="note">
+            Named Main Deck card sets for predicates: "which cards are
+            interchangeable for this pattern?" Deck-specific helpers - not
+            taxonomy labels.
+          </p>
+          {doc.groups.length === 0 ? (
+            <p className="empty">No groups yet.</p>
+          ) : (
+            doc.groups.map((group) => (
+              <GroupEditor
+                key={group.id}
+                group={group}
+                doc={doc}
+                catalog={catalog}
+                filter={groupFilter}
+                onFilter={setGroupFilter}
+                onChange={(next) => onChange(upsertGroup(doc, next))}
+                onRemove={() => onChange(removeGroup(doc, group.id))}
+              />
+            ))
+          )}
+          <button type="button" onClick={addGroup}>
+            + Add group
+          </button>
+        </>
+      ) : null}
 
-      <h3 className="panel-subhead">Condition Sets</h3>
-      <p className="note">
-        A Condition Set groups Hand Conditions as alternative ways to satisfy a
-        modeled outcome (ANY of the members). MAPPING derives overlap from exact
-        evaluation, so it never sums or averages overlapping probabilities and
-        never asks whether conditions are mutually exclusive.
-      </p>
-      {doc.hand_condition_sets.length === 0 ? (
-        <p className="empty">No condition sets yet.</p>
-      ) : (
-        doc.hand_condition_sets.map((set) => {
-          const setSummary =
-            summary && !("error" in summary)
-              ? summary.sets.find((row) => row.id === set.id)
-              : undefined;
-          return (
-            <SetEditor
-              key={set.id}
-              set={set}
-              doc={doc}
-              summary={summary && !("error" in summary) ? summary : undefined}
-              setSummary={setSummary}
-              context={context}
-              opening={opening}
-              sample={sample}
-              deck={deck}
-              onSetChange={(next) => onChange(upsertHandConditionSet(doc, next))}
-              onToggleMember={(conditionId, member) =>
-                onChange(
-                  setConditionSetMember(doc, set.id, conditionId, member),
-                )
-              }
-              onRemove={() => onChange(removeHandConditionSet(doc, set.id))}
-            />
-          );
-        })
-      )}
-      <button type="button" onClick={addSet}>
-        + Add Condition Set
-      </button>
+      {view === "conditions" ? (
+        <>
+          <h3 className="panel-subhead">Hand Conditions</h3>
+          <p className="note">
+            Define card patterns that make an opening hand satisfy something you
+            care about. MAPPING evaluates each pattern across all possible
+            opening hands to calculate its exact probability. A condition's
+            name can document a strategic assertion (for example "through 1
+            Ash") while the Requires/Excludes predicate is the actual Boolean
+            rule.
+          </p>
+          {doc.hand_conditions.length === 0 ? (
+            <p className="empty">No hand conditions yet.</p>
+          ) : (
+            doc.hand_conditions.map((condition) => (
+              <ConditionEditor
+                key={condition.id}
+                condition={condition}
+                doc={doc}
+                catalog={catalog}
+                probability={probabilityOf(condition.id)}
+                onChange={(next) => onChange(upsertHandCondition(doc, next))}
+                onRemove={() => onChange(removeHandCondition(doc, condition.id))}
+              />
+            ))
+          )}
+          <button type="button" onClick={addCondition}>
+            + Add Hand Condition
+          </button>
+        </>
+      ) : null}
+
+      {view === "outcomes" ? (
+        <>
+          <h3 className="panel-subhead">Modeled Outcomes</h3>
+          <p className="note">
+            Combine Hand Conditions into outcomes you care about. An outcome is
+            satisfied when ANY selected Hand Condition matches the opening
+            hand. Overlapping matching conditions are counted once.
+          </p>
+          {doc.hand_condition_sets.length === 0 ? (
+            <p className="empty">No modeled outcomes yet.</p>
+          ) : (
+            doc.hand_condition_sets.map((set) => {
+              const setSummary = analysis?.sets.find(
+                (row) => row.id === set.id,
+              );
+              return (
+                <ModeledOutcomeEditor
+                  key={set.id}
+                  set={set}
+                  doc={doc}
+                  catalog={catalog}
+                  summary={analysis}
+                  setSummary={setSummary}
+                  context={context}
+                  opening={opening}
+                  sample={sample}
+                  deck={deck}
+                  onSetChange={(next) =>
+                    onChange(upsertHandConditionSet(doc, next))
+                  }
+                  onToggleMember={(conditionId, member) =>
+                    onChange(
+                      setConditionSetMember(doc, set.id, conditionId, member),
+                    )
+                  }
+                  onCreateCondition={createConditionForOutcome}
+                  onEditCondition={(next) =>
+                    onChange(upsertHandCondition(doc, next))
+                  }
+                  onRemoveCondition={(conditionId) =>
+                    onChange(removeHandCondition(doc, conditionId))
+                  }
+                  onRemove={() =>
+                    onChange(removeHandConditionSet(doc, set.id))
+                  }
+                />
+              );
+            })
+          )}
+          <button type="button" onClick={addOutcome}>
+            + Add Modeled Outcome
+          </button>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -617,9 +678,10 @@ function RequirementEditor({
   );
 }
 
-function SetEditor({
+function ModeledOutcomeEditor({
   set,
   doc,
+  catalog,
   summary,
   setSummary,
   context,
@@ -628,10 +690,14 @@ function SetEditor({
   deck,
   onSetChange,
   onToggleMember,
+  onCreateCondition,
+  onEditCondition,
+  onRemoveCondition,
   onRemove,
 }: {
   set: HandConditionSet;
   doc: MappingDocument;
+  catalog: Catalog;
   summary: HandEventAnalysis | undefined;
   setSummary: import("../lib/handExplorer").ConditionSetSummary | undefined;
   context: import("../lib/analysisContext").AnalysisContext;
@@ -640,27 +706,38 @@ function SetEditor({
   deck: number;
   onSetChange: (set: HandConditionSet) => void;
   onToggleMember: (conditionId: string, member: boolean) => void;
+  onCreateCondition: () => string;
+  onEditCondition: (condition: HandCondition) => void;
+  onRemoveCondition: (conditionId: string) => void;
   onRemove: () => void;
 }) {
   const members = new Set(set.condition_ids);
+  const [inlineConditionId, setInlineConditionId] = useState<string | null>(
+    null,
+  );
   const conditionName = (id: string): string => {
     const condition = doc.hand_conditions.find((item) => item.id === id);
     return condition?.name ?? "unknown";
   };
+  const inlineCondition = inlineConditionId
+    ? doc.hand_conditions.find((condition) => condition.id === inlineConditionId)
+    : undefined;
+  const n = setSummary?.conditionIds.length ?? 0;
 
   return (
     <div className="access-block">
       <div className="access-block-head">
         <input
           value={set.name}
-          placeholder="Untitled set"
-          aria-label="Condition set name"
+          placeholder="Untitled modeled outcome"
+          aria-label="Modeled outcome name"
           onChange={(event) => onSetChange({ ...set, name: event.target.value })}
         />
         <button type="button" className="ghost" onClick={onRemove}>
-          Delete set
+          Delete outcome
         </button>
       </div>
+      <p className="access-allof">ANY OF</p>
       {doc.hand_conditions.length === 0 ? (
         <p className="empty">Add a Hand Condition first.</p>
       ) : (
@@ -692,74 +769,119 @@ function SetEditor({
           })}
         </ul>
       )}
-      {setSummary && setSummary.conditionIds.length > 0 ? (
+      <div className="row-actions">
+        <button
+          type="button"
+          onClick={() => setInlineConditionId(onCreateCondition())}
+        >
+          + Create hand condition
+        </button>
+      </div>
+      {inlineCondition ? (
+        <ConditionEditor
+          condition={inlineCondition}
+          doc={doc}
+          catalog={catalog}
+          probability={summary?.conditions.find(
+            (row) => row.id === inlineCondition.id,
+          )?.probability}
+          onChange={onEditCondition}
+          onRemove={() => {
+            onRemoveCondition(inlineCondition.id);
+            setInlineConditionId(null);
+          }}
+        />
+      ) : null}
+      {setSummary && n > 0 ? (
         <>
-          <dl className="explorer-results">
-            <div className="explorer-row access-union">
-              <dt>
-                <span className="explorer-title">Any condition</span>
-                <span className="explorer-notation">
-                  {isOpeningHandObservation(context)
-                    ? `opening ${opening}`
-                    : `first ${sample} cards seen`}
-                </span>
-              </dt>
-              <dd>{formatPercent(setSummary.union)}</dd>
-            </div>
-            {setSummary.distribution.atLeast.slice(1).map((p, index) => (
-              <div key={`set-at-least-${set.id}-${index + 2}`} className="explorer-row">
+          <p className="access-allof access-outcome-label">
+            Modeled probability
+          </p>
+          <p className="outcome-primary">{formatPercent(setSummary.union)}</p>
+          <p className="explorer-notation">
+            {isOpeningHandObservation(context)
+              ? `opening ${opening}`
+              : `first ${sample} cards seen`}
+            {" "}· P(any selected condition matches), overlapping conditions
+            counted once
+          </p>
+          <details className="panel-details">
+            <summary>Multiplicity details</summary>
+            <dl className="explorer-results">
+              <div className="explorer-row">
                 <dt>
                   <span className="explorer-title">
-                    At least {index + 2} conditions
+                    No matching condition
                   </span>
                 </dt>
-                <dd>{formatPercent(p)}</dd>
+                <dd>{formatPercent(setSummary.distribution.exact[0] ?? 0)}</dd>
               </div>
-            ))}
-          </dl>
-          <dl className="explorer-results access-exact">
-            {setSummary.distribution.exact.map((p, count) => (
-              <div key={`set-exact-${set.id}-${count}`} className="explorer-row">
-                <dt>
-                  <span className="explorer-title">
-                    Exactly {count} {count === 1 ? "condition" : "conditions"}
-                  </span>
-                </dt>
-                <dd>{formatPercent(p)}</dd>
-              </div>
-            ))}
-          </dl>
-          {setSummary.conditionIds.length >= 2 ? (
-            <>
-              <p className="access-allof access-relationships-label">
-                Relationships (both)
-              </p>
-              <dl className="explorer-results">
-                {setSummary.conditionIds.map((aId, i) =>
-                  setSummary.conditionIds.slice(i + 1).map((bId) => {
-                    const overlap = summary?.overlaps.get(pairKey(aId, bId));
-                    if (!overlap) return null;
-                    return (
-                      <div key={`pair-${set.id}-${aId}-${bId}`} className="explorer-row">
-                        <dt>
-                          <span className="explorer-title">
-                            {conditionName(aId)} ∩ {conditionName(bId)}
-                          </span>
-                        </dt>
-                        <dd>{formatPercent(overlap.intersection)}</dd>
-                      </div>
-                    );
-                  }),
-                )}
-              </dl>
-            </>
-          ) : null}
+              {setSummary.distribution.exact
+                .slice(1, setSummary.distribution.exact.length - 1)
+                .map((p, index) => (
+                  <div key={`exact-${set.id}-${index + 1}`} className="explorer-row">
+                    <dt>
+                      <span className="explorer-title">
+                        Exactly {index + 1} matching{" "}
+                        {index + 1 === 1 ? "condition" : "conditions"}
+                      </span>
+                    </dt>
+                    <dd>{formatPercent(p)}</dd>
+                  </div>
+                ))}
+              {setSummary.distribution.exact.length > 1 ? (
+                <div className="explorer-row">
+                  <dt>
+                    <span className="explorer-title">
+                      {setSummary.distribution.exact.length - 1}+ matching
+                      conditions
+                    </span>
+                  </dt>
+                  <dd>
+                    {formatPercent(
+                      setSummary.distribution.exact[
+                        setSummary.distribution.exact.length - 1
+                      ]!,
+                    )}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+            {n >= 2 ? (
+              <>
+                <p className="access-allof access-relationships-label">
+                  Relationships (both)
+                </p>
+                <dl className="explorer-results">
+                  {setSummary.conditionIds.map((aId, i) =>
+                    setSummary.conditionIds.slice(i + 1).map((bId) => {
+                      const overlap = summary?.overlaps.get(pairKey(aId, bId));
+                      if (!overlap) return null;
+                      return (
+                        <div
+                          key={`pair-${set.id}-${aId}-${bId}`}
+                          className="explorer-row"
+                        >
+                          <dt>
+                            <span className="explorer-title">
+                              {conditionName(aId)} ∩ {conditionName(bId)}
+                            </span>
+                          </dt>
+                          <dd>{formatPercent(overlap.intersection)}</dd>
+                        </div>
+                      );
+                    }),
+                  )}
+                </dl>
+              </>
+            ) : null}
+          </details>
         </>
       ) : (
         <p className="empty">
           {deck === 0
-            ? "Add main-deck cards to compute set probabilities."
-            : "Select at least one condition above as a member of this set."}
+            ? "Add main-deck cards to compute outcome probabilities."
+            : "Select at least one condition above as a member of this outcome."}
         </p>
       )}
     </div>

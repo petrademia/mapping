@@ -121,7 +121,7 @@ YAPPING is expected to measure (not implemented here):
 | **Taxonomy** | Card-level human role hypothesis (`starter` / `extender` / `interaction`) |
 | **Hand Condition** | Hand-level user-defined Boolean predicate (ALL OF Requires AND NONE OF Excludes over Card / Role / Group predicates) |
 | **Group** | Named deck-specific set of Main Deck cards |
-| **Hand Condition Set** | Named collection of Hand Conditions combined with an aggregation (`any` for v0); `Modeled Engine Access` is one such set |
+| **Modeled Outcome** | User-facing interpretation formed from one or more Hand Conditions (ANY / union semantics); backed by the internal `HandConditionSet` |
 | **YAPPING** | Strategic validation / game-tree outcomes |
 
 Access Conditions generalized into Hand Conditions: a condition is no longer
@@ -156,10 +156,11 @@ human-modeled hand-composition constraint, not a claim that Citrinitas is
 
 MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Hand Conditions are strategically independent routes (they may converge on the same choke point).
 
-### Condition Sets and exact event analysis
+### Modeled Outcomes and exact event analysis
 
-A **Condition Set** groups Hand Conditions as alternative ways of satisfying a
-modeled outcome (`ANY of` the members, OR semantics). Example:
+A **Modeled Outcome** combines Hand Conditions into an outcome the user cares
+about. It is satisfied when ANY selected Hand Condition matches the opening
+hand (`ANY of` the members, OR / union semantics). Example:
 
 ```text
 Normal Engine Access
@@ -169,12 +170,18 @@ Normal Engine Access
     Nervedo Access
 ```
 
-For each set MAPPING reports, exactly, the union probability
-`P(C1 ∪ C2 ∪ ...)`, the multiplicity distribution
-(`P(N >= 1)`, `P(N >= 2)`, ... and `P(N = k)` buckets), and the pairwise
-intersections `P(A ∩ B)` of its members. The user never declares conditions
-mutually exclusive: overlap is derived from exact hand evaluation, and
-probabilities are never summed or averaged.
+For each outcome MAPPING reports, exactly, the union probability
+`P(C1 ∪ C2 ∪ ...)`, and (behind a "Multiplicity details" disclosure) the
+multiplicity distribution (`P(N >= 1)`, `P(N >= 2)`, ... and `P(N = k)`
+buckets) plus the pairwise intersections `P(A ∩ B)` of its members. The user
+never declares conditions mutually exclusive: overlap is derived from exact
+hand evaluation, and probabilities are never summed or averaged.
+
+A Hand Condition is a reusable Boolean pattern; its **name** may document a
+strategic assertion (for example `Medius + Vidolium — Through 1 Ash`) while
+its **predicate** is the actual rule. Renaming a condition never changes its
+probability. MAPPING does not simulate or verify Ash - it only evaluates the
+user's patterns.
 
 Treating each condition as an event, MAPPING also exposes:
 
@@ -183,19 +190,20 @@ Treating each condition as an event, MAPPING also exposes:
 - multiplicity buckets `P(N = k)` that are mutually exclusive and jointly
   exhaustive (`Σ P(N = k) = 1`).
 
-**Modeled Engine Access** is just the Condition Set with the fixed id
-`modeled-engine-access` (a normal set, not a separate mechanism). The Deck
-Profile reads that set. More than one satisfied condition is a combinatorial
-property of the user's definitions, not evidence of two independent combo
-routes. Do not label this combo success, playability, or win rate.
+**Modeled Engine Access** is just the modeled outcome with the fixed id
+`modeled-engine-access` (backed by an internal `HandConditionSet` - a normal
+set, not a separate mechanism). The Deck Profile reads that set. More than one
+satisfied condition is a combinatorial property of the user's definitions, not
+evidence of two independent combo routes. Do not label this combo success,
+playability, or win rate.
 
-If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy. v0 does not generalize membership in a condition set from a condition's name.
+If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy. v0 does not generalize membership in an outcome from a condition's name.
 
 ### Hand Test
 
 Probability analysis asks *how often* a condition occurs; **Hand Test** asks
 whether one *exact* hand satisfies it. It evaluates the user's existing model
-(Hand Conditions + Condition Sets) against a single concrete hand and explains
+(Hand Conditions + Modeled Outcomes) against a single concrete hand and explains
 why each predicate passed or failed.
 
 - **Hand acquisition**: *Draw Random Hand* samples uniformly over physical
@@ -208,7 +216,7 @@ why each predicate passed or failed.
   PASS/FAIL, and the contributing cards (especially useful for debugging Group
   definitions). An exclusion that matches is flagged and explains why the
   condition fails.
-- **Condition Sets**: each set shows PASS/FAIL and how many of its member
+- **Modeled Outcomes**: each outcome shows PASS/FAIL and how many of its member
   conditions the hand satisfies (`N_S(H) = Σ 1[C_i(H)]`), the single-hand
   counterpart of the multiplicity distribution. Satisfying multiple conditions
   is not evidence of independent routes.
@@ -219,6 +227,17 @@ why each predicate passed or failed.
 - **Modeled, not verified**: a PASS means the human-authored model matches the
   hand. Hand Test never simulates play, Ash, or legal continuations; YAPPING
   remains responsible for strategic validation.
+
+### Workspaces
+
+The right rail is organized into four workspaces so modeling editors never
+compete with analysis results for vertical space:
+
+- **Profile** - Analysis Context, Deck Profile, Taxonomy / Annotation Analysis.
+- **Models** - a sub-navigated workspace: [Groups] [Hand Conditions]
+  [Modeled Outcomes].
+- **Explore** - the ad-hoc opening-hand probability explorer.
+- **Hand Test** - evaluate one exact hand against the model.
 
 ### Deck Profile
 
@@ -321,8 +340,8 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; paste-add appends without replacing
-- define Hand Conditions (Requires / Excludes), Groups, and Condition Sets (ANY of members); inspect per-set union, pairwise overlap, and multiplicity distribution
-- test one exact hand (random or manual) against all Hand Conditions and Condition Sets, with per-predicate traces and population probabilities
+- define Hand Conditions (Requires / Excludes), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace; inspect per-outcome union, pairwise overlap, and multiplicity distribution
+- test one exact hand (random or manual) against all Hand Conditions and Modeled Outcomes, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
 - inspect the Deck Profile: modeled outcomes (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
 - inspect raw taxonomy density and per-context opening-quality counts separately from modeled outcomes

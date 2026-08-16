@@ -555,6 +555,30 @@ h1 {
 }
 .context-sample { margin-top: 0.35rem; }
 
+.workspace-nav {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+.workspace-nav .context-chip {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+}
+.models-nav {
+  margin-top: 0.2rem;
+  margin-bottom: 0.7rem;
+}
+.outcome-primary {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 1.5rem;
+  color: var(--mist);
+  margin: 0.15rem 0 0.25rem;
+}
+.access-outcome-label {
+  margin-top: 0.8rem;
+}
+
 [data-role="starter"] { --swatch: var(--starter); }
 [data-role="extender"] { --swatch: var(--extender); }
 [data-role="interaction"] { --swatch: var(--interaction); }
