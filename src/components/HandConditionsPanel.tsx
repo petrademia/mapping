@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import {
   groupsToMembership,
-  newAccessId,
-  type AccessCondition,
-  type AccessGroup,
-} from "../lib/access";
+  newId,
+  type Group,
+  type HandCondition,
+} from "../lib/handCondition";
 import {
   analysisContextLabel,
   isOpeningHandObservation,
@@ -15,18 +15,21 @@ import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import {
   analysisContextOf,
-  removeAccessCondition,
-  removeAccessGroup,
+  engineAccessConditionIds,
+  isEngineAccessCondition,
+  removeGroup,
+  removeHandCondition,
   sectionSize,
-  upsertAccessCondition,
-  upsertAccessGroup,
+  setEngineAccessMember,
+  upsertGroup,
+  upsertHandCondition,
   type MappingDocument,
 } from "../lib/document";
 import {
   COUNT_OPERATORS,
-  summarizeAccessConditions,
+  summarizeHandConditions,
+  type ConditionRequirement,
   type CountOperator,
-  type HandCondition,
 } from "../lib/handExplorer";
 import { ProbabilityError } from "../lib/probability";
 import { ROLES, type Role } from "../lib/taxonomy";
@@ -57,7 +60,7 @@ interface Props {
   onHandSize: (size: number) => void;
 }
 
-export function AccessConditionsPanel({
+export function HandConditionsPanel({
   doc,
   catalog,
   onChange,
@@ -72,28 +75,29 @@ export function AccessConditionsPanel({
   const summary = useMemo(() => {
     if (deck === 0) return null;
     try {
-      return summarizeAccessConditions(
+      return summarizeHandConditions(
         doc.main,
         sample,
-        doc.access_conditions,
-        groupsToMembership(doc.access_groups),
+        doc.hand_conditions,
+        engineAccessConditionIds(doc),
+        groupsToMembership(doc.groups),
       );
     } catch (caught) {
       return {
         error:
           caught instanceof ProbabilityError
             ? caught.message
-            : "Cannot compute access probabilities.",
+            : "Cannot compute hand condition probabilities.",
       };
     }
-  }, [doc.main, doc.access_conditions, doc.access_groups, deck, sample]);
+  }, [doc.main, doc.hand_conditions, doc.groups, doc.hand_condition_sets, deck, sample]);
 
   function addCondition(): void {
     const firstCard = doc.main[0]?.card_id;
     onChange(
-      upsertAccessCondition(doc, {
-        id: newAccessId("access"),
-        name: "New access",
+      upsertHandCondition(doc, {
+        id: newId("condition"),
+        name: "New hand condition",
         requirements: firstCard
           ? [{ kind: "card", card_id: firstCard, op: "gte", count: 1 }]
           : [],
@@ -104,8 +108,8 @@ export function AccessConditionsPanel({
 
   function addGroup(): void {
     onChange(
-      upsertAccessGroup(doc, {
-        id: newAccessId("group"),
+      upsertGroup(doc, {
+        id: newId("group"),
         name: "New group",
         card_ids: [],
       }),
@@ -115,7 +119,7 @@ export function AccessConditionsPanel({
   return (
     <section className="panel">
       <header>
-        <h2>Access Conditions</h2>
+        <h2>Hand Conditions</h2>
         <label>
           Opening hand
           <input
@@ -128,29 +132,29 @@ export function AccessConditionsPanel({
         </label>
       </header>
       <p className="note">
-        Human-defined access hypotheses evaluated under{" "}
+        Human-defined hand hypotheses evaluated under{" "}
         {analysisContextLabel(context, opening)} —{" "}
         {sampleSizeDescription(context, opening)}. ALL OF Requires and NONE OF
-        Excludes within a condition; OR across conditions for modeled access.
-        Not combo routes, resilience, or YAPPING utility.
+        Excludes within a condition; OR across selected Engine Access
+        conditions. Not combo routes, resilience, or YAPPING utility.
         {!isOpeningHandObservation(context)
           ? " Satisfaction among first cards seen does not imply the line was available during the opponent's first turn."
           : ""}{" "}
-        Excludes rejects a hand without judging it strategically (Citrinitas in
-        hand is not "bad", the modeled line just requires its absence). If a
-        combo needs "Nervedo + another S/T", exclude Nervedo from that group so
-        one copy cannot satisfy both requirements.
+        An exclusion rejects a hand without judging it strategically
+        (Citrinitas in hand is not "bad", the modeled line just requires its
+        absence). If a combo needs "Nervedo + another S/T", exclude Nervedo from
+        that group so one copy cannot satisfy both requirements.
       </p>
 
       <h3 className="panel-subhead">Groups</h3>
       <p className="note">
-        Named Main Deck card sets for requirements. Deck-specific helpers — not
+        Named Main Deck card sets for conditions. Deck-specific helpers — not
         taxonomy labels.
       </p>
-      {doc.access_groups.length === 0 ? (
+      {doc.groups.length === 0 ? (
         <p className="empty">No groups yet.</p>
       ) : (
-        doc.access_groups.map((group) => (
+        doc.groups.map((group) => (
           <GroupEditor
             key={group.id}
             group={group}
@@ -158,8 +162,8 @@ export function AccessConditionsPanel({
             catalog={catalog}
             filter={groupFilter}
             onFilter={setGroupFilter}
-            onChange={(next) => onChange(upsertAccessGroup(doc, next))}
-            onRemove={() => onChange(removeAccessGroup(doc, group.id))}
+            onChange={(next) => onChange(upsertGroup(doc, next))}
+            onRemove={() => onChange(removeGroup(doc, group.id))}
           />
         ))
       )}
@@ -168,10 +172,10 @@ export function AccessConditionsPanel({
       </button>
 
       <h3 className="panel-subhead">Conditions</h3>
-      {doc.access_conditions.length === 0 ? (
-        <p className="empty">No access conditions yet.</p>
+      {doc.hand_conditions.length === 0 ? (
+        <p className="empty">No hand conditions yet.</p>
       ) : (
-        doc.access_conditions.map((condition) => {
+        doc.hand_conditions.map((condition) => {
           const probability =
             summary && !("error" in summary)
               ? summary.conditions.find((row) => row.id === condition.id)
@@ -184,46 +188,137 @@ export function AccessConditionsPanel({
               doc={doc}
               catalog={catalog}
               probability={probability}
-              onChange={(next) => onChange(upsertAccessCondition(doc, next))}
-              onRemove={() => onChange(removeAccessCondition(doc, condition.id))}
+              member={isEngineAccessCondition(doc, condition.id)}
+              onMembershipChange={(member) =>
+                onChange(setEngineAccessMember(doc, condition.id, member))
+              }
+              onChange={(next) => onChange(upsertHandCondition(doc, next))}
+              onRemove={() => onChange(removeHandCondition(doc, condition.id))}
             />
           );
         })
       )}
       <button type="button" onClick={addCondition}>
-        + Add Access Condition
+        + Add Hand Condition
       </button>
 
       <h3 className="panel-subhead">Modeled Engine Access</h3>
+      <p className="note">
+        Select which Hand Conditions count as engine access. Modeled Engine
+        Access is the OR of the selected conditions, counted per hand without
+        double counting. Two satisfied conditions do not imply two independent
+        routes.
+      </p>
+      {doc.hand_conditions.length === 0 ? (
+        <p className="empty">Add a Hand Condition first.</p>
+      ) : (
+        <ul className="engine-members">
+          {doc.hand_conditions.map((condition) => {
+            const probability =
+              summary && !("error" in summary)
+                ? summary.conditions.find((row) => row.id === condition.id)
+                    ?.probability
+                : undefined;
+            const member = isEngineAccessCondition(doc, condition.id);
+            return (
+              <li key={condition.id}>
+                <label className="engine-member">
+                  <input
+                    type="checkbox"
+                    checked={member}
+                    onChange={(event) =>
+                      onChange(
+                        setEngineAccessMember(
+                          doc,
+                          condition.id,
+                          event.target.checked,
+                        ),
+                      )
+                    }
+                  />
+                  <span className="explorer-title">{condition.name}</span>
+                  <span className="engine-member-prob">
+                    {probability !== undefined
+                      ? formatPercent(probability)
+                      : "—"}
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {deck === 0 ? (
         <p className="empty">Add main-deck cards to compute access rates.</p>
       ) : summary && "error" in summary ? (
         <p className="error">{summary.error}</p>
       ) : summary ? (
-        <dl className="explorer-results">
-          {summary.conditions.map((row) => (
-            <div key={row.id} className="explorer-row">
-              <dt>
-                <span className="explorer-title">{row.name}</span>
-              </dt>
-              <dd>{formatPercent(row.probability)}</dd>
-            </div>
-          ))}
-          <div className="explorer-row access-union">
-            <dt>
-              <span className="explorer-title">
-                At least one access condition
-              </span>
-              <span className="explorer-notation">
-                Modeled Engine Access ·{" "}
-                {isOpeningHandObservation(context)
-                  ? `opening ${opening}`
-                  : `first ${sample} cards seen`}
-              </span>
-            </dt>
-            <dd>{formatPercent(summary.anyAccess)}</dd>
-          </div>
-        </dl>
+        summary.accessDistribution.atLeast.length === 0 ? (
+          <p className="empty">
+            Select at least one condition above as engine access.
+          </p>
+        ) : (
+          <>
+            <dl className="explorer-results">
+              {summary.accessDistribution.atLeast.map((p, index) => (
+                <div
+                  key={`at-least-${index + 1}`}
+                  className={
+                    index === 0
+                      ? "explorer-row access-union"
+                      : "explorer-row"
+                  }
+                >
+                  <dt>
+                    <span className="explorer-title">
+                      At least {index + 1}{" "}
+                      {index === 0 ? "condition" : "conditions"}
+                    </span>
+                    {index === 0 ? (
+                      <span className="explorer-notation">
+                        Modeled Engine Access ·{" "}
+                        {isOpeningHandObservation(context)
+                          ? `opening ${opening}`
+                          : `first ${sample} cards seen`}
+                      </span>
+                    ) : null}
+                  </dt>
+                  <dd>{formatPercent(p)}</dd>
+                </div>
+              ))}
+            </dl>
+            <dl className="explorer-results access-exact">
+              {summary.accessDistribution.exact
+                .slice(0, summary.accessDistribution.exact.length - 1)
+                .map((p, count) => (
+                  <div key={`exact-${count}`} className="explorer-row">
+                    <dt>
+                      <span className="explorer-title">
+                        Exactly {count} {count === 1 ? "condition" : "conditions"}
+                      </span>
+                    </dt>
+                    <dd>{formatPercent(p)}</dd>
+                  </div>
+                ))}
+              {summary.accessDistribution.exact.length > 1 ? (
+                <div className="explorer-row">
+                  <dt>
+                    <span className="explorer-title">
+                      Exactly {summary.accessDistribution.exact.length - 1}+
+                    </span>
+                  </dt>
+                  <dd>
+                    {formatPercent(
+                      summary.accessDistribution.exact[
+                        summary.accessDistribution.exact.length - 1
+                      ]!,
+                    )}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </>
+        )
       ) : null}
     </section>
   );
@@ -238,12 +333,12 @@ function GroupEditor({
   onChange,
   onRemove,
 }: {
-  group: AccessGroup;
+  group: Group;
   doc: MappingDocument;
   catalog: Catalog;
   filter: string;
   onFilter: (value: string) => void;
-  onChange: (group: AccessGroup) => void;
+  onChange: (group: Group) => void;
   onRemove: () => void;
 }) {
   const needle = filter.trim().toLowerCase();
@@ -304,17 +399,21 @@ function ConditionEditor({
   doc,
   catalog,
   probability,
+  member,
+  onMembershipChange,
   onChange,
   onRemove,
 }: {
-  condition: AccessCondition;
+  condition: HandCondition;
   doc: MappingDocument;
   catalog: Catalog;
   probability: number | undefined;
-  onChange: (condition: AccessCondition) => void;
+  member: boolean;
+  onMembershipChange: (member: boolean) => void;
+  onChange: (condition: HandCondition) => void;
   onRemove: () => void;
 }) {
-  function updateRequirement(index: number, next: HandCondition): void {
+  function updateRequirement(index: number, next: ConditionRequirement): void {
     const requirements = condition.requirements.map((item, i) =>
       i === index ? next : item,
     );
@@ -330,7 +429,7 @@ function ConditionEditor({
 
   function addRequirement(): void {
     const firstCard = doc.main[0]?.card_id;
-    const next: HandCondition = firstCard
+    const next: ConditionRequirement = firstCard
       ? { kind: "card", card_id: firstCard, op: "gte", count: 1 }
       : { kind: "role", role: "starter", op: "gte", count: 1 };
     onChange({
@@ -339,7 +438,7 @@ function ConditionEditor({
     });
   }
 
-  function updateExclusion(index: number, next: HandCondition): void {
+  function updateExclusion(index: number, next: ConditionRequirement): void {
     const excludes = condition.excludes.map((item, i) =>
       i === index ? next : item,
     );
@@ -355,7 +454,7 @@ function ConditionEditor({
 
   function addExclusion(): void {
     const firstCard = doc.main[0]?.card_id;
-    const next: HandCondition = firstCard
+    const next: ConditionRequirement = firstCard
       ? { kind: "card", card_id: firstCard, op: "gte", count: 1 }
       : { kind: "role", role: "starter", op: "gte", count: 1 };
     onChange({
@@ -369,11 +468,19 @@ function ConditionEditor({
       <div className="access-block-head">
         <input
           value={condition.name}
-          aria-label="Access condition name"
+          aria-label="Hand condition name"
           onChange={(event) =>
             onChange({ ...condition, name: event.target.value })
           }
         />
+        <label className="engine-member-toggle">
+          <input
+            type="checkbox"
+            checked={member}
+            onChange={(event) => onMembershipChange(event.target.checked)}
+          />
+          Engine access
+        </label>
         <button type="button" className="ghost" onClick={onRemove}>
           Delete
         </button>
@@ -438,10 +545,10 @@ function RequirementEditor({
   onChange,
   onRemove,
 }: {
-  requirement: HandCondition;
+  requirement: ConditionRequirement;
   doc: MappingDocument;
   catalog: Catalog;
-  onChange: (requirement: HandCondition) => void;
+  onChange: (requirement: ConditionRequirement) => void;
   onRemove: () => void;
 }) {
   return (
@@ -451,7 +558,7 @@ function RequirementEditor({
         <select
           value={requirement.kind}
           onChange={(event) => {
-            const kind = event.target.value as HandCondition["kind"];
+            const kind = event.target.value as ConditionRequirement["kind"];
             if (kind === "card") {
               onChange({
                 kind: "card",
@@ -469,7 +576,7 @@ function RequirementEditor({
             } else {
               onChange({
                 kind: "group",
-                group_id: doc.access_groups[0]?.id ?? "",
+                group_id: doc.groups[0]?.id ?? "",
                 op: requirement.op,
                 count: requirement.count,
               });
@@ -538,7 +645,7 @@ function RequirementEditor({
             }
           >
             <option value="">Select group</option>
-            {doc.access_groups.map((group) => (
+            {doc.groups.map((group) => (
               <option key={group.id} value={group.id}>
                 {group.name}
               </option>

@@ -1,4 +1,4 @@
-import type { CountOperator, HandCondition } from "./handExplorer";
+import type { ConditionRequirement, CountOperator } from "./handExplorer";
 import { COUNT_OPERATORS } from "./handExplorer";
 import { isRole, type Role } from "./taxonomy";
 
@@ -10,28 +10,48 @@ function parseOperator(value: unknown): CountOperator {
   return op as CountOperator;
 }
 
-export interface AccessGroup {
+/** Named deck-specific set of Main Deck cards. Not taxonomy. */
+export interface Group {
   id: string;
   name: string;
   card_ids: number[];
 }
 
-export interface AccessCondition {
+/**
+ * A user-defined Boolean predicate over the observed hand.
+ * A hand H satisfies the condition iff every `requirements` predicate holds
+ * AND every `excludes` predicate is false.
+ */
+export interface HandCondition {
   id: string;
   name: string;
   /** ALL OF these requirements. Empty means incomplete (never holds). */
-  requirements: HandCondition[];
+  requirements: ConditionRequirement[];
   /** NONE OF these exclusion predicates may hold. Empty means no exclusions. */
-  excludes: HandCondition[];
+  excludes: ConditionRequirement[];
 }
 
-export function newAccessId(prefix: string): string {
+export const SET_AGGREGATIONS = ["any"] as const;
+export type SetAggregation = (typeof SET_AGGREGATIONS)[number];
+
+/**
+ * A named collection of Hand Conditions interpreted together.
+ * v0 supports `aggregation: "any"` (OR). Future aggregations may follow.
+ */
+export interface HandConditionSet {
+  id: string;
+  name: string;
+  condition_ids: string[];
+  aggregation: SetAggregation;
+}
+
+export function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-export function normalizeAccessGroup(raw: AccessGroup): AccessGroup {
+export function normalizeGroup(raw: Group): Group {
   const id = raw.id.trim();
-  if (!id) throw new Error("access group id is required");
+  if (!id) throw new Error("group id is required");
   const name = raw.name.trim() || "Untitled group";
   const seen = new Set<number>();
   const card_ids: number[] = [];
@@ -44,14 +64,14 @@ export function normalizeAccessGroup(raw: AccessGroup): AccessGroup {
   return { id, name, card_ids };
 }
 
-export function normalizeRequirement(raw: HandCondition): HandCondition {
+export function normalizeCondition(raw: ConditionRequirement): ConditionRequirement {
   if (!Number.isInteger(raw.count) || raw.count < 0) {
-    throw new Error("requirement count must be a non-negative integer");
+    throw new Error("condition count must be a non-negative integer");
   }
   const op = parseOperator(raw.op);
   if (raw.kind === "card") {
     if (!Number.isInteger(raw.card_id) || raw.card_id <= 0) {
-      throw new Error("requirement card_id must be a positive integer");
+      throw new Error("condition card_id must be a positive integer");
     }
     return {
       kind: "card",
@@ -72,7 +92,7 @@ export function normalizeRequirement(raw: HandCondition): HandCondition {
     };
   }
   const group_id = raw.group_id.trim();
-  if (!group_id) throw new Error("requirement group_id is required");
+  if (!group_id) throw new Error("condition group_id is required");
   return {
     kind: "group",
     group_id,
@@ -81,27 +101,49 @@ export function normalizeRequirement(raw: HandCondition): HandCondition {
   };
 }
 
-export function normalizeAccessCondition(
-  raw: AccessCondition,
-): AccessCondition {
+export function normalizeHandCondition(raw: HandCondition): HandCondition {
   const id = raw.id.trim();
-  if (!id) throw new Error("access condition id is required");
+  if (!id) throw new Error("hand condition id is required");
   const requirements = Array.isArray(raw.requirements)
-    ? raw.requirements.map(normalizeRequirement)
+    ? raw.requirements.map(normalizeCondition)
     : [];
   const excludes = Array.isArray(raw.excludes)
-    ? raw.excludes.map(normalizeRequirement)
+    ? raw.excludes.map(normalizeCondition)
     : [];
   return {
     id,
-    name: raw.name.trim() || "Untitled access",
+    name: raw.name.trim() || "Untitled hand condition",
     requirements,
     excludes,
   };
 }
 
+export function normalizeHandConditionSet(raw: HandConditionSet): HandConditionSet {
+  const id = raw.id.trim();
+  if (!id) throw new Error("hand condition set id is required");
+  const aggregation: SetAggregation = SET_AGGREGATIONS.includes(
+    (raw.aggregation ?? "any") as SetAggregation,
+  )
+    ? (raw.aggregation as SetAggregation)
+    : "any";
+  const ids = new Set<string>();
+  const condition_ids: string[] = [];
+  for (const conditionId of raw.condition_ids) {
+    const trimmed = conditionId.trim();
+    if (!trimmed || ids.has(trimmed)) continue;
+    ids.add(trimmed);
+    condition_ids.push(trimmed);
+  }
+  return {
+    id,
+    name: raw.name.trim() || "Untitled set",
+    condition_ids,
+    aggregation,
+  };
+}
+
 export function groupsToMembership(
-  groups: readonly AccessGroup[],
+  groups: readonly Group[],
 ): Map<string, ReadonlySet<number>> {
   const map = new Map<string, ReadonlySet<number>>();
   for (const group of groups) {
@@ -110,7 +152,7 @@ export function groupsToMembership(
   return map;
 }
 
-export function defaultRequirement(
+export function defaultCondition(
   kind: "card" | "role" | "group",
   options: {
     card_id?: number;
@@ -119,7 +161,7 @@ export function defaultRequirement(
     op?: CountOperator;
     count?: number;
   } = {},
-): HandCondition {
+): ConditionRequirement {
   const op = options.op ?? "gte";
   const count = options.count ?? 1;
   if (kind === "card") {
@@ -146,33 +188,33 @@ export function defaultRequirement(
   };
 }
 
-export function parseAccessGroup(raw: unknown): AccessGroup {
+export function parseGroup(raw: unknown): Group {
   if (raw === null || typeof raw !== "object") {
-    throw new Error("access group must be an object");
+    throw new Error("group must be an object");
   }
   const record = raw as Record<string, unknown>;
   const card_ids = Array.isArray(record.card_ids)
     ? record.card_ids.map((id) => Number(id))
     : [];
-  return normalizeAccessGroup({
+  return normalizeGroup({
     id: String(record.id ?? ""),
     name: String(record.name ?? ""),
     card_ids,
   });
 }
 
-export function parseAccessCondition(raw: unknown): AccessCondition {
+export function parseHandCondition(raw: unknown): HandCondition {
   if (raw === null || typeof raw !== "object") {
-    throw new Error("access condition must be an object");
+    throw new Error("hand condition must be an object");
   }
   const record = raw as Record<string, unknown>;
   const requirements = Array.isArray(record.requirements)
-    ? record.requirements.map(parseRequirement)
+    ? record.requirements.map(parseCondition)
     : [];
   const excludes = Array.isArray(record.excludes)
-    ? record.excludes.map(parseRequirement)
+    ? record.excludes.map(parseCondition)
     : [];
-  return normalizeAccessCondition({
+  return normalizeHandCondition({
     id: String(record.id ?? ""),
     name: String(record.name ?? ""),
     requirements,
@@ -180,19 +222,35 @@ export function parseAccessCondition(raw: unknown): AccessCondition {
   });
 }
 
-function parseRequirement(raw: unknown): HandCondition {
+export function parseHandConditionSet(raw: unknown): HandConditionSet {
   if (raw === null || typeof raw !== "object") {
-    throw new Error("requirement must be an object");
+    throw new Error("hand condition set must be an object");
   }
   const record = raw as Record<string, unknown>;
-  // Support both flat HandCondition shape and nested subject shape from handoff.
+  const condition_ids = Array.isArray(record.condition_ids)
+    ? record.condition_ids.map((id) => String(id))
+    : [];
+  return normalizeHandConditionSet({
+    id: String(record.id ?? ""),
+    name: String(record.name ?? ""),
+    condition_ids,
+    aggregation: (record.aggregation ?? "any") as SetAggregation,
+  });
+}
+
+function parseCondition(raw: unknown): ConditionRequirement {
+  if (raw === null || typeof raw !== "object") {
+    throw new Error("condition must be an object");
+  }
+  const record = raw as Record<string, unknown>;
+  // Support both flat ConditionRequirement shape and nested subject shape.
   if (record.subject && typeof record.subject === "object") {
     const subject = record.subject as Record<string, unknown>;
     const op = parseOperator(record.operator ?? record.op ?? "gte");
     const count = Number(record.value ?? record.count ?? 1);
     const type = String(subject.type ?? subject.kind ?? "");
     if (type === "card") {
-      return normalizeRequirement({
+      return normalizeCondition({
         kind: "card",
         card_id: Number(subject.card_id),
         op,
@@ -200,7 +258,7 @@ function parseRequirement(raw: unknown): HandCondition {
       });
     }
     if (type === "role") {
-      return normalizeRequirement({
+      return normalizeCondition({
         kind: "role",
         role: String(subject.role) as Role,
         op,
@@ -208,20 +266,20 @@ function parseRequirement(raw: unknown): HandCondition {
       });
     }
     if (type === "group") {
-      return normalizeRequirement({
+      return normalizeCondition({
         kind: "group",
         group_id: String(subject.group_id),
         op,
         count,
       });
     }
-    throw new Error(`unsupported requirement subject type: ${type}`);
+    throw new Error(`unsupported condition subject type: ${type}`);
   }
   const kind = String(record.kind ?? record.type ?? "");
   const op = parseOperator(record.op ?? record.operator ?? "gte");
   const count = Number(record.count ?? record.value ?? 1);
   if (kind === "card") {
-    return normalizeRequirement({
+    return normalizeCondition({
       kind: "card",
       card_id: Number(record.card_id),
       op,
@@ -229,7 +287,7 @@ function parseRequirement(raw: unknown): HandCondition {
     });
   }
   if (kind === "role") {
-    return normalizeRequirement({
+    return normalizeCondition({
       kind: "role",
       role: String(record.role) as Role,
       op,
@@ -237,39 +295,39 @@ function parseRequirement(raw: unknown): HandCondition {
     });
   }
   if (kind === "group") {
-    return normalizeRequirement({
+    return normalizeCondition({
       kind: "group",
       group_id: String(record.group_id),
       op,
       count,
     });
   }
-  throw new Error(`unsupported requirement kind: ${kind}`);
+  throw new Error(`unsupported condition kind: ${kind}`);
 }
 
-export function serializeRequirement(
-  requirement: HandCondition,
+export function serializeCondition(
+  condition: ConditionRequirement,
 ): Record<string, unknown> {
-  if (requirement.kind === "card") {
+  if (condition.kind === "card") {
     return {
       kind: "card",
-      card_id: requirement.card_id,
-      op: requirement.op,
-      count: requirement.count,
+      card_id: condition.card_id,
+      op: condition.op,
+      count: condition.count,
     };
   }
-  if (requirement.kind === "role") {
+  if (condition.kind === "role") {
     return {
       kind: "role",
-      role: requirement.role,
-      op: requirement.op,
-      count: requirement.count,
+      role: condition.role,
+      op: condition.op,
+      count: condition.count,
     };
   }
   return {
     kind: "group",
-    group_id: requirement.group_id,
-    op: requirement.op,
-    count: requirement.count,
+    group_id: condition.group_id,
+    op: condition.op,
+    count: condition.count,
   };
 }

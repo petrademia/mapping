@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { powerPatronArsMagnaDemo } from "../data/powerPatronArsMagnaDemo";
 import { deckProfileFromAccessData } from "./deckProfile";
-import { analysisContextOf } from "./document";
+import {
+  analysisContextOf,
+  engineAccessConditionIds,
+} from "./document";
 import { openingQualityForTurn } from "./taxonomy";
 
 describe("smoke: contextual quality success criterion", () => {
@@ -21,15 +24,15 @@ describe("smoke: contextual quality success criterion", () => {
         doc.main,
         5,
         "going_first",
-        doc.access_conditions,
-        doc.access_groups,
+        doc.hand_conditions,
+        doc.groups, engineAccessConditionIds(doc),
       ),
       going_second: deckProfileFromAccessData(
         doc.main,
         5,
         "going_second",
-        doc.access_conditions,
-        doc.access_groups,
+        doc.hand_conditions,
+        doc.groups, engineAccessConditionIds(doc),
       ),
     };
     expect(profiles.going_first.desirableGe1).not.toBeCloseTo(
@@ -48,8 +51,9 @@ describe("smoke: contextual quality success criterion", () => {
       doc.main,
       5,
       "going_first",
-      doc.access_conditions,
-      doc.access_groups,
+      doc.hand_conditions,
+      doc.groups,
+      engineAccessConditionIds(doc),
     );
     for (const key of [
       "desirableGe1",

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { elfnoteArsMagnaDemo } from "./data/elfnoteArsMagnaDemo";
 import { powerPatronArsMagnaDemo } from "./data/powerPatronArsMagnaDemo";
 import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
-import { AccessConditionsPanel } from "./components/AccessConditionsPanel";
+import { HandConditionsPanel } from "./components/HandConditionsPanel";
 import { DeckEditor } from "./components/DeckEditor";
 import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
 import { ImportExport } from "./components/ImportExport";
@@ -127,7 +127,7 @@ export function App() {
               setDoc(setOpeningHandSize(doc, size));
             }}
           />
-          <AccessConditionsPanel
+          <HandConditionsPanel
             doc={doc}
             catalog={catalog}
             onChange={setDoc}

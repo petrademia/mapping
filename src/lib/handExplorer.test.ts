@@ -11,7 +11,7 @@ import {
   countForCondition,
   forEachHandComposition,
   matchesCount,
-  type HandCondition,
+  type ConditionRequirement,
 } from "./handExplorer";
 import type { CardTaxonomy } from "./taxonomy";
 
@@ -62,13 +62,13 @@ describe("two-condition exact probabilities", () => {
     );
     expect(main.reduce((s, c) => s + c.quantity, 0)).toBe(40);
 
-    const A: HandCondition = {
+    const A: ConditionRequirement = {
       kind: "card",
       card_id: purification,
       op: "gte",
       count: 1,
     };
-    const B: HandCondition = {
+    const B: ConditionRequirement = {
       kind: "card",
       card_id: citrinitas,
       op: "gte",

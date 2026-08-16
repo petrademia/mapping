@@ -1,9 +1,9 @@
-import { groupsToMembership, type AccessCondition, type AccessGroup } from "./access";
+import { groupsToMembership, type Group, type HandCondition } from "./handCondition";
 import {
-  accessConditionHolds,
   forEachHandComposition,
-  type AccessConditionLike,
+  handConditionHolds,
   type GroupMembership,
+  type HandConditionLike,
 } from "./handExplorer";
 import {
   combinations,
@@ -59,22 +59,29 @@ interface ComputeProfileInput {
   deck: readonly MappingCard[];
   handSize: number;
   turnOrder: "going_first" | "going_second";
-  conditions: readonly AccessConditionLike[];
+  conditions: readonly HandConditionLike[];
+  /**
+   * ids of the Hand Conditions selected as Modeled Engine Access members.
+   * Absent means no access conditions are selected.
+   */
+  accessConditionIds?: readonly string[];
   groups?: GroupMembership;
 }
 
 /**
  * Exact opening-hand Deck Profile for a selected deck list (a single Deck
- * Configuration's Main Deck), analysis context turn order, and Access
+ * Configuration's Main Deck), analysis context turn order, and Hand
  * Conditions. Quality buckets are mutually exclusive per card, so the `>= 1`
  * opening-composition rows are single-pile hypergeometric marginals; access
- * conjunctions are enumerated exactly once over hand compositions.
+ * is the OR over only the explicitly selected access conditions, enumerated
+ * exactly once over hand compositions.
  */
 export function computeDeckProfile({
   deck,
   handSize,
   turnOrder,
   conditions,
+  accessConditionIds = [],
   groups = new Map(),
 }: ComputeProfileInput): DeckProfile {
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
@@ -109,6 +116,8 @@ export function computeDeckProfile({
   );
   const interactionGe1 = marginal(interactionCopies, 1);
 
+  const accessMembership = new Set(accessConditionIds);
+
   let anyAccessWeight = 0n;
   let accessNoUndesirableWeight = 0n;
   let accessUndesirableGe1Weight = 0n;
@@ -116,8 +125,10 @@ export function computeDeckProfile({
 
   if (conditions.length > 0 && total > 0n) {
     forEachHandComposition(deck, handSize, (hand, weight) => {
-      const access = conditions.some((condition) =>
-        accessConditionHolds(hand, deck, condition, groups),
+      const access = conditions.some(
+        (condition) =>
+          accessMembership.has(condition.id) &&
+          handConditionHolds(hand, deck, condition, groups),
       );
       if (!access) return;
       anyAccessWeight += weight;
@@ -164,13 +175,14 @@ export function computeDeckProfile({
   };
 }
 
-/** Convenience: build group membership from Access Groups. */
+/** Convenience: build group membership from Groups and access ids. */
 export function deckProfileFromAccessData(
   deck: readonly MappingCard[],
   handSize: number,
   turnOrder: "going_first" | "going_second",
-  conditions: readonly AccessCondition[],
-  groups: readonly AccessGroup[],
+  conditions: readonly HandCondition[],
+  groups: readonly Group[],
+  accessConditionIds: readonly string[] = [],
 ): DeckProfile {
   return computeDeckProfile({
     deck,
@@ -178,5 +190,6 @@ export function deckProfileFromAccessData(
     turnOrder,
     conditions,
     groups: groupsToMembership(groups),
+    accessConditionIds,
   });
 }

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { analysisContextOf, sectionSize } from "../lib/document";
+import { analysisContextOf, engineAccessConditionIds, sectionSize } from "../lib/document";
 import type { MappingDocument } from "../lib/document";
 import {
   analysisContextLabel,
@@ -7,7 +7,7 @@ import {
   observedCards,
   sampleSizeDescription,
 } from "../lib/analysisContext";
-import { groupsToMembership } from "../lib/access";
+import { groupsToMembership } from "../lib/handCondition";
 import { computeDeckProfile } from "../lib/deckProfile";
 import { ProbabilityError } from "../lib/probability";
 
@@ -31,8 +31,9 @@ function profileFor(doc: MappingDocument, turnOrder: "going_first" | "going_seco
     deck: doc.main,
     handSize: sample,
     turnOrder: context.turn_order,
-    conditions: doc.access_conditions,
-    groups: groupsToMembership(doc.access_groups),
+    conditions: doc.hand_conditions,
+    accessConditionIds: engineAccessConditionIds(doc),
+    groups: groupsToMembership(doc.groups),
   });
 }
 
@@ -42,8 +43,9 @@ function comparisonProfile(doc: MappingDocument, turnOrder: "going_first" | "goi
     deck: doc.main,
     handSize: doc.analysis.opening_hand_size,
     turnOrder,
-    conditions: doc.access_conditions,
-    groups: groupsToMembership(doc.access_groups),
+    conditions: doc.hand_conditions,
+    accessConditionIds: engineAccessConditionIds(doc),
+    groups: groupsToMembership(doc.groups),
   });
 }
 
@@ -129,8 +131,8 @@ export function DeckProfile({ doc, onHandSize }: Props) {
               <strong>{formatChance(profile.anyAccess)}</strong>
             </p>
             <p className="explorer-notation">
-              UNION over configured access conditions; overlapping conditions
-              are not double-counted.
+              UNION over the Hand Conditions selected as engine access;
+              overlapping conditions are not double-counted.
             </p>
           </article>
 

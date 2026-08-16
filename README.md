@@ -101,7 +101,7 @@ MAPPING provides:
 
 - deck composition and quantities
 - human taxonomy hypotheses (Role + Opening Quality)
-- human Access Conditions (modeled opening-hand engine access)
+- human Hand Conditions (Requires / Excludes) and a derived Modeled Engine Access set
 
 YAPPING is expected to measure (not implemented here):
 
@@ -114,15 +114,23 @@ YAPPING is expected to measure (not implemented here):
 - route similarity
 - choke-point redundancy
 
-### Taxonomy vs Access Conditions vs YAPPING
+### Taxonomy vs Hand Conditions vs YAPPING
 
 | Layer | What it is |
 | --- | --- |
 | **Taxonomy** | Card-level human role hypothesis (`starter` / `extender` / `interaction`) |
-| **Access Condition** | Hand-level human access hypothesis (ALL OF Requires AND NONE OF Excludes over card/role/group predicates) |
+| **Hand Condition** | Hand-level user-defined Boolean predicate (ALL OF Requires AND NONE OF Excludes over Card / Role / Group predicates) |
+| **Group** | Named deck-specific set of Main Deck cards |
+| **Hand Condition Set** | Named collection of Hand Conditions combined with an aggregation (`any` for v0); `Modeled Engine Access` is one such set |
 | **YAPPING** | Strategic validation / game-tree outcomes |
 
-Example: classifying `Nervedo` as `starter` can be misleading if Nervedo alone does not establish the line. Prefer an Access Condition such as:
+Access Conditions generalized into Hand Conditions: a condition is no longer
+"access"-specific. Users define the hand properties that matter to them
+(e.g. `Medius Access`, `Nervedo Access`, `Maxx C Answer`, `Has Interaction`).
+MAPPING only computes how often each property occurs; it never invents a
+universal Yu-Gi-Oh! hand taxonomy.
+
+Example: classifying `Nervedo` as `starter` can be misleading if Nervedo alone does not establish the line. Prefer a Hand Condition such as:
 
 ```text
 Nervedo Access
@@ -133,7 +141,7 @@ Nervedo Access
     Citrinitas >= 1
 ```
 
-An Access Condition now has two parts:
+A Hand Condition has two parts:
 
 - **Requires** - ALL OF these predicates must hold in the hand.
 - **Excludes** - NONE OF these predicates may hold; a hand whose composition
@@ -146,11 +154,19 @@ also contains Citrinitas does not give the modeled line). Exclusion is a
 human-modeled hand-composition constraint, not a claim that Citrinitas is
 "bad" or that the hand cannot legally combo - YAPPING owns strategic judgment.
 
-MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Access Conditions are strategically independent routes (they may converge on the same choke point).
+MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Hand Conditions are strategically independent routes (they may converge on the same choke point).
 
-**Modeled Engine Access** is the exact probability that at least one configured Access Condition is satisfied. Conditions that overlap are not double-counted, and each condition contributes only hands satisfying its Requires AND failing every one of its Excludes. Do not label this combo success, playability, or win rate.
+**Modeled Engine Access** is derived: the user explicitly selects which Hand
+Conditions count as engine access. MAPPING computes the exact probability of
+the union (OR) of the selected conditions, never summing probabilities or
+assuming independence. It also reports the exact access-count distribution:
+how many of the selected conditions a random hand satisfies
+(`P(N >= 1)`, `P(N >= 2)`, ... and `P(N = k)` buckets). More than one
+satisfied condition is a combinatorial property of the user's definitions,
+not evidence of two independent combo routes. Do not label this combo
+success, playability, or win rate.
 
-If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy.
+If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy. v0 does not generalize membership in a condition set from a condition's name.
 
 ### Deck Profile
 
@@ -245,7 +261,7 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; paste-add appends without replacing
-- define Access Conditions and Groups; inspect modeled engine access
+- define Hand Conditions (Requires / Excludes), Groups, and Engine Access membership; inspect modeled engine access and its access-count distribution
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
 - inspect the Deck Profile: opening composition, access composition, interaction, and GF/GS context comparison
 - compare two opening-hand conditions with exact joint/conditional probabilities
@@ -259,15 +275,15 @@ Automatic role or opening-quality inference, automatic exclusion inference, card
 
 ## Stack
 
-Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hypergeometric math, access conditions, and import/export. There is no application server.
+Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hypergeometric math, hand conditions, and import/export. There is no application server.
 
 ## Schema
 
-MAPPING owns a versioned document (`schema_version: 5`):
+MAPPING owns a versioned document (`schema_version: 6`):
 
 ```json
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "name": "power_patron_ars_magna_v0",
   "main": [{
     "card_id": 62962630,
@@ -282,10 +298,10 @@ MAPPING owns a versioned document (`schema_version: 5`):
   }],
   "extra": [],
   "side": [],
-  "access_groups": [
+  "groups": [
     { "id": "valid-nervedo-st", "name": "Valid Nervedo S/T", "card_ids": [111, 222] }
   ],
-  "access_conditions": [{
+  "hand_conditions": [{
     "id": "nervedo-access",
     "name": "Nervedo Access",
     "requirements": [
@@ -296,6 +312,13 @@ MAPPING owns a versioned document (`schema_version: 5`):
       { "kind": "card", "card_id": 456, "op": "gte", "count": 1 }
     ]
   }],
+  "hand_condition_sets": [{
+    "id": "modeled-engine-access",
+    "name": "Modeled Engine Access",
+    "condition_ids": ["nervedo-access"],
+    "aggregation": "any"
+  }],
+  "engine_access_set_id": "modeled-engine-access",
   "analysis": {
     "opening_hand_size": 5,
     "turn_order": "going_first",
@@ -306,13 +329,15 @@ MAPPING owns a versioned document (`schema_version: 5`):
 
 Unclassified opening quality in either context is serialized as `null`, never silently as `"neutral"`. An absent `going_first` / `going_second` key defaults to `null`.
 
-Schema v1-v4 documents are accepted on load and migrated to v5:
+Schema v1-v5 documents are accepted on load and migrated to v6:
 legacy v1 flat `roles` migrate via the v0 mapping (with `brick` → `undesirable`),
 a legacy v3 scalar `opening_quality` is copied to **both** contexts (the
-previous judgment is preserved until explicitly changed), and a v4 Access
+previous judgment is preserved until explicitly changed), a v4 Access
 Condition without an `excludes` key gains `excludes: []` (Requires-only
-behavior is preserved). Empty access groups/conditions are defaulted when
-absent.
+behavior is preserved), and a v5 document's `access_conditions` /
+`access_groups` rename to `hand_conditions` / `groups` with all former
+conditions kept as members of a derived **Modeled Engine Access** set.
+Empty groups/conditions/sets are defaulted when absent.
 
 YAPPING currently loads `configs/archetypes/*.json` with:
 
@@ -343,4 +368,4 @@ npm run build
 npm run extract-catalog
 ```
 
-The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Access Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T. Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable. The Power Patron demo shows a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable).
+The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access). Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable. The Power Patron demo shows a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable).

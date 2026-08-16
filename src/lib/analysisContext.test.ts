@@ -16,7 +16,7 @@ import {
   combinations,
   openingAtLeastProbability,
 } from "./probability";
-import { summarizeAccessConditions } from "./handExplorer";
+import { summarizeHandConditions } from "./handExplorer";
 import type { MappingCard } from "./document";
 import type { CardTaxonomy } from "./taxonomy";
 
@@ -93,21 +93,23 @@ describe("analysis context probabilities", () => {
         { kind: "card" as const, card_id: 1, op: "gte" as const, count: 1 },
       ],
     };
-    const gf = summarizeAccessConditions(
+    const gf = summarizeHandConditions(
       main,
       observedCards(
         { turn_order: "going_first", observation_point: "opening_hand" },
         5,
       ),
       [condition],
+      ["x"],
     );
-    const gs = summarizeAccessConditions(
+    const gs = summarizeHandConditions(
       main,
       observedCards(
         { turn_order: "going_second", observation_point: "opening_hand" },
         5,
       ),
       [condition],
+      ["x"],
     );
     expect(gf.anyAccess).toBeCloseTo(gs.anyAccess, 12);
     expect(gf.anyAccess).toBeCloseTo(openingAtLeastProbability(40, 3, 5, 1), 12);
@@ -121,8 +123,8 @@ describe("analysis context probabilities", () => {
         { kind: "card" as const, card_id: 1, op: "gte" as const, count: 1 },
       ],
     };
-    const p5 = summarizeAccessConditions(main, 5, [condition]).anyAccess;
-    const p6 = summarizeAccessConditions(main, 6, [condition]).anyAccess;
+    const p5 = summarizeHandConditions(main, 5, [condition], ["x"]).anyAccess;
+    const p6 = summarizeHandConditions(main, 6, [condition], ["x"]).anyAccess;
     expect(p5).toBeCloseTo(openingAtLeastProbability(40, 3, 5, 1), 12);
     expect(p6).toBeCloseTo(openingAtLeastProbability(40, 3, 6, 1), 12);
     expect(p6).toBeGreaterThan(p5);
@@ -153,8 +155,8 @@ describe("analysis context probabilities", () => {
         ],
       },
     ];
-    const at5 = summarizeAccessConditions(deck, 5, conditions);
-    const at6 = summarizeAccessConditions(deck, 6, conditions);
+    const at5 = summarizeHandConditions(deck, 5, conditions, ["s", "e"]);
+    const at6 = summarizeHandConditions(deck, 6, conditions, ["s", "e"]);
     expect(at5.conditions[0]!.probability).toBeCloseTo(
       at5.conditions[1]!.probability,
       12,
@@ -181,8 +183,8 @@ describe("analysis context probabilities", () => {
         ],
       },
     ];
-    const at5 = summarizeAccessConditions(deck, 5, conditions);
-    const at6 = summarizeAccessConditions(deck, 6, conditions);
+    const at5 = summarizeHandConditions(deck, 5, conditions, ["a", "b"]);
+    const at6 = summarizeHandConditions(deck, 6, conditions, ["a", "b"]);
     expect(at5.anyAccess).toBeCloseTo(at5.conditions[0]!.probability, 12);
     expect(at6.anyAccess).toBeCloseTo(at6.conditions[0]!.probability, 12);
     expect(at6.anyAccess).toBeGreaterThan(at5.anyAccess);

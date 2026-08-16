@@ -154,6 +154,7 @@ describe("deck profile: access and interaction composition", () => {
       handSize: 2,
       turnOrder: "going_first",
       conditions: [access],
+      accessConditionIds: ["a"],
       groups: new Map(),
     });
     // Hand-enumerated over 5 distinct single-copy cards, C(5,2)=10 hands.
@@ -184,6 +185,7 @@ describe("deck profile: access and interaction composition", () => {
           ],
         },
       ],
+      accessConditionIds: ["access"],
       groups: new Map(),
     });
     // C(5,2)=10 hands. interaction card 1: P>=1 = 1 - C(4,2)/C(5,2) = 0.4.
@@ -208,6 +210,7 @@ describe("deck profile: access and interaction composition", () => {
       handSize: 5,
       turnOrder: "going_first",
       conditions: [access],
+      accessConditionIds: ["a"],
       groups: new Map(),
     });
     const union = computeDeckProfile({
@@ -215,6 +218,7 @@ describe("deck profile: access and interaction composition", () => {
       handSize: 5,
       turnOrder: "going_first",
       conditions: overlapping,
+      accessConditionIds: ["a", "b"],
       groups: new Map(),
     });
     expect(union.anyAccess).toBeCloseTo(single.anyAccess, 12);

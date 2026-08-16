@@ -17,7 +17,12 @@ export const COUNT_OPERATORS = [
 
 export type CountOperator = (typeof COUNT_OPERATORS)[number];
 
-export type HandCondition =
+/**
+ * A single predicate over the observed hand: count of a Card, a Role, or a
+ * Group against an operator. Reused by both `requirements` and `excludes` of
+ * a Hand Condition.
+ */
+export type ConditionRequirement =
   | { kind: "card"; card_id: number; op: CountOperator; count: number }
   | { kind: "role"; role: Role; op: CountOperator; count: number }
   | { kind: "group"; group_id: string; op: CountOperator; count: number };
@@ -26,8 +31,8 @@ export type HandCondition =
 export type GroupMembership = ReadonlyMap<string, ReadonlySet<number>>;
 
 export interface ProbabilityComparison {
-  conditionA: HandCondition;
-  conditionB: HandCondition;
+  conditionA: ConditionRequirement;
+  conditionB: ConditionRequirement;
 }
 
 /**
@@ -71,7 +76,7 @@ export function matchesCount(
 export function countForCondition(
   hand: readonly number[],
   deck: readonly MappingCard[],
-  condition: HandCondition,
+  condition: ConditionRequirement,
   groups: GroupMembership = new Map(),
 ): number {
   if (condition.kind === "card") {
@@ -103,7 +108,7 @@ export function countForCondition(
 export function conditionHolds(
   hand: readonly number[],
   deck: readonly MappingCard[],
-  condition: HandCondition,
+  condition: ConditionRequirement,
   groups: GroupMembership = new Map(),
 ): boolean {
   return matchesCount(
@@ -117,7 +122,7 @@ export function conditionHolds(
 export function allRequirementsHold(
   hand: readonly number[],
   deck: readonly MappingCard[],
-  requirements: readonly HandCondition[],
+  requirements: readonly ConditionRequirement[],
   groups: GroupMembership = new Map(),
 ): boolean {
   if (requirements.length === 0) return false;
@@ -127,25 +132,25 @@ export function allRequirementsHold(
 }
 
 /**
- * A modeled access condition: ALL OF `requirements` must hold AND NONE OF
+ * A modeled Hand Condition: ALL OF `requirements` must hold AND NONE OF
  * `excludes` may hold. Both sides use the same condition primitive.
  */
-export interface AccessConditionLike {
+export interface HandConditionLike {
   id: string;
   name: string;
-  requirements: readonly HandCondition[];
+  requirements: readonly ConditionRequirement[];
   /** NONE OF these exclusion predicates may hold. Missing means no exclusions. */
-  excludes?: readonly HandCondition[];
+  excludes?: readonly ConditionRequirement[];
 }
 
 /**
  * A hand satisfies the condition iff every requirement holds and the hand
  * evaluates FALSE for every exclusion predicate.
  */
-export function accessConditionHolds(
+export function handConditionHolds(
   hand: readonly number[],
   deck: readonly MappingCard[],
-  condition: AccessConditionLike,
+  condition: HandConditionLike,
   groups: GroupMembership = new Map(),
 ): boolean {
   if (!allRequirementsHold(hand, deck, condition.requirements, groups)) {
@@ -266,32 +271,49 @@ export function compareHandConditions(
   };
 }
 
-export interface AccessProbabilityRow {
+export interface HandConditionProbabilityRow {
   id: string;
   name: string;
   probability: number;
   weight: bigint;
 }
 
-export interface AccessProbabilitySummary {
-  conditions: AccessProbabilityRow[];
+/**
+ * Exact distribution of the number of selected access conditions a random
+ * hand satisfies. `exact[k] = P(N_access = k)`; `atLeast[k] = P(N_access >= k)`
+ * for k >= 1. `weights` are exact bigint bucket weights.
+ */
+export interface AccessCountDistribution {
+  exact: number[];
+  atLeast: number[];
+  weights: bigint[];
+}
+
+export interface HandConditionSummary {
+  /** Per-condition exact probabilities over ALL configured hand conditions. */
+  conditions: HandConditionProbabilityRow[];
+  /** P(any selected access condition): union over the access set. */
   anyAccess: number;
   anyWeight: bigint;
+  accessDistribution: AccessCountDistribution;
   total: bigint;
 }
 
 /**
- * Exact per-condition probabilities and the union (OR) over all conditions.
- * A hand matching multiple conditions contributes once to `anyAccess`.
- * Each condition is evaluated through `accessConditionHolds` (ALL OF
- * requirements AND NONE OF exclusions).
+ * Exact per-Hand-Condition probabilities plus, for the explicitly selected
+ * access conditions (`accessConditionIds`), the union and the distribution of
+ * how many of them a random hand satisfies. No probabilities are summed and no
+ * independence is assumed: everything is accumulated from hand enumeration.
+ * A hand matching multiple conditions contributes once per condition and once
+ * per distinct satisfied access condition.
  */
-export function summarizeAccessConditions(
+export function summarizeHandConditions(
   deck: readonly MappingCard[],
   handSize: number,
-  conditions: readonly AccessConditionLike[],
+  conditions: readonly HandConditionLike[],
+  accessConditionIds: readonly string[] = [],
   groups: GroupMembership = new Map(),
-): AccessProbabilitySummary {
+): HandConditionSummary {
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
   if (
     !Number.isInteger(handSize) ||
@@ -303,32 +325,61 @@ export function summarizeAccessConditions(
   }
 
   const total = combinations(deckSize, handSize);
+  const accessMembership = new Set(accessConditionIds);
+
+  const emptySummary = (): HandConditionSummary => ({
+    conditions: conditions.map((condition) => ({
+      id: condition.id,
+      name: condition.name,
+      probability: 0,
+      weight: 0n,
+    })),
+    anyAccess: 0,
+    anyWeight: 0n,
+    accessDistribution: {
+      exact: [],
+      atLeast: [],
+      weights: [],
+    },
+    total,
+  });
+
   if (total === 0n || conditions.length === 0) {
-    return {
-      conditions: conditions.map((condition) => ({
-        id: condition.id,
-        name: condition.name,
-        probability: 0,
-        weight: 0n,
-      })),
-      anyAccess: 0,
-      anyWeight: 0n,
-      total,
-    };
+    return emptySummary();
   }
 
   const weights = conditions.map(() => 0n);
   let anyWeight = 0n;
+  const accessMembers = conditions.filter((condition) =>
+    accessMembership.has(condition.id),
+  );
+  const n = accessMembers.length;
+  const bucketWeights = new Array<bigint>(n + 1).fill(0n);
 
   forEachHandComposition(deck, handSize, (hand, weight) => {
-    let any = false;
+    let satisfiedCount = 0;
     for (let i = 0; i < conditions.length; i += 1) {
-      if (accessConditionHolds(hand, deck, conditions[i]!, groups)) {
+      if (handConditionHolds(hand, deck, conditions[i]!, groups)) {
         weights[i] = weights[i]! + weight;
-        any = true;
+        if (accessMembership.has(conditions[i]!.id)) satisfiedCount += 1;
       }
     }
-    if (any) anyWeight += weight;
+    if (satisfiedCount > 0) {
+      anyWeight += weight;
+    }
+    bucketWeights[satisfiedCount] = bucketWeights[satisfiedCount]! + weight;
+  });
+
+  const exact = Array.from(
+    { length: n + 1 },
+    (_, count) => ratioToNumber(bucketWeights[count]!, total),
+  );
+  const atLeast = Array.from({ length: n }, (_, index) => {
+    let sum = 0n;
+    for (let count = index + 1; count <= n; count += 1) {
+      sum += bucketWeights[count]!;
+    }
+    return ratioToNumber(sum, total);
   });
 
   return {
@@ -340,6 +391,11 @@ export function summarizeAccessConditions(
     })),
     anyAccess: ratioToNumber(anyWeight, total),
     anyWeight,
+    accessDistribution: {
+      exact,
+      atLeast,
+      weights: bucketWeights,
+    },
     total,
   };
 }
