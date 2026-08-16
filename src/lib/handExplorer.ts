@@ -279,7 +279,7 @@ export interface HandConditionProbabilityRow {
 }
 
 /**
- * Exact distribution of the number of selected access conditions a random
+ * Exact distribution of the number of selected engine-access conditions a random
  * hand satisfies. `exact[k] = P(N_access = k)`; `atLeast[k] = P(N_access >= k)`
  * for k >= 1. `weights` are exact bigint bucket weights.
  */
@@ -292,7 +292,7 @@ export interface AccessCountDistribution {
 export interface HandConditionSummary {
   /** Per-condition exact probabilities over ALL configured hand conditions. */
   conditions: HandConditionProbabilityRow[];
-  /** P(any selected access condition): union over the access set. */
+  /** P(any selected engine-access condition): union over the engine-access set. */
   anyAccess: number;
   anyWeight: bigint;
   accessDistribution: AccessCountDistribution;

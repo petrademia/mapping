@@ -198,7 +198,7 @@ selected Analysis Context, never a single aggregate score:
 
 | Block | Metric |
 | --- | --- |
-| **Modeled Engine Access** | P(at least one access condition) |
+| **Modeled Engine Access** | P(at least one engine-access condition) |
 | **Opening Composition** | P(≥ 1 desirable), P(≥ 1 neutral), P(≥ 1 undesirable), P(≥ 2 undesirable), P(≥ 1 unclassified) |
 | **Access Composition** | P(access and no undesirable), P(access and ≥ 1 undesirable) |
 | **Interaction** | P(≥ 1 interaction), P(access and ≥ 1 interaction) |

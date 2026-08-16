@@ -25,7 +25,7 @@ function tax(
 }
 
 /**
- * Power Patron / Ars Magna demo for Taxonomy + Access Conditions examples
+ * Power Patron / Ars Magna demo for Taxonomy + Hand Conditions examples
  * (Vidolium, Pendulum Treasure, Medius, Nervedo + valid S/T).
  * List is a compact research build inspired by 2026 community lists, not a
  * claimed optimal tournament deck.

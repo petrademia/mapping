@@ -8,7 +8,7 @@ export type ObservationPoint = (typeof OBSERVATION_POINTS)[number];
 
 /**
  * Scenario under which MAPPING evaluates composition probabilities.
- * Not a card taxonomy label and not an Access Condition.
+ * Not a card taxonomy label and not a Hand Condition.
  */
 export interface AnalysisContext {
   turn_order: TurnOrder;

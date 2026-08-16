@@ -22,7 +22,7 @@ export interface DeckProfile {
   deckSize: number;
   handSize: number;
   total: bigint;
-  /** P(at least one access condition holds): modeled engine access. */
+  /** P(at least one engine-access condition holds): modeled engine access. */
   anyAccess: number;
   anyAccessWeight: bigint;
   /** P(>= 1 card with contextual quality). */
@@ -62,7 +62,7 @@ interface ComputeProfileInput {
   conditions: readonly HandConditionLike[];
   /**
    * ids of the Hand Conditions selected as Modeled Engine Access members.
-   * Absent means no access conditions are selected.
+   * Absent means no engine-access conditions are selected.
    */
   accessConditionIds?: readonly string[];
   groups?: GroupMembership;
@@ -73,7 +73,7 @@ interface ComputeProfileInput {
  * Configuration's Main Deck), analysis context turn order, and Hand
  * Conditions. Quality buckets are mutually exclusive per card, so the `>= 1`
  * opening-composition rows are single-pile hypergeometric marginals; access
- * is the OR over only the explicitly selected access conditions, enumerated
+ * is the OR over only the explicitly selected engine-access conditions, enumerated
  * exactly once over hand compositions.
  */
 export function computeDeckProfile({

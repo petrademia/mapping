@@ -196,7 +196,7 @@ describe("deck profile: access and interaction composition", () => {
     expect(profile.anyAccess).toBeCloseTo(0.4, 12);
   });
 
-  it("unions overlapping access conditions without double counting", () => {
+  it("unions overlapping engine-access conditions without double counting", () => {
     const overlapping = [
       access,
       {
