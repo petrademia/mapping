@@ -250,13 +250,12 @@ why each predicate passed or failed.
 
 ### Workspaces
 
-The right rail is organized into four workspaces so modeling editors never
+The right rail is organized into three workspaces so modeling editors never
 compete with analysis results for vertical space:
 
 - **Profile** - Analysis Context, Deck Profile, Taxonomy / Annotation Analysis.
 - **Models** - a sub-navigated workspace: [Groups] [Hand Conditions]
   [Modeled Outcomes].
-- **Explore** - the ad-hoc opening-hand probability explorer.
 - **Hand Test** - evaluate one exact hand against the model.
 
 ### Deck Profile
@@ -338,21 +337,12 @@ or interruption resilience. It is not a deck-quality score.
 
 Joint events such as `P(starter ≥ 1 AND extender ≥ 1)` are not shown as products of marginals. Roles overlap and draws are without replacement.
 
-### Opening-hand explorer (two conditions)
-
-The explorer lets you compare exactly two opening-hand conditions (card or role, with count operators). It reports exact combinatorial:
-
-- `P(A)`, `P(B)`, `P(A ∩ B)`
-- `P(B | A)`, `P(A | B)`
-
 MAPPING distinguishes **occurrence** from **strategic value**:
 
 | Question | Owner |
 | --- | --- |
-| `P(Q)` — how often does hand condition Q occur? | MAPPING |
+| `P(Q)` — how often does hand condition Q occur? | MAPPING (Models / Profile) |
 | `E[U \| Q]` — expected utility / outcome given Q | YAPPING (future) |
-
-Do not read explorer percentages as “good hand” or “bad hand”. Impossible predicates (e.g. `card ≥ 2` with one copy) yield `0%`; conditionals with a zero-probability antecedent show as undefined (`—`), not `0%`.
 
 ## v0 scope
 
@@ -365,7 +355,6 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
 - inspect the Deck Profile: modeled outcomes (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
 - inspect raw taxonomy density and per-context opening-quality counts separately from modeled outcomes
-- compare two opening-hand conditions with exact joint/conditional probabilities
 - save locally (browser `localStorage` plus file download)
 - Save YDK exports the current list for Omega / external tools
 - export a YAPPING-readable archetype JSON
