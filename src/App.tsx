@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { brandedDemo } from "./data/brandedDemo";
+import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
 import { AccessConditionsPanel } from "./components/AccessConditionsPanel";
 import { DeckEditor } from "./components/DeckEditor";
 import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
@@ -10,6 +11,7 @@ import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
   createDocument,
   sectionSize,
+  setAnalysisContext,
   setDeckName,
   setOpeningHandSize,
   type MappingDocument,
@@ -92,6 +94,14 @@ export function App() {
         <DeckEditor doc={doc} catalog={catalog} onChange={setDoc} />
         <aside>
           <RoleSummary doc={doc} />
+          <AnalysisContextSelector
+            context={{
+              turn_order: doc.analysis.turn_order,
+              observation_point: doc.analysis.observation_point,
+            }}
+            openingHandSize={doc.analysis.opening_hand_size}
+            onChange={(context) => setDoc(setAnalysisContext(doc, context))}
+          />
           <ProbabilityPanel
             doc={doc}
             onHandSize={(size) => {

@@ -1,9 +1,14 @@
 import {
+  analysisContextLabel,
+  observedCards,
+  sampleSizeDescription,
+} from "../lib/analysisContext";
+import {
   openingAtLeastProbability,
   openingCountDistribution,
   ProbabilityError,
 } from "../lib/probability";
-import { sectionSize } from "../lib/document";
+import { analysisContextOf, sectionSize } from "../lib/document";
 import type { MappingDocument } from "../lib/document";
 import {
   copiesForOpeningQuality,
@@ -64,7 +69,9 @@ function RoleProbArticle({
 
 export function ProbabilityPanel({ doc, onHandSize }: Props) {
   const deck = sectionSize(doc.main);
-  const hand = doc.analysis.opening_hand_size;
+  const opening = doc.analysis.opening_hand_size;
+  const context = analysisContextOf(doc);
+  const sample = observedCards(context, opening);
   const roleCopies = Object.fromEntries(
     ROLES.map((role) => [role, copiesForRole(doc.main, role)]),
   ) as Record<Role, number>;
@@ -74,7 +81,7 @@ export function ProbabilityPanel({ doc, onHandSize }: Props) {
 
   let error: string | null = null;
   try {
-    if (deck > 0) openingCountDistribution(deck, 0, hand);
+    if (deck > 0) openingCountDistribution(deck, 0, sample);
   } catch (caught) {
     error =
       caught instanceof ProbabilityError
@@ -92,15 +99,17 @@ export function ProbabilityPanel({ doc, onHandSize }: Props) {
             type="number"
             min={0}
             max={Math.max(deck, 0)}
-            value={hand}
+            value={opening}
             onChange={(event) => onHandSize(Number(event.target.value))}
           />
         </label>
       </header>
       <p className="note">
-        Theoretical hypergeometric chances for a random {hand}-card main-deck
-        opening. Not combo success, win rate, or solver utility. Role labels
-        overlap, so joint events are not products of the marginals shown here.
+        Theoretical hypergeometric chances under{" "}
+        {analysisContextLabel(context, opening)} —{" "}
+        {sampleSizeDescription(context, opening)}. Not combo success, win rate,
+        or solver utility. Role labels overlap, so joint events are not products
+        of the marginals shown here.
       </p>
       {deck === 0 ? (
         <p className="empty">Add main-deck cards to preview composition probabilities.</p>
@@ -118,7 +127,7 @@ export function ProbabilityPanel({ doc, onHandSize }: Props) {
               key={role}
               role={role}
               deck={deck}
-              hand={hand}
+              hand={sample}
               copies={roleCopies[role]}
             />
           ))}
@@ -129,7 +138,7 @@ export function ProbabilityPanel({ doc, onHandSize }: Props) {
                 P(undesirable ≥ 1){" "}
                 <strong>
                   {formatChance(
-                    openingAtLeastProbability(deck, undesirable, hand, 1),
+                    openingAtLeastProbability(deck, undesirable, sample, 1),
                   )}
                 </strong>
               </p>
@@ -138,8 +147,8 @@ export function ProbabilityPanel({ doc, onHandSize }: Props) {
                   <dt>undesirable = 0</dt>
                   <dd>
                     {formatChance(
-                      openingCountDistribution(deck, undesirable, hand).exact[0] ??
-                        0,
+                      openingCountDistribution(deck, undesirable, sample)
+                        .exact[0] ?? 0,
                     )}
                   </dd>
                 </div>
@@ -147,8 +156,8 @@ export function ProbabilityPanel({ doc, onHandSize }: Props) {
                   <dt>undesirable = 1</dt>
                   <dd>
                     {formatChance(
-                      openingCountDistribution(deck, undesirable, hand).exact[1] ??
-                        0,
+                      openingCountDistribution(deck, undesirable, sample)
+                        .exact[1] ?? 0,
                     )}
                   </dd>
                 </div>
@@ -156,7 +165,7 @@ export function ProbabilityPanel({ doc, onHandSize }: Props) {
                   <dt>undesirable ≥ 2</dt>
                   <dd>
                     {formatChance(
-                      openingAtLeastProbability(deck, undesirable, hand, 2),
+                      openingAtLeastProbability(deck, undesirable, sample, 2),
                     )}
                   </dd>
                 </div>

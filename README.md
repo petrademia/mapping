@@ -94,6 +94,23 @@ MAPPING then reports how often that hand condition occurs. It does **not** encod
 **Modeled Engine Access** is the exact probability that at least one configured Access Condition is satisfied. Conditions that overlap are not double-counted. Do not label this combo success, playability, or win rate.
 
 If a requirement needs “another” card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects.
+
+### Analysis Context
+
+Composition probabilities are evaluated under an **Analysis Context** (not taxonomy):
+
+| Turn Order | Observation Point | Cards seen |
+| --- | --- | --- |
+| Going First | Opening Hand | opening hand size (default 5) |
+| Going Second | Opening Hand | opening hand size (default 5) |
+| Going Second | By First Turn | opening hand size + 1 (default 6) |
+
+Turn order does **not** change the distribution of the initial five-card hand: `P(Q | GF opening 5) = P(Q | GS opening 5)`. The sixth card is the normal draw, not part of the opening hand.
+
+Example (Fuwalos tagged `interaction`): MAPPING may report seeing Fuwalos in opening 5 vs among first 6 cards. It must **not** claim Fuwalos is “good going second” or recommend copy counts — that is YAPPING strategic value.
+
+Do not add `going_first` / `going_second` to card taxonomy.
+
 ## Card metadata versus taxonomy
 
 **Card metadata** (id, name) comes from **MyCard** [`ygopro-database`](https://github.com/mycard/ygopro-database) `locales/en-US/cards.cdb`. Ids are Konami/MyCard passwords.
@@ -102,9 +119,9 @@ Taxonomy lives on the deck card entry only.
 
 ## Opening chances are not combo success
 
-The probability panel reports **composition probabilities** for the main deck: hypergeometric chances for role and undesirable opening-quality counts, with a configurable opening-hand size (default 5).
+The probability panel reports **composition probabilities** for the main deck under the selected Analysis Context: hypergeometric chances for role and undesirable opening-quality counts, with a configurable base opening-hand size (default 5).
 
-That is the chance a random opening contains some number of cards you tagged. It is not win rate, combo quality, or interruption resilience.
+That is the chance a random sample of the observed cards contains some number of cards you tagged. It is not win rate, combo quality, or interruption resilience.
 
 Joint events such as `P(starter ≥ 1 AND extender ≥ 1)` are not shown as products of marginals. Roles overlap and draws are without replacement.
 
@@ -126,6 +143,7 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 
 ## v0 scope
 
+- select Analysis Context (going first/second × opening hand / first cards seen)
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities and Taxonomy v0 annotations
 - define Access Conditions and Groups; inspect modeled engine access
@@ -172,7 +190,11 @@ MAPPING owns a versioned document (`schema_version: 3`):
       { "kind": "group", "group_id": "valid-nervedo-st", "op": "gte", "count": 1 }
     ]
   }],
-  "analysis": { "opening_hand_size": 5 }
+  "analysis": {
+    "opening_hand_size": 5,
+    "turn_order": "going_first",
+    "observation_point": "opening_hand"
+  }
 }
 ```
 

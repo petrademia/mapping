@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
+import {
+  analysisContextLabel,
+  observedCards,
+  sampleSizeDescription,
+} from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
-import { sectionSize, type MappingDocument } from "../lib/document";
+import {
+  analysisContextOf,
+  sectionSize,
+  type MappingDocument,
+} from "../lib/document";
 import {
   compareHandConditions,
   COUNT_OPERATORS,
@@ -104,7 +113,9 @@ export function HandProbabilityExplorer({ doc, catalog, onHandSize }: Props) {
   const [cardFilterB, setCardFilterB] = useState("");
 
   const deck = sectionSize(doc.main);
-  const hand = doc.analysis.opening_hand_size;
+  const opening = doc.analysis.opening_hand_size;
+  const context = analysisContextOf(doc);
+  const sample = observedCards(context, opening);
 
   const result = useMemo(():
     | { ok: true; value: ProbabilityResult; labelA: string; labelB: string }
@@ -119,7 +130,7 @@ export function HandProbabilityExplorer({ doc, catalog, onHandSize }: Props) {
     try {
       return {
         ok: true,
-        value: compareHandConditions(doc.main, hand, {
+        value: compareHandConditions(doc.main, sample, {
           conditionA,
           conditionB,
         }),
@@ -135,7 +146,7 @@ export function HandProbabilityExplorer({ doc, catalog, onHandSize }: Props) {
             : "Cannot compute these opening-hand probabilities.",
       };
     }
-  }, [draftA, draftB, doc, catalog, deck, hand]);
+  }, [draftA, draftB, doc, catalog, deck, sample]);
 
   return (
     <section className="panel">
@@ -147,15 +158,16 @@ export function HandProbabilityExplorer({ doc, catalog, onHandSize }: Props) {
             type="number"
             min={0}
             max={Math.max(deck, 0)}
-            value={hand}
+            value={opening}
             onChange={(event) => onHandSize(Number(event.target.value))}
           />
         </label>
       </header>
       <p className="note">
-        Exact occurrence probabilities for two opening-hand conditions. This is
-        not strategic value, combo success, or resilience — those belong to
-        YAPPING.
+        Exact occurrence probabilities for two conditions under{" "}
+        {analysisContextLabel(context, opening)} —{" "}
+        {sampleSizeDescription(context, opening)}. Not strategic value, combo
+        success, or resilience — those belong to YAPPING.
       </p>
 
       <ConditionEditor

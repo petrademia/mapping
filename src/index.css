@@ -339,6 +339,31 @@ h1 {
 }
 .access-union .explorer-title { color: var(--brass); }
 
+.context-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.35rem;
+}
+.context-chip {
+  --swatch: var(--brass);
+  background: #171b18;
+  color: var(--mist);
+  border-color: var(--line);
+}
+.context-chip.on {
+  background: color-mix(in srgb, var(--brass) 28%, #171b18);
+  color: var(--mist);
+  border-color: var(--brass);
+}
+.analysis-context-panel header p {
+  margin: 0;
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--brass);
+}
+.context-sample { margin-top: 0.35rem; }
+
 [data-role="starter"] { --swatch: var(--starter); }
 [data-role="extender"] { --swatch: var(--extender); }
 [data-role="interaction"] { --swatch: var(--interaction); }
