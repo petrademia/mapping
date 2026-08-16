@@ -300,7 +300,7 @@ Do not add `going_first` / `going_second` / `side_out` / `sideable` to card taxo
 
 ## Card metadata versus taxonomy
 
-**Card metadata** (id, name) comes from **MyCard** [`ygopro-database`](https://github.com/mycard/ygopro-database) `locales/en-US/cards.cdb`. Ids are Konami/MyCard passwords.
+**Card metadata** (id, name) comes from **MyCard** [`ygopro-database`](https://github.com/mycard/ygopro-database) `locales/en-US/cards.cdb`. Ids are Konami/MyCard passwords (`66247039`), not EDOPro pre-release placeholders (`100457102`). MAPPING's name pin may be ahead of YAPPING's solver `cards.cdb`, so Find card can name a card Fluoro cannot play yet.
 
 Taxonomy lives on the deck card entry only.
 
@@ -446,7 +446,6 @@ Dev server: http://localhost:51173 (pinned in `vite.config.ts`; see `~/Projects/
 npm test
 npm run typecheck
 npm run build
-npm run extract-catalog
-```
+`npm run extract-catalog` downloads MAPPING's pinned MyCard commit (`8c8d231`, recorded in `scripts/extract-catalog.py`) into `.cache/` and writes `public/catalog.json`. That pin can be newer than `yapping/tools/fetch_cards_db.sh`. Provenance is `public/catalog.meta.json`. Unknown ids still display as `#<id>`.
 
 The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access). Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable. The Power Patron demo shows a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable).

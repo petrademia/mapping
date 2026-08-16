@@ -1,0 +1,16 @@
+{
+  "source": "mycard/ygopro-database",
+  "locale": "en-US",
+  "purpose": "names-only",
+  "canonical_ids": "mycard-passwords",
+  "origin": "mycard-pin",
+  "sha256": "799f748b2280af459fa917f6b305345ae74814cba83594f592407eb1a3932ecf",
+  "texts": 14968,
+  "mapping_pin_commit": "8c8d2316ea42b7f79c0e2248cd74a2da2575ab9d",
+  "mapping_pin_sha256": "799f748b2280af459fa917f6b305345ae74814cba83594f592407eb1a3932ecf",
+  "yapping_pin_commit": "8f36c87c2faea4d24a6062410f9dfe0cd6848865",
+  "yapping_pin_sha256": "f81958a2e0c238ddf5060482e1a2fc2c0d4a7f75917e76c388cab1a28fa43d4c",
+  "matches_mapping_pin": true,
+  "ahead_of_yapping_pin": true,
+  "extracted_at": "2026-08-16T11:29:20Z"
+}
