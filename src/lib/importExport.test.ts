@@ -4,6 +4,7 @@ import {
   addFromParsed,
   createDocument,
   parseMappingJson,
+  SCHEMA_VERSION,
   sectionSize,
   serializeMapping,
   setCardRoles,
@@ -17,7 +18,7 @@ describe("import/export", () => {
   it("round-trips a MAPPING document", () => {
     const original = setCardTaxonomy(powerPatronArsMagnaDemo, "main", 70488851, {
       roles: ["starter", "extender"],
-      opening_quality: "desirable",
+      opening_quality: { going_first: "desirable", going_second: "desirable" },
     });
     const restored = parseMappingJson(serializeMapping(original));
     expect(restored).toEqual(original);
@@ -31,7 +32,10 @@ describe("import/export", () => {
       "starter",
       "extender",
     ]);
-    expect(JSON.parse(json).main[0].taxonomy.opening_quality).toBeNull();
+    expect(JSON.parse(json).main[0].taxonomy.opening_quality).toEqual({
+      going_first: null,
+      going_second: null,
+    });
   });
 
   it("keeps quantities through serialization", () => {
@@ -42,7 +46,10 @@ describe("import/export", () => {
         {
           card_id: 7,
           quantity: 1,
-          taxonomy: { roles: [], opening_quality: null },
+          taxonomy: {
+            roles: [],
+            opening_quality: { going_first: null, going_second: null },
+          },
         },
       ],
     };
@@ -58,21 +65,30 @@ describe("import/export", () => {
           {
             card_id: 1,
             quantity: 3,
-            taxonomy: { roles: ["starter"], opening_quality: null },
+            taxonomy: {
+              roles: ["starter"],
+              opening_quality: { going_first: null, going_second: null },
+            },
           },
         ],
         extra: [
           {
             card_id: 2,
             quantity: 1,
-            taxonomy: { roles: ["extender"], opening_quality: null },
+            taxonomy: {
+              roles: ["extender"],
+              opening_quality: { going_first: null, going_second: null },
+            },
           },
         ],
         side: [
           {
             card_id: 3,
             quantity: 2,
-            taxonomy: { roles: ["interaction"], opening_quality: null },
+            taxonomy: {
+              roles: ["interaction"],
+              opening_quality: { going_first: null, going_second: null },
+            },
           },
         ],
       }),
@@ -94,11 +110,16 @@ describe("import/export", () => {
     expect(exported.extra_deck).toContain(4063756);
     expect(exported.card_roles["70488851"]).toEqual(["starter", "extender"]);
     expect(exported.card_roles["97556336"]).toEqual(["starter"]);
-    expect(exported.metadata.card_opening_quality["17473466"]).toBe("neutral");
+    expect(
+      exported.metadata.card_opening_quality.going_first["17473466"],
+    ).toBe("neutral");
+    expect(
+      exported.metadata.card_opening_quality.going_second["17473466"],
+    ).toBe("neutral");
     expect(exported).not.toHaveProperty("interruption_specs");
     expect(exported).not.toHaveProperty("fixtures");
     expect(exported.metadata.source).toBe("mapping");
-    expect(exported.metadata.mapping_schema_version).toBe(3);
+    expect(exported.metadata.mapping_schema_version).toBe(SCHEMA_VERSION);
     expect(exported.metadata.opening_hand_size).toBe(5);
     expect(exported.metadata.deck_size).toBe(exported.main_deck.length);
     expect(exported.metadata.deck_size).toBe(
@@ -169,7 +190,10 @@ describe("import/export", () => {
           {
             card_id: 1,
             quantity: 1,
-            taxonomy: { roles: ["starter"], opening_quality: null },
+            taxonomy: {
+              roles: ["starter"],
+              opening_quality: { going_first: null, going_second: null },
+            },
           },
         ],
         extra: [],
@@ -209,10 +233,51 @@ describe("import/export", () => {
         quantity: 3,
         taxonomy: {
           roles: ["starter", "extender"],
-          opening_quality: "neutral",
+          opening_quality: { going_first: "neutral", going_second: "neutral" },
         },
       },
     ]);
+  });
+
+  it("migrates schema v3 scalar opening_quality to both contexts", () => {
+    const parsed = parseMappingJson(
+      JSON.stringify({
+        schema_version: 3,
+        name: "legacy-quality",
+        main: [
+          {
+            card_id: 1,
+            quantity: 2,
+            taxonomy: { roles: ["starter"], opening_quality: "undesirable" },
+          },
+          {
+            card_id: 2,
+            quantity: 1,
+            taxonomy: { roles: [], opening_quality: null },
+          },
+        ],
+        extra: [],
+        side: [],
+        analysis: { opening_hand_size: 5 },
+      }),
+    );
+    expect(parsed.schema_version).toBe(4);
+    expect(parsed.main[0]?.taxonomy.opening_quality).toEqual({
+      going_first: "undesirable",
+      going_second: "undesirable",
+    });
+    expect(parsed.main[1]?.taxonomy.opening_quality).toEqual({
+      going_first: null,
+      going_second: null,
+    });
+  });
+
+  it("rejects unsupported schema versions", () => {
+    expect(() =>
+      parseMappingJson(
+        JSON.stringify({ schema_version: 99, name: "x", main: [], extra: [], side: [] }),
+      ),
+    ).toThrow(/schema_version/);
   });
 
   it("does not treat quantity 0 as card removal", () => {
@@ -244,14 +309,20 @@ describe("import/export", () => {
       {
         card_id: 1,
         quantity: 3,
-        taxonomy: { roles: ["starter"], opening_quality: null },
+        taxonomy: {
+          roles: ["starter"],
+          opening_quality: { going_first: null, going_second: null },
+        },
       },
     ]);
     expect(doc.extra).toEqual([
       {
         card_id: 9,
         quantity: 1,
-        taxonomy: { roles: [], opening_quality: null },
+        taxonomy: {
+          roles: [],
+          opening_quality: { going_first: null, going_second: null },
+        },
       },
     ]);
   });

@@ -2,7 +2,7 @@ import type { Catalog } from "../lib/catalog";
 import {
   removeCard,
   sectionSize,
-  setCardOpeningQuality,
+  setCardContextualOpeningQuality,
   setCardRoles,
   setQuantity,
   type DeckSection,
@@ -55,12 +55,13 @@ export function DeckSection({ doc, section, catalog, onChange }: Props) {
                 onRoles={(roles) =>
                   onChange(setCardRoles(doc, section, card.card_id, roles))
                 }
-                onOpeningQuality={(openingQuality) =>
+                onOpeningQuality={(turnOrder, openingQuality) =>
                   onChange(
-                    setCardOpeningQuality(
+                    setCardContextualOpeningQuality(
                       doc,
                       section,
                       card.card_id,
+                      turnOrder,
                       openingQuality,
                     ),
                   )

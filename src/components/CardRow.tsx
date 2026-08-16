@@ -11,7 +11,10 @@ interface Props {
   catalog: Catalog;
   onQuantity: (quantity: number) => void;
   onRoles: (roles: Role[]) => void;
-  onOpeningQuality: (value: OpeningQualityValue) => void;
+  onOpeningQuality: (
+    turnOrder: "going_first" | "going_second",
+    value: OpeningQualityValue,
+  ) => void;
   onRemove: () => void;
 }
 

@@ -19,7 +19,7 @@ Two independent dimensions on each **deck card** (not on a global card definitio
 
 ```text
 TAXONOMY
-Role                    Opening Quality
+Role                    Opening Quality (per turn order)
 ├── starter             ├── desirable
 ├── extender            ├── neutral
 └── interaction         └── undesirable
@@ -29,15 +29,57 @@ Role                    Opening Quality
 | Dimension | Cardinality | Values |
 | --- | --- | --- |
 | **Role** | multi-select | `starter`, `extender`, `interaction` |
-| **Opening Quality** | single-select | `desirable`, `neutral`, `undesirable`, or `null` |
+| **Opening Quality** | per context | `desirable`, `neutral`, `undesirable`, or `null`, for each of Going First and Going Second |
 
-- `null` means the user has not evaluated opening quality.
-- `neutral` means the user evaluated it and considers it neither desirable nor undesirable.
+- Opening Quality is evaluated **separately for Going First and Going Second**
+  (`opening_quality: { going_first, going_second }`, both `null` by default =
+  unclassified).
+- `null` means the user has not evaluated opening quality in that context.
+- `neutral` means the user evaluated it and considers it neither desirable nor
+  undesirable in that context.
+- `unclassified` (`null`) is **not** the same as `neutral`: neutral is an
+  intentional judgment.
 - Do not flatten these into one tag list. They have different meanings and constraints.
 - Annotations are **human deckbuilding hypotheses** for a specific deck/configuration: `Role(card, deck)`, not objective card properties.
 - MAPPING does not encode combo routes, access targets, choke points, or card-effect semantics.
 
 Removed from the built-in taxonomy (do not use as Role values): `recovery`, `brick`, `engine_requirement`. Legacy `brick` migrates to Opening Quality `undesirable`. `recovery` and `engine_requirement` are dropped on schema migration without remapping.
+
+Three questions are deliberately distinct:
+
+1. Do I want to **draw** this card?  (Opening Quality)
+2. Do I want this card **in the deck**?  (deck inclusion)
+3. Do I want to **side** this card out?  (siding decision)
+
+Opening Quality answers only question #1. A card can be undesirable to draw
+while still being necessary in the deck (e.g. required for the engine, or for
+combo ceiling). An `undesirable` card is **not** automatically a siding
+candidate, and a `desirable` one is **not** mandatory inclusion. MAPPING never
+infers a single "Deck Quality %", and does not assign numeric weights to
+`desirable` / `neutral` / `undesirable`.
+
+### Opening Quality (contextual)
+
+```json
+"opening_quality": {
+  "going_first": "undesirable",
+  "going_second": "desirable"
+}
+```
+
+- Opening quality is selected by the **currently selected Analysis Context**
+  (turn order). `going_second` Opening 5 and `going_second` First 6 both use
+  the `going_second` annotation; only the sample size differs.
+- Legacy v3 documents with a single scalar `opening_quality` migrate that value
+  to **both** contexts on load (preserves the previous judgment until changed).
+
+Example: Mulcharmy Fuwalos tagged
+
+```text
+Role:              interaction
+Opening Quality:   Going First:  neutral
+                   Going Second: desirable
+```
 
 ### Role definitions (hypotheses)
 
@@ -95,6 +137,33 @@ MAPPING then reports how often that hand condition occurs. It does **not** encod
 
 If a requirement needs “another” card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects.
 
+### Deck Profile
+
+The **Deck Profile** panel reports transparent, named percentages for the
+selected Analysis Context, never a single aggregate score:
+
+| Block | Metric |
+| --- | --- |
+| **Modeled Engine Access** | P(at least one access condition) |
+| **Opening Composition** | P(≥ 1 desirable), P(≥ 1 neutral), P(≥ 1 undesirable), P(≥ 2 undesirable), P(≥ 1 unclassified) |
+| **Access Composition** | P(access and no undesirable), P(access and ≥ 1 undesirable) |
+| **Interaction** | P(≥ 1 interaction), P(access and ≥ 1 interaction) |
+| **Context comparison** | ≥ 1 desirable / undesirable / ≥ 2 undesirable under Going First vs Going Second |
+
+Every percentage has an explicit mathematical interpretation (exact opening-hand
+hypergeometric / composition enumeration). Do **not** read “hands with ≥ 1
+undesirable” as “bad hands”: an undesirable-tagged card in a hand can still
+produce a strong line.
+
+### Coming next (not implemented)
+
+**Deck Configuration** will represent actual deck-list changes such as siding.
+v0 analyzes a single **Pre-Side** configuration (the document's Main Deck). A
+post-side list is a *different configuration* (which cards are in the deck), not
+a card annotation. Siding changes deck composition, not the semantic meaning of
+`undesirable`. Preserved attributes: `undesirable to draw != undesirable to
+include != should side out`.
+
 ### Analysis Context
 
 Composition probabilities are evaluated under an **Analysis Context** (not taxonomy):
@@ -107,9 +176,17 @@ Composition probabilities are evaluated under an **Analysis Context** (not taxon
 
 Turn order does **not** change the distribution of the initial five-card hand: `P(Q | GF opening 5) = P(Q | GS opening 5)`. The sixth card is the normal draw, not part of the opening hand.
 
-Example (Fuwalos tagged `interaction`): MAPPING may report seeing Fuwalos in opening 5 vs among first 6 cards. It must **not** claim Fuwalos is “good going second” or recommend copy counts — that is YAPPING strategic value.
+Opening Quality selection depends on **turn order** (not merely hand size): both
+Going Second — Opening 5 and Going Second — First 6 Cards Seen use the
+`going_second` annotation; the sample size differs, the annotation does not.
 
-Do not add `going_first` / `going_second` to card taxonomy.
+Example (Fuwalos tagged `interaction`, GF neutral / GS desirable): MAPPING may
+report different opening-composition profiles under GF vs GS because the
+annotation differs, and may report differing sample sizes across observation
+points. It must **not** claim Fuwalos is “good going second” or recommend copy
+counts — that is YAPPING strategic value.
+
+Do not add `going_first` / `going_second` / `side_out` / `sideable` to card taxonomy.
 
 ## Card metadata versus taxonomy
 
@@ -119,9 +196,15 @@ Taxonomy lives on the deck card entry only.
 
 ## Opening chances are not combo success
 
-The probability panel reports **composition probabilities** for the main deck under the selected Analysis Context: hypergeometric chances for role and undesirable opening-quality counts, with a configurable base opening-hand size (default 5).
+The Deck Profile panel reports **composition probabilities** for the selected
+configuration's main deck under the selected Analysis Context: exact chances
+for contextual opening-quality composition (desirable / neutral / undesirable /
+unclassified), modeled engine access, access composition, and interaction, with
+a configurable base opening-hand size (default 5).
 
-That is the chance a random sample of the observed cards contains some number of cards you tagged. It is not win rate, combo quality, or interruption resilience.
+That is the chance a random sample of the observed cards contains some number
+of cards you annotated in a particular way. It is not win rate, combo quality,
+or interruption resilience. It is not a deck-quality score.
 
 Joint events such as `P(starter ≥ 1 AND extender ≥ 1)` are not shown as products of marginals. Roles overlap and draws are without replacement.
 
@@ -145,11 +228,11 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 
 - select Analysis Context (going first/second × opening hand / first cards seen)
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
-- edit quantities and Taxonomy v0 annotations
+- edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; paste-add appends without replacing
 - define Access Conditions and Groups; inspect modeled engine access
-- inspect main/extra/side sizes, overlapping role density, and opening-quality counts
-- inspect per-role and undesirable composition probabilities
+- inspect main/extra/side sizes, role density, and per-context opening-quality counts
+- inspect the Deck Profile: opening composition, access composition, interaction, and GF/GS context comparison
 - compare two opening-hand conditions with exact joint/conditional probabilities
 - save locally (browser `localStorage` plus file download)
 - Save YDK exports the current list for Omega / external tools
@@ -157,7 +240,7 @@ Do not read explorer percentages as “good hand” or “bad hand”. Impossibl
 
 ## Non-goals
 
-Automatic role or opening-quality inference, card-effect parsing, route graphs, access targets, choke-point tagging, combo dependencies, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, nested Boolean query builders, drag-and-drop, strategic hand scoring, OCGCore, accounts, cloud sync, and a replacement for existing deckbuilding sites.
+Automatic role or opening-quality inference, card-effect parsing, route graphs, access targets, choke-point tagging, combo dependencies, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, nested Boolean query builders, drag-and-drop, strategic hand scoring, OCGCore, accounts, cloud sync, a replacement for existing deckbuilding sites, a single "Deck Quality %" score, arbitrary quality weights, automatic siding recommendations, and match-up-aware siding.
 
 ## Stack
 
@@ -165,18 +248,21 @@ Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hyperge
 
 ## Schema
 
-MAPPING owns a versioned document (`schema_version: 3`):
+MAPPING owns a versioned document (`schema_version: 4`):
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "name": "power_patron_ars_magna_v0",
   "main": [{
     "card_id": 62962630,
     "quantity": 3,
     "taxonomy": {
       "roles": ["starter", "extender"],
-      "opening_quality": "desirable"
+      "opening_quality": {
+        "going_first": "desirable",
+        "going_second": null
+      }
     }
   }],
   "extra": [],
@@ -200,16 +286,22 @@ MAPPING owns a versioned document (`schema_version: 3`):
 }
 ```
 
-Unclassified opening quality is serialized as `"opening_quality": null`, never silently as `"neutral"`.
+Unclassified opening quality in either context is serialized as `null`, never silently as `"neutral"`. An absent `going_first` / `going_second` key defaults to `null`.
 
-Schema v1/v2 documents are accepted on load and migrated to v3 (empty access groups/conditions when absent).
+Schema v1/v2/v3 documents are accepted on load and migrated to v4:
+legacy v1 flat `roles` migrate via the v0 mapping (with `brick` → `undesirable`),
+and a legacy v3 scalar `opening_quality` is copied to **both** contexts (the
+previous judgment is preserved until explicitly changed). Empty access
+groups/conditions are defaulted when absent.
 
 YAPPING currently loads `configs/archetypes/*.json` with:
 
 - `name`
 - `main_deck` / `extra_deck`: repeated card ids, one entry per copy
 - `card_roles`: `{ "<id>": ["starter", "extender"] }` (Role dimension only)
-- `metadata.card_opening_quality`: explicit opening-quality map (unclassified omitted)
+- `metadata.card_opening_quality`: contextual map
+  `{ going_first: { "<id>": "desirable" }, going_second: { ... } }`
+  (unclassified omitted in each context)
 - optional interruption specs, fixtures, predicates, weights, and objectives that MAPPING does not author
 
 **Export for YAPPING** is a deterministic conversion (`exportYapping()`). Round-trip the `.mapping.json` file if you need lossless main/extra/side plus taxonomy. Feed the `.yapping.json` file to `yapping.load_archetype`.
@@ -231,4 +323,4 @@ npm run build
 npm run extract-catalog
 ```
 
-The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Access Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T. Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.
+The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Access Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T. Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable. The Power Patron demo shows a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable).

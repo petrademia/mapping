@@ -6,7 +6,7 @@ import { AccessConditionsPanel } from "./components/AccessConditionsPanel";
 import { DeckEditor } from "./components/DeckEditor";
 import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
 import { ImportExport } from "./components/ImportExport";
-import { ProbabilityPanel } from "./components/ProbabilityPanel";
+import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
@@ -112,7 +112,7 @@ export function App() {
             openingHandSize={doc.analysis.opening_hand_size}
             onChange={(context) => setDoc(setAnalysisContext(doc, context))}
           />
-          <ProbabilityPanel
+          <DeckProfile
             doc={doc}
             onHandSize={(size) => {
               if (!Number.isInteger(size) || size < 0) return;

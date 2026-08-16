@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addRole,
   copiesForOpeningQuality,
+  EMPTY_CONTEXTUAL_QUALITY,
   isRole,
   migrateLegacyRoles,
   normalizeTaxonomy,
@@ -14,6 +15,7 @@ import {
   createDocument,
   parseMappingJson,
   serializeMapping,
+  setCardContextualOpeningQuality,
   setCardOpeningQuality,
   setCardRoles,
   setCardTaxonomy,
@@ -72,64 +74,107 @@ describe("Taxonomy v0 roles", () => {
 
 describe("Taxonomy v0 opening quality", () => {
   it("accepts desirable", () => {
-    expect(normalizeTaxonomy({ roles: [], opening_quality: "desirable" })).toEqual({
+    expect(
+      normalizeTaxonomy({
+        roles: [],
+        opening_quality: { going_first: "desirable", going_second: "desirable" },
+      }),
+    ).toEqual({
       roles: [],
-      opening_quality: "desirable",
+      opening_quality: {
+        going_first: "desirable",
+        going_second: "desirable",
+      },
     });
   });
 
-  it("accepts neutral", () => {
-    expect(normalizeTaxonomy({ roles: [], opening_quality: "neutral" })).toEqual({
+  it("accepts neutral in a single context", () => {
+    expect(
+      normalizeTaxonomy({
+        roles: [],
+        opening_quality: { going_first: "neutral", going_second: null },
+      }),
+    ).toEqual({
       roles: [],
-      opening_quality: "neutral",
+      opening_quality: { going_first: "neutral", going_second: null },
     });
   });
 
   it("accepts undesirable", () => {
     expect(
-      normalizeTaxonomy({ roles: [], opening_quality: "undesirable" }),
+      normalizeTaxonomy({
+        roles: [],
+        opening_quality: {
+          going_first: "undesirable",
+          going_second: "undesirable",
+        },
+      }),
     ).toEqual({
       roles: [],
-      opening_quality: "undesirable",
+      opening_quality: {
+        going_first: "undesirable",
+        going_second: "undesirable",
+      },
     });
   });
 
   it("accepts null unclassified", () => {
-    expect(normalizeTaxonomy({ roles: [], opening_quality: null })).toEqual({
+    expect(
+      normalizeTaxonomy({
+        roles: [],
+        opening_quality: { going_first: null, going_second: null },
+      }),
+    ).toEqual({
       roles: [],
-      opening_quality: null,
+      opening_quality: { going_first: null, going_second: null },
     });
   });
 
-  it("only allows one opening quality value", () => {
-    const doc = setCardOpeningQuality(
-      setCardOpeningQuality(createDocument("t"), "main", 1, "desirable"),
+  it("allows different quality per context and updates one independently", () => {
+    let doc = setCardContextualOpeningQuality(
+      setCardContextualOpeningQuality(createDocument("t"), "main", 1, "going_first", "desirable"),
       "main",
       1,
+      "going_second",
       "undesirable",
     );
-    expect(doc.main[0]?.taxonomy.opening_quality).toBe("undesirable");
+    expect(doc.main[0]?.taxonomy.opening_quality).toEqual({
+      going_first: "desirable",
+      going_second: "undesirable",
+    });
   });
 
   it("keeps null and neutral distinguishable after serialization", () => {
     let doc = createDocument("t");
     doc = setCardTaxonomy(doc, "main", 1, {
       roles: ["starter"],
-      opening_quality: null,
+      opening_quality: { going_first: null, going_second: null },
     });
     doc = setCardTaxonomy(doc, "main", 2, {
       roles: [],
-      opening_quality: "neutral",
+      opening_quality: { going_first: "neutral", going_second: null },
     });
     const json = serializeMapping(doc);
     const parsed = JSON.parse(json) as {
       main: { taxonomy: { opening_quality: unknown } }[];
     };
-    expect(parsed.main[0]?.taxonomy.opening_quality).toBeNull();
-    expect(parsed.main[1]?.taxonomy.opening_quality).toBe("neutral");
+    expect(parsed.main[0]?.taxonomy.opening_quality).toEqual({
+      going_first: null,
+      going_second: null,
+    });
+    expect(parsed.main[1]?.taxonomy.opening_quality).toEqual({
+      going_first: "neutral",
+      going_second: null,
+    });
     const restored = parseMappingJson(json);
-    expect(restored.main[0]?.taxonomy.opening_quality).toBeNull();
-    expect(restored.main[1]?.taxonomy.opening_quality).toBe("neutral");
+    expect(restored.main[0]?.taxonomy.opening_quality).toEqual({
+      going_first: null,
+      going_second: null,
+    });
+    expect(restored.main[1]?.taxonomy.opening_quality).toEqual({
+      going_first: "neutral",
+      going_second: null,
+    });
   });
 });
 
@@ -142,11 +187,14 @@ describe("Taxonomy v0 deck context and density", () => {
     other = setCardOpeningQuality(other, "main", 100, "undesirable");
     expect(doc.main[0]?.taxonomy).toEqual({
       roles: ["starter"],
-      opening_quality: null,
+      opening_quality: { going_first: null, going_second: null },
     });
     expect(other.main[0]?.taxonomy).toEqual({
       roles: ["interaction"],
-      opening_quality: "undesirable",
+      opening_quality: {
+        going_first: "undesirable",
+        going_second: "undesirable",
+      },
     });
     expect(doc).not.toHaveProperty("card_definitions");
   });
@@ -155,13 +203,22 @@ describe("Taxonomy v0 deck context and density", () => {
     const density = roleDensity([
       {
         quantity: 3,
-        taxonomy: { roles: ["starter", "extender"], opening_quality: null },
+        taxonomy: {
+          roles: ["starter", "extender"],
+          opening_quality: EMPTY_CONTEXTUAL_QUALITY,
+        },
       },
       {
         quantity: 2,
-        taxonomy: { roles: ["extender", "interaction"], opening_quality: null },
+        taxonomy: {
+          roles: ["extender", "interaction"],
+          opening_quality: EMPTY_CONTEXTUAL_QUALITY,
+        },
       },
-      { quantity: 1, taxonomy: { roles: [], opening_quality: null } },
+      {
+        quantity: 1,
+        taxonomy: { roles: [], opening_quality: EMPTY_CONTEXTUAL_QUALITY },
+      },
     ]);
     expect(density).toEqual({
       starter: 3,
@@ -173,60 +230,75 @@ describe("Taxonomy v0 deck context and density", () => {
     );
   });
 
-  it("counts mutually exclusive opening-quality slots", () => {
-    const density = openingQualityDensity([
-      {
-        quantity: 3,
-        taxonomy: { roles: ["starter"], opening_quality: "desirable" },
-      },
-      {
-        quantity: 2,
-        taxonomy: { roles: [], opening_quality: "neutral" },
-      },
-      {
-        quantity: 1,
-        taxonomy: { roles: ["interaction"], opening_quality: "undesirable" },
-      },
-      { quantity: 4, taxonomy: { roles: [], opening_quality: null } },
-    ]);
-    expect(density).toEqual({
+  it("counts mutually exclusive opening-quality slots per context", () => {
+    const gf = openingQualityDensity(
+      [
+        {
+          quantity: 3,
+          taxonomy: {
+            roles: ["starter"],
+            opening_quality: { going_first: "desirable", going_second: null },
+          },
+        },
+        {
+          quantity: 2,
+          taxonomy: {
+            roles: [],
+            opening_quality: { going_first: "neutral", going_second: "desirable" },
+          },
+        },
+        {
+          quantity: 1,
+          taxonomy: {
+            roles: ["interaction"],
+            opening_quality: {
+              going_first: "undesirable",
+              going_second: "undesirable",
+            },
+          },
+        },
+        { quantity: 4, taxonomy: { roles: [], opening_quality: EMPTY_CONTEXTUAL_QUALITY } },
+      ],
+      "going_first",
+    );
+    expect(gf).toEqual({
       desirable: 3,
       neutral: 2,
       undesirable: 1,
       unclassified: 4,
     });
     expect(
-      density.desirable +
-        density.neutral +
-        density.undesirable +
-        density.unclassified,
+      gf.desirable + gf.neutral + gf.undesirable + gf.unclassified,
     ).toBe(10);
-    expect(copiesForOpeningQuality(
-      [
-        {
-          quantity: 4,
-          taxonomy: { roles: [], opening_quality: null },
-        },
-      ],
-      null,
-    )).toBe(4);
+    expect(
+      copiesForOpeningQuality(
+        [
+          {
+            quantity: 4,
+            taxonomy: { roles: [], opening_quality: EMPTY_CONTEXTUAL_QUALITY },
+          },
+        ],
+        "going_first",
+        null,
+      ),
+    ).toBe(4);
   });
 
   it("round-trips taxonomy through serialization", () => {
     let doc = createDocument("round");
     doc = setCardTaxonomy(doc, "main", 7, {
       roles: ["starter", "extender"],
-      opening_quality: "desirable",
+      opening_quality: { going_first: "desirable", going_second: null },
     });
     const restored = parseMappingJson(serializeMapping(doc));
-    expect(restored.schema_version).toBe(3);
+    expect(restored.schema_version).toBe(4);
     expect(restored.main[0]?.taxonomy).toEqual({
       roles: ["starter", "extender"],
-      opening_quality: "desirable",
+      opening_quality: { going_first: "desirable", going_second: null },
     });
   });
 
-  it("migrates legacy brick to undesirable and drops removed roles", () => {
+  it("migrates legacy brick to undesirable in both contexts and drops removed roles", () => {
     expect(
       migrateLegacyRoles([
         "starter",
@@ -237,7 +309,10 @@ describe("Taxonomy v0 deck context and density", () => {
       ]),
     ).toEqual({
       roles: ["starter", "extender"],
-      opening_quality: "undesirable",
+      opening_quality: {
+        going_first: "undesirable",
+        going_second: "undesirable",
+      },
     });
 
     const migrated = parseMappingJson(
@@ -269,15 +344,18 @@ describe("Taxonomy v0 deck context and density", () => {
         analysis: { opening_hand_size: 5 },
       }),
     );
-    expect(migrated.schema_version).toBe(3);
+    expect(migrated.schema_version).toBe(4);
     expect(migrated).not.toHaveProperty("vocabulary");
     expect(migrated.main[0]?.taxonomy).toEqual({
       roles: ["starter"],
-      opening_quality: "undesirable",
+      opening_quality: {
+        going_first: "undesirable",
+        going_second: "undesirable",
+      },
     });
     expect(migrated.main[1]?.taxonomy).toEqual({
       roles: [],
-      opening_quality: null,
+      opening_quality: { going_first: null, going_second: null },
     });
   });
 });

@@ -21,7 +21,7 @@ import type { MappingCard } from "./document";
 import type { CardTaxonomy } from "./taxonomy";
 
 function tax(roles: CardTaxonomy["roles"] = []): CardTaxonomy {
-  return { roles, opening_quality: null };
+  return { roles, opening_quality: { going_first: null, going_second: null } };
 }
 
 function card(

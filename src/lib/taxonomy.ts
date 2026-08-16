@@ -13,14 +13,25 @@ export type OpeningQuality = (typeof OPENING_QUALITIES)[number];
 /** Explicit evaluation. `null` means unclassified (distinct from `"neutral"`). */
 export type OpeningQualityValue = OpeningQuality | null;
 
+/** Per-turn-order judgment. Each side is `null` (= unclassified) by default. */
+export interface ContextualOpeningQuality {
+  going_first: OpeningQualityValue;
+  going_second: OpeningQualityValue;
+}
+
+export const EMPTY_CONTEXTUAL_QUALITY: ContextualOpeningQuality = {
+  going_first: null,
+  going_second: null,
+};
+
 export interface CardTaxonomy {
   roles: Role[];
-  opening_quality: OpeningQualityValue;
+  opening_quality: ContextualOpeningQuality;
 }
 
 export const EMPTY_TAXONOMY: CardTaxonomy = {
   roles: [],
-  opening_quality: null,
+  opening_quality: { ...EMPTY_CONTEXTUAL_QUALITY },
 };
 
 const ROLE_SET = new Set<string>(ROLES);
@@ -64,43 +75,79 @@ export function toggleRole(roles: readonly Role[], role: Role): Role[] {
   return roles.includes(role) ? removeRole(roles, role) : addRole(roles, role);
 }
 
+export function openingQualityForTurn(
+  quality: ContextualOpeningQuality,
+  turnOrder: "going_first" | "going_second",
+): OpeningQualityValue {
+  return turnOrder === "going_second" ? quality.going_second : quality.going_first;
+}
+
+function parseQualityValue(value: unknown): OpeningQualityValue {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") {
+    throw new Error(`invalid opening_quality: ${String(value)}`);
+  }
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === "null") return null;
+  if (isOpeningQuality(trimmed)) return trimmed;
+  throw new Error(`invalid opening_quality: ${value}`);
+}
+
+/**
+ * Normalize opening quality from either:
+ * - the legacy scalar form (`"desirable"`, `null`) which migrates to both
+ *   contexts, or
+ * - the contextual object form `{ going_first, going_second }`.
+ */
+function normalizeOpeningQuality(unknown: unknown): ContextualOpeningQuality {
+  if (unknown === null || unknown === undefined) {
+    return { ...EMPTY_CONTEXTUAL_QUALITY };
+  }
+  if (typeof unknown === "object" && !Array.isArray(unknown)) {
+    const record = unknown as Record<string, unknown>;
+    return {
+      going_first: parseQualityValue(record.going_first),
+      going_second: parseQualityValue(record.going_second),
+    };
+  }
+  const legacy = parseQualityValue(unknown);
+  return { going_first: legacy, going_second: legacy };
+}
+
 export function normalizeTaxonomy(raw: {
   roles?: readonly string[];
   opening_quality?: unknown;
 }): CardTaxonomy {
-  const roles = uniqueRoles(raw.roles ?? []);
-  let opening_quality: OpeningQualityValue = null;
-  if (raw.opening_quality === null || raw.opening_quality === undefined) {
-    opening_quality = null;
-  } else if (typeof raw.opening_quality === "string") {
-    const trimmed = raw.opening_quality.trim();
-    if (trimmed === "" || trimmed === "null") {
-      opening_quality = null;
-    } else if (isOpeningQuality(trimmed)) {
-      opening_quality = trimmed;
-    } else {
-      throw new Error(`invalid opening_quality: ${raw.opening_quality}`);
-    }
-  } else {
-    throw new Error(`invalid opening_quality: ${String(raw.opening_quality)}`);
-  }
-  return { roles, opening_quality };
+  return {
+    roles: uniqueRoles(raw.roles ?? []),
+    opening_quality: normalizeOpeningQuality(raw.opening_quality),
+  };
 }
 
 export function mergeTaxonomies(
   a: CardTaxonomy,
   b: CardTaxonomy,
 ): CardTaxonomy {
-  const roles = uniqueRoles([...a.roles, ...b.roles]);
-  // Prefer an explicit quality when merging duplicate card rows.
-  const opening_quality =
-    a.opening_quality !== null ? a.opening_quality : b.opening_quality;
-  return { roles, opening_quality };
+  const pick = (x: OpeningQualityValue, y: OpeningQualityValue) =>
+    x !== null ? x : y;
+  return {
+    roles: uniqueRoles([...a.roles, ...b.roles]),
+    opening_quality: {
+      going_first: pick(
+        a.opening_quality.going_first,
+        b.opening_quality.going_first,
+      ),
+      going_second: pick(
+        a.opening_quality.going_second,
+        b.opening_quality.going_second,
+      ),
+    },
+  };
 }
 
 /**
  * Migrate schema v1 flat `roles: string[]` into Taxonomy v0.
- * `brick` → opening_quality `undesirable`.
+ * `brick` → opening_quality `undesirable` in both contexts.
  * `recovery` / `engine_requirement` are dropped (not remapped).
  * Unknown strings are dropped.
  */
@@ -128,7 +175,10 @@ export function migrateLegacyRoles(
       roles.push(role);
     }
   }
-  return { roles, opening_quality };
+  return {
+    roles,
+    opening_quality: { going_first: opening_quality, going_second: opening_quality },
+  };
 }
 
 export function roleDensity(
@@ -149,8 +199,13 @@ export function roleDensity(
 
 export type OpeningQualityBucket = OpeningQuality | "unclassified";
 
+/**
+ * Count physical copies per opening-quality bucket for one turn order.
+ * The four buckets are mutually exclusive and sum to deck size.
+ */
 export function openingQualityDensity(
   cards: readonly { quantity: number; taxonomy: CardTaxonomy }[],
+  turnOrder: "going_first" | "going_second",
 ): Record<OpeningQualityBucket, number> {
   const density: Record<OpeningQualityBucket, number> = {
     desirable: 0,
@@ -159,10 +214,8 @@ export function openingQualityDensity(
     unclassified: 0,
   };
   for (const card of cards) {
-    const key: OpeningQualityBucket =
-      card.taxonomy.opening_quality === null
-        ? "unclassified"
-        : card.taxonomy.opening_quality;
+    const value = openingQualityForTurn(card.taxonomy.opening_quality, turnOrder);
+    const key: OpeningQualityBucket = value === null ? "unclassified" : value;
     density[key] += card.quantity;
   }
   return density;
@@ -180,14 +233,17 @@ export function copiesForRole(
   );
 }
 
-/** Copies with a specific opening quality (null = unclassified). */
+/** Copies with a specific opening quality in the given turn order (null = unclassified). */
 export function copiesForOpeningQuality(
   cards: readonly { quantity: number; taxonomy: CardTaxonomy }[],
+  turnOrder: "going_first" | "going_second",
   quality: OpeningQualityValue,
 ): number {
   return cards.reduce(
     (sum, card) =>
-      card.taxonomy.opening_quality === quality ? sum + card.quantity : sum,
+      openingQualityForTurn(card.taxonomy.opening_quality, turnOrder) === quality
+        ? sum + card.quantity
+        : sum,
     0,
   );
 }
