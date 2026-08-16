@@ -85,18 +85,35 @@ That is the chance a random opening contains some number of cards you tagged. It
 
 Joint events such as `P(starter ≥ 1 AND extender ≥ 1)` are not shown as products of marginals. Roles overlap and draws are without replacement.
 
+### Opening-hand explorer (two conditions)
+
+The explorer lets you compare exactly two opening-hand conditions (card or role, with count operators). It reports exact combinatorial:
+
+- `P(A)`, `P(B)`, `P(A ∩ B)`
+- `P(B | A)`, `P(A | B)`
+
+MAPPING distinguishes **occurrence** from **strategic value**:
+
+| Question | Owner |
+| --- | --- |
+| `P(Q)` — how often does hand condition Q occur? | MAPPING |
+| `E[U \| Q]` — expected utility / outcome given Q | YAPPING (future) |
+
+Do not read explorer percentages as “good hand” or “bad hand”. Impossible predicates (e.g. `card ≥ 2` with one copy) yield `0%`; conditionals with a zero-probability antecedent show as undefined (`—`), not `0%`.
+
 ## v0 scope
 
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities and Taxonomy v0 annotations
 - inspect main/extra/side sizes, overlapping role density, and opening-quality counts
 - inspect per-role and undesirable composition probabilities
+- compare two opening-hand conditions with exact joint/conditional probabilities
 - save locally (browser `localStorage` plus file download)
 - export a YAPPING-readable archetype JSON
 
 ## Non-goals
 
-Automatic role or opening-quality inference, card-effect parsing, route annotation, access targets, combo dependencies, choke-point modeling, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, OCGCore, accounts, cloud sync, and a replacement for existing deckbuilding sites.
+Automatic role or opening-quality inference, card-effect parsing, route annotation, access targets, combo dependencies, choke-point modeling, AI classification, YAPPING search integration, RL/ML, automatic deck optimization, arbitrary boolean query builders, strategic hand scoring, OCGCore, accounts, cloud sync, and a replacement for existing deckbuilding sites.
 
 ## Stack
 

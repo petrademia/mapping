@@ -236,6 +236,55 @@ h1 {
 .probs dd { margin: 0; font-family: "Red Hat Mono", ui-monospace, monospace; }
 .error { color: var(--danger); }
 
+.condition-block { margin-bottom: 0.75rem; }
+.condition-controls {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: 1fr 1fr;
+}
+.condition-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.condition-controls select,
+.condition-controls input {
+  background: #171b18;
+  border: 1px solid var(--line);
+  color: var(--mist);
+  padding: 0.3rem 0.4rem;
+}
+.condition-card { grid-column: 1 / -1; }
+.condition-card input[type="search"] { margin-bottom: 0.3rem; }
+
+.explorer-results { margin: 0; display: grid; gap: 0.55rem; }
+.explorer-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  padding-top: 0.5rem;
+}
+.explorer-row dt { display: flex; flex-direction: column; gap: 0.15rem; }
+.explorer-title { font-size: 0.88rem; color: var(--mist); }
+.explorer-notation {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.explorer-row dd {
+  margin: 0;
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 1.05rem;
+}
+.explorer-row .undefined {
+  color: var(--muted);
+  cursor: help;
+}
+
 [data-role="starter"] { --swatch: var(--starter); }
 [data-role="extender"] { --swatch: var(--extender); }
 [data-role="interaction"] { --swatch: var(--interaction); }

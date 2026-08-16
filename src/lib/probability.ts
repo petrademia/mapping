@@ -5,7 +5,8 @@ export class ProbabilityError extends Error {
   }
 }
 
-function combinations(n: number, k: number): bigint {
+/** Exact binomial coefficient C(n, k) as bigint. */
+export function combinations(n: number, k: number): bigint {
   if (k < 0 || k > n) return 0n;
   const limited = Math.min(k, n - k);
   let result = 1n;
@@ -13,6 +14,16 @@ function combinations(n: number, k: number): bigint {
     result = (result * BigInt(n - limited + i)) / BigInt(i);
   }
   return result;
+}
+
+/** Convert exact bigint ratio to Number without rounding intermediates. */
+export function ratioToNumber(numerator: bigint, denominator: bigint): number {
+  if (denominator === 0n) {
+    throw new ProbabilityError("division by zero");
+  }
+  if (numerator === 0n) return 0;
+  const scale = 10n ** 24n;
+  return Number((numerator * scale) / denominator) / 1e24;
 }
 
 function assertDraw(deckSize: number, copies: number, handSize: number): void {
@@ -47,8 +58,7 @@ export function openingCountProbability(
   if (denominator === 0n) return 0;
   const numerator =
     combinations(copies, count) * combinations(failures, drawnFailures);
-  const scale = 10n ** 24n;
-  return Number((numerator * scale) / denominator) / 1e24;
+  return ratioToNumber(numerator, denominator);
 }
 
 export function openingAtLeastProbability(

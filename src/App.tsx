@@ -3,6 +3,7 @@ import { brandedDemo } from "./data/brandedDemo";
 import { DeckEditor } from "./components/DeckEditor";
 import { ImportExport } from "./components/ImportExport";
 import { ProbabilityPanel } from "./components/ProbabilityPanel";
+import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
@@ -92,6 +93,14 @@ export function App() {
           <RoleSummary doc={doc} />
           <ProbabilityPanel
             doc={doc}
+            onHandSize={(size) => {
+              if (!Number.isInteger(size) || size < 0) return;
+              setDoc(setOpeningHandSize(doc, size));
+            }}
+          />
+          <HandProbabilityExplorer
+            doc={doc}
+            catalog={catalog}
             onHandSize={(size) => {
               if (!Number.isInteger(size) || size < 0) return;
               setDoc(setOpeningHandSize(doc, size));
