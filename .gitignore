@@ -9,3 +9,6 @@ coverage
 *.tsbuildinfo
 
 .cache
+
+# Agent session scaffolding (specs / plans / handoffs) — keep local only
+docs/superpowers/
