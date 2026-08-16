@@ -97,6 +97,7 @@ export function AccessConditionsPanel({
         requirements: firstCard
           ? [{ kind: "card", card_id: firstCard, op: "gte", count: 1 }]
           : [],
+        excludes: [],
       }),
     );
   }
@@ -129,14 +130,16 @@ export function AccessConditionsPanel({
       <p className="note">
         Human-defined access hypotheses evaluated under{" "}
         {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. ALL OF within a condition; OR
-        across conditions for modeled access. Not combo routes, resilience, or
-        YAPPING utility.
+        {sampleSizeDescription(context, opening)}. ALL OF Requires and NONE OF
+        Excludes within a condition; OR across conditions for modeled access.
+        Not combo routes, resilience, or YAPPING utility.
         {!isOpeningHandObservation(context)
           ? " Satisfaction among first cards seen does not imply the line was available during the opponent's first turn."
           : ""}{" "}
-        If a combo needs “Nervedo + another S/T”, exclude Nervedo from that
-        group so one copy cannot satisfy both requirements.
+        Excludes rejects a hand without judging it strategically (Citrinitas in
+        hand is not "bad", the modeled line just requires its absence). If a
+        combo needs "Nervedo + another S/T", exclude Nervedo from that group so
+        one copy cannot satisfy both requirements.
       </p>
 
       <h3 className="panel-subhead">Groups</h3>
@@ -336,6 +339,31 @@ function ConditionEditor({
     });
   }
 
+  function updateExclusion(index: number, next: HandCondition): void {
+    const excludes = condition.excludes.map((item, i) =>
+      i === index ? next : item,
+    );
+    onChange({ ...condition, excludes });
+  }
+
+  function removeExclusion(index: number): void {
+    onChange({
+      ...condition,
+      excludes: condition.excludes.filter((_, i) => i !== index),
+    });
+  }
+
+  function addExclusion(): void {
+    const firstCard = doc.main[0]?.card_id;
+    const next: HandCondition = firstCard
+      ? { kind: "card", card_id: firstCard, op: "gte", count: 1 }
+      : { kind: "role", role: "starter", op: "gte", count: 1 };
+    onChange({
+      ...condition,
+      excludes: [...condition.excludes, next],
+    });
+  }
+
   return (
     <div className="access-block">
       <div className="access-block-head">
@@ -350,13 +378,13 @@ function ConditionEditor({
           Delete
         </button>
       </div>
-      <p className="access-allof">ALL OF</p>
+      <p className="access-allof">Requires</p>
       {condition.requirements.length === 0 ? (
         <p className="empty">Add at least one requirement.</p>
       ) : (
         condition.requirements.map((requirement, index) => (
           <RequirementEditor
-            key={`${condition.id}-${index}`}
+            key={`require-${condition.id}-${index}`}
             requirement={requirement}
             doc={doc}
             catalog={catalog}
@@ -368,6 +396,30 @@ function ConditionEditor({
       <div className="row-actions">
         <button type="button" onClick={addRequirement}>
           + Requirement
+        </button>
+      </div>
+      <p className="access-allof access-excludes-label">Excludes</p>
+      <p className="empty access-excludes-note">
+        Each exclusion rejects a hand whose composition satisfies it. Not a
+        "bad card" label.
+      </p>
+      {condition.excludes.length === 0 ? (
+        <p className="empty">No exclusions.</p>
+      ) : (
+        condition.excludes.map((exclusion, index) => (
+          <RequirementEditor
+            key={`exclude-${condition.id}-${index}`}
+            requirement={exclusion}
+            doc={doc}
+            catalog={catalog}
+            onChange={(next) => updateExclusion(index, next)}
+            onRemove={() => removeExclusion(index)}
+          />
+        ))
+      )}
+      <div className="row-actions">
+        <button type="button" onClick={addExclusion}>
+          + Exclusion
         </button>
         {probability !== undefined ? (
           <span className="access-prob">

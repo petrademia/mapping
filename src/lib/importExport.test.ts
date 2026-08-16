@@ -261,7 +261,7 @@ describe("import/export", () => {
         analysis: { opening_hand_size: 5 },
       }),
     );
-    expect(parsed.schema_version).toBe(4);
+    expect(parsed.schema_version).toBe(5);
     expect(parsed.main[0]?.taxonomy.opening_quality).toEqual({
       going_first: "undesirable",
       going_second: "undesirable",

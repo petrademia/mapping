@@ -31,7 +31,7 @@ function tax(
  * claimed optimal tournament deck.
  */
 export const powerPatronArsMagnaDemo: MappingDocument = {
-  schema_version: 4,
+  schema_version: 5,
   name: "power_patron_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
@@ -61,6 +61,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 70488851, op: "gte", count: 1 },
       ],
+      excludes: [],
     },
     {
       id: "pendulum-treasure-access",
@@ -68,6 +69,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 26237713, op: "gte", count: 1 },
       ],
+      excludes: [],
     },
     {
       id: "medius-access",
@@ -75,6 +77,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 97556336, op: "gte", count: 1 },
       ],
+      excludes: [],
     },
     {
       id: "nervedo-access",
@@ -82,6 +85,9 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 17473466, op: "gte", count: 1 },
         { kind: "group", group_id: "valid-nervedo-st", op: "gte", count: 1 },
+      ],
+      excludes: [
+        { kind: "card", card_id: 37279096, op: "gte", count: 1 },
       ],
     },
   ],

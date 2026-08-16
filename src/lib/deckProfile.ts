@@ -1,9 +1,9 @@
 import { groupsToMembership, type AccessCondition, type AccessGroup } from "./access";
 import {
-  allRequirementsHold,
+  accessConditionHolds,
   forEachHandComposition,
+  type AccessConditionLike,
   type GroupMembership,
-  type HandCondition,
 } from "./handExplorer";
 import {
   combinations,
@@ -59,11 +59,7 @@ interface ComputeProfileInput {
   deck: readonly MappingCard[];
   handSize: number;
   turnOrder: "going_first" | "going_second";
-  conditions: readonly {
-    id: string;
-    name: string;
-    requirements: readonly HandCondition[];
-  }[];
+  conditions: readonly AccessConditionLike[];
   groups?: GroupMembership;
 }
 
@@ -121,7 +117,7 @@ export function computeDeckProfile({
   if (conditions.length > 0 && total > 0n) {
     forEachHandComposition(deck, handSize, (hand, weight) => {
       const access = conditions.some((condition) =>
-        allRequirementsHold(hand, deck, condition.requirements, groups),
+        accessConditionHolds(hand, deck, condition, groups),
       );
       if (!access) return;
       anyAccessWeight += weight;

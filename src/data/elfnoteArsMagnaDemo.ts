@@ -30,7 +30,7 @@ function tax(
  * Compact research build inspired by 2026 community Elfnote Ars Magna lists.
  */
 export const elfnoteArsMagnaDemo: MappingDocument = {
-  schema_version: 4,
+  schema_version: 5,
   name: "elfnote_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
@@ -45,6 +45,7 @@ export const elfnoteArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 56651978, op: "gte", count: 1 },
       ],
+      excludes: [],
     },
     {
       id: "lucina-access",
@@ -52,6 +53,7 @@ export const elfnoteArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 13597785, op: "gte", count: 1 },
       ],
+      excludes: [],
     },
     {
       id: "vidolium-access",
@@ -59,6 +61,7 @@ export const elfnoteArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 70488851, op: "gte", count: 1 },
       ],
+      excludes: [],
     },
     {
       id: "medius-access",
@@ -66,6 +69,7 @@ export const elfnoteArsMagnaDemo: MappingDocument = {
       requirements: [
         { kind: "card", card_id: 97556336, op: "gte", count: 1 },
       ],
+      excludes: [],
     },
   ],
   main: [

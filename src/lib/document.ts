@@ -23,7 +23,7 @@ import {
   type Role,
 } from "./taxonomy";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export type DeckSection = "main" | "extra" | "side";
 
@@ -353,6 +353,10 @@ export function removeAccessGroup(
         (requirement) =>
           !(requirement.kind === "group" && requirement.group_id === groupId),
       ),
+      excludes: condition.excludes.filter(
+        (exclusion) =>
+          !(exclusion.kind === "group" && exclusion.group_id === groupId),
+      ),
     })),
   };
 }
@@ -399,6 +403,22 @@ export function setAccessConditionRequirements(
   return upsertAccessCondition(doc, {
     ...current,
     requirements: [...requirements],
+  });
+}
+
+export function setAccessConditionExcludes(
+  doc: MappingDocument,
+  conditionId: string,
+  excludes: readonly HandCondition[],
+): MappingDocument {
+  const index = doc.access_conditions.findIndex(
+    (condition) => condition.id === conditionId,
+  );
+  if (index === -1) return doc;
+  const current = doc.access_conditions[index]!;
+  return upsertAccessCondition(doc, {
+    ...current,
+    excludes: [...excludes],
   });
 }
 
@@ -462,7 +482,7 @@ function deckName(value: unknown): string {
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
   const version = Number(data.schema_version);
-  if (![1, 2, 3, SCHEMA_VERSION].includes(version)) {
+  if (![1, 2, 3, 4, SCHEMA_VERSION].includes(version)) {
     throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
   }
   const legacyFlatRoles = version === 1;
@@ -526,6 +546,7 @@ export function serializeMapping(doc: MappingDocument): string {
       id: condition.id,
       name: condition.name,
       requirements: condition.requirements.map(serializeRequirement),
+      excludes: condition.excludes.map(serializeRequirement),
     })),
     analysis: doc.analysis,
   };

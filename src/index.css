@@ -373,6 +373,14 @@ h1 {
   text-transform: uppercase;
   color: var(--brass);
 }
+.access-excludes-label {
+  margin-top: 0.7rem;
+  color: var(--danger);
+}
+.access-excludes-note {
+  margin: -0.2rem 0 0.4rem;
+  font-size: 0.72rem;
+}
 .access-requirement {
   margin-bottom: 0.45rem;
   padding-bottom: 0.45rem;
