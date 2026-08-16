@@ -10,6 +10,7 @@ import {
   type HandConditionLike,
 } from "./handExplorer";
 import type { HandConditionSetLike } from "./handExplorer";
+import { openingQualityForTurn } from "./taxonomy";
 
 /** A concrete tested hand: card_id -> copies drawn, plus the sample size. */
 export interface TestedHand {
@@ -171,4 +172,51 @@ export function evaluateHandTest(
 
 function observedCardsOf(card_counts: Readonly<Record<number, number>>): number {
   return Object.values(card_counts).reduce((sum, count) => sum + count, 0);
+}
+
+export type QualityCategory =
+  | "desirable"
+  | "neutral"
+  | "undesirable"
+  | "unclassified";
+
+/** Raw Opening Quality counts for one tested hand under a turn order. */
+export interface OpeningQualityCounts {
+  desirable: number;
+  neutral: number;
+  undesirable: number;
+  unclassified: number;
+  /** card_ids contributing to each category (one entry per card, not per copy). */
+  contributors: Record<QualityCategory, number[]>;
+}
+
+export function handOpeningQualityCounts(
+  deck: readonly MappingCard[],
+  card_counts: Readonly<Record<number, number>>,
+  turnOrder: "going_first" | "going_second",
+): OpeningQualityCounts {
+  const counts: Record<QualityCategory, number> = {
+    desirable: 0,
+    neutral: 0,
+    undesirable: 0,
+    unclassified: 0,
+  };
+  const contributors: Record<QualityCategory, number[]> = {
+    desirable: [],
+    neutral: [],
+    undesirable: [],
+    unclassified: [],
+  };
+  for (const card of deck) {
+    const copies = card_counts[card.card_id] ?? 0;
+    if (copies === 0) continue;
+    const quality = openingQualityForTurn(
+      card.taxonomy.opening_quality,
+      turnOrder,
+    );
+    const key: QualityCategory = quality === null ? "unclassified" : quality;
+    counts[key] += copies;
+    contributors[key].push(card.card_id);
+  }
+  return { ...counts, contributors };
 }

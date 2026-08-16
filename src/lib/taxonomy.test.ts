@@ -387,15 +387,41 @@ describe("opening quality coverage", () => {
       },
     ];
     const coverage = openingQualityCoverage(cards);
+    // Slot-based: card 1 has 3 classified GF copies, card 2 has 2 classified GS
+    // copies, total 6 slots.
     expect(coverage.going_first).toEqual({
-      classified: 1,
-      unclassified: 2,
-      total: 3,
+      classified: 3,
+      unclassified: 3,
+      total: 6,
     });
     expect(coverage.going_second).toEqual({
-      classified: 1,
+      classified: 2,
+      unclassified: 4,
+      total: 6,
+    });
+  });
+
+  it("counts Neutral as classified and duplicates consistently", () => {
+    const cards = [
+      {
+        card_id: 1,
+        quantity: 3,
+        taxonomy: normalizeTaxonomy({
+          roles: [],
+          opening_quality: { going_first: "neutral", going_second: null },
+        }),
+      },
+      {
+        card_id: 2,
+        quantity: 2,
+        taxonomy: normalizeTaxonomy({ roles: [] }),
+      },
+    ];
+    const coverage = openingQualityCoverage(cards);
+    expect(coverage.going_first).toEqual({
+      classified: 3,
       unclassified: 2,
-      total: 3,
+      total: 5,
     });
   });
 });

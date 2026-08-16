@@ -20,6 +20,7 @@ import {
   drawRandomHand,
   evaluateHandTest,
   exactHandProbability,
+  handOpeningQualityCounts,
   validateManualHand,
   type TestedHand,
 } from "../lib/handTest";
@@ -30,6 +31,13 @@ const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
   extender: "Extender",
   interaction: "Interaction",
 };
+
+const QUALITY_LABELS: { key: "desirable" | "neutral" | "undesirable" | "unclassified"; label: string }[] = [
+  { key: "desirable", label: "Desirable" },
+  { key: "neutral", label: "Neutral" },
+  { key: "undesirable", label: "Undesirable" },
+  { key: "unclassified", label: "Unclassified" },
+];
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
@@ -127,6 +135,15 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
     if (!hand) return null;
     return exactHandProbability(doc.main, hand.card_counts, hand.observed_cards);
   }, [doc.main, hand]);
+
+  const qualityCounts = useMemo(() => {
+    if (!hand) return null;
+    return handOpeningQualityCounts(
+      doc.main,
+      hand.card_counts,
+      context.turn_order,
+    );
+  }, [doc.main, hand, context.turn_order]);
 
   return (
     <section className="panel">
@@ -250,6 +267,21 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
               (role) => `${ROLE_LABELS[role]} ${roleCounts[role]}`,
             ).join(" · ")}
           </p>
+          {qualityCounts ? (
+            <p className="explorer-notation">
+              Opening Quality ({context.turn_order === "going_first" ? "Going First" : "Going Second"}):{" "}
+              {QUALITY_LABELS.map(
+                (entry) =>
+                  `${entry.label} ${qualityCounts[entry.key]}${
+                    qualityCounts.contributors[entry.key].length > 0
+                      ? ` (${qualityCounts.contributors[entry.key]
+                          .map((id) => displayName(id, undefined, catalog))
+                          .join(", ")})`
+                      : ""
+                  }`,
+              ).join(" · ")}
+            </p>
+          ) : null}
 
           <h3 className="panel-subhead">Condition Sets</h3>
           {result.sets.length === 0 ? (
