@@ -168,6 +168,7 @@ export function ModelsPanel({
     hand_condition_sets: doc.hand_condition_sets,
     sample,
     turn_order: context.turn_order,
+    engine_access_set_id: doc.engine_access_set_id,
   });
 
   const summary = useMemo(() => {

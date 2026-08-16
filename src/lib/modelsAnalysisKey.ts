@@ -24,8 +24,8 @@ function cardKey(card: MappingCard): string {
 }
 
 /**
- * Structural fingerprint for Models probability analysis.
- * Ignores display fields (name / notes) so typing labels does not recompute.
+ * Structural fingerprint for Models / Profile / Hand Test probability work.
+ * Ignores display fields (name / notes) so label edits do not recompute.
  */
 export function modelsAnalysisKey(input: {
   main: readonly MappingCard[];
@@ -34,6 +34,7 @@ export function modelsAnalysisKey(input: {
   hand_condition_sets: readonly HandConditionSet[];
   sample: number;
   turn_order: "going_first" | "going_second";
+  engine_access_set_id?: string | null;
 }): string {
   const groups = input.groups
     .map((group) => `${group.id}|${group.card_ids.join(",")}`)
@@ -55,6 +56,7 @@ export function modelsAnalysisKey(input: {
   return [
     input.turn_order,
     String(input.sample),
+    input.engine_access_set_id ?? "",
     main,
     groups,
     conditions,
