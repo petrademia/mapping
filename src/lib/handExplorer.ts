@@ -162,6 +162,104 @@ export function handConditionHolds(
   );
 }
 
+/**
+ * card_ids in the hand that contributed to a predicate's count. For a Card
+ * predicate this is the card itself (when present); for Role and Group
+ * predicates it is every hand card that carries the role or belongs to the
+ * group. Empty when the actual count is 0.
+ */
+export function predicateContributors(
+  hand: readonly number[],
+  deck: readonly MappingCard[],
+  predicate: ConditionRequirement,
+  groups: GroupMembership = new Map(),
+): number[] {
+  if (predicate.kind === "card") {
+    const index = deck.findIndex((card) => card.card_id === predicate.card_id);
+    return index !== -1 && (hand[index] ?? 0) > 0 ? [predicate.card_id] : [];
+  }
+  const contributors: number[] = [];
+  for (let i = 0; i < deck.length; i += 1) {
+    const copies = hand[i] ?? 0;
+    if (copies === 0) continue;
+    const card = deck[i]!;
+    if (predicate.kind === "role") {
+      if (card.taxonomy.roles.includes(predicate.role)) contributors.push(card.card_id);
+    } else {
+      const members = groups.get(predicate.group_id);
+      if (members?.has(card.card_id)) contributors.push(card.card_id);
+    }
+  }
+  return contributors;
+}
+
+/**
+ * Structured evaluation of one predicate against a single hand: the actual
+ * count, whether the operator matches, and the contributing cards. `passed`
+ * for an exclusion predicate means the exclusion MATCHED (i.e. the condition
+ * is rejected).
+ */
+export interface PredicateEvaluation {
+  predicate: ConditionRequirement;
+  actualCount: number;
+  passed: boolean;
+  contributors: number[];
+}
+
+/**
+ * Structured evaluation of one Hand Condition against a single hand.
+ * `passed` is true iff every requirement passed AND no exclusion matched.
+ */
+export interface ConditionEvaluation {
+  conditionId: string;
+  name: string;
+  passed: boolean;
+  requirements: PredicateEvaluation[];
+  excludes: PredicateEvaluation[];
+}
+
+/**
+ * Evaluate one Hand Condition against one exact hand, returning why every
+ * requirement and exclusion passed or failed. Evaluates the predicates
+ * directly - it never enumerates the hand space.
+ */
+export function evaluateHandCondition(
+  hand: readonly number[],
+  deck: readonly MappingCard[],
+  condition: HandConditionLike,
+  groups: GroupMembership = new Map(),
+): ConditionEvaluation {
+  const requirements = condition.requirements.map((predicate) => {
+    const actualCount = countForCondition(hand, deck, predicate, groups);
+    return {
+      predicate,
+      actualCount,
+      passed: matchesCount(actualCount, predicate.op, predicate.count),
+      contributors: predicateContributors(hand, deck, predicate, groups),
+    };
+  });
+  const excludes = (condition.excludes ?? []).map((predicate) => {
+    const actualCount = countForCondition(hand, deck, predicate, groups);
+    return {
+      predicate,
+      actualCount,
+      passed: matchesCount(actualCount, predicate.op, predicate.count),
+      contributors: predicateContributors(hand, deck, predicate, groups),
+    };
+  });
+  const passed =
+    requirements.length > 0 &&
+    requirements.every((requirement) => requirement.passed) &&
+    !excludes.some((exclusion) => exclusion.passed);
+  return {
+    conditionId: condition.id,
+    name: condition.name,
+    passed,
+    requirements,
+    excludes,
+  };
+}
+
 function handWeight(deck: readonly MappingCard[], hand: readonly number[]): bigint {
   let weight = 1n;
   for (let i = 0; i < deck.length; i += 1) {

@@ -3,6 +3,7 @@ import { elfnoteArsMagnaDemo } from "./data/elfnoteArsMagnaDemo";
 import { powerPatronArsMagnaDemo } from "./data/powerPatronArsMagnaDemo";
 import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
 import { HandConditionsPanel } from "./components/HandConditionsPanel";
+import { HandTestPanel } from "./components/HandTestPanel";
 import { DeckEditor } from "./components/DeckEditor";
 import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
 import { ImportExport } from "./components/ImportExport";
@@ -131,6 +132,14 @@ export function App() {
             doc={doc}
             catalog={catalog}
             onChange={setDoc}
+            onHandSize={(size) => {
+              if (!Number.isInteger(size) || size < 0) return;
+              setDoc(setOpeningHandSize(doc, size));
+            }}
+          />
+          <HandTestPanel
+            doc={doc}
+            catalog={catalog}
             onHandSize={(size) => {
               if (!Number.isInteger(size) || size < 0) return;
               setDoc(setOpeningHandSize(doc, size));
