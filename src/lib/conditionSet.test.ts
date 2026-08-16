@@ -462,3 +462,80 @@ describe("condition sets: conditional probability", () => {
     expect(pAGivenB(analysis, "A", "B")).toBeNull();
   });
 });
+
+describe("condition sets: modeled outcome semantics", () => {
+  it("lets one Hand Condition belong to multiple outcomes", () => {
+    const { deck, conditions } = fixture();
+    const sets: HandConditionSetLike[] = [
+      { id: "o1", name: "Normal Engine Access", condition_ids: ["A", "B"] },
+      { id: "o2", name: "Access Through 1 Ash", condition_ids: ["A", "C"] },
+    ];
+    const analysis = analyzeHandConditions(deck, 5, conditions, sets);
+    const o1 = analysis.sets[0]!;
+    const o2 = analysis.sets[1]!;
+    expect(o1.union).toBeCloseTo(
+      openingAtLeastProbability(40, 3, 5, 1) +
+        openingAtLeastProbability(40, 2, 5, 1) -
+        analysis.overlaps.get(pairKey("A", "B"))!.intersection,
+      12,
+    );
+    expect(o2.union).toBeGreaterThan(0);
+  });
+
+  it("renaming a Hand Condition does not change its probability", () => {
+    const deck = [card(1, 3), card(2, 37)];
+    const renamed = condition("x", "Medius + Vidolium — Through 1 Ash", 1);
+    const plain = condition("y", "Medius + Vidolium", 1);
+    const analysis = analyzeHandConditions(deck, 5, [renamed, plain], []);
+    expect(analysis.conditions[0]!.probability).toBe(
+      analysis.conditions[1]!.probability,
+    );
+    expect(analysis.conditions[0]!.probability).toBeCloseTo(
+      openingAtLeastProbability(40, 3, 5, 1),
+      12,
+    );
+  });
+
+  it("example model: Medius/Vidolium/Nervedo and Access Through 1 Ash", () => {
+    // Medius x3, Vidolium x2, Nervedo x1, filler x34 = 40.
+    const deck = [card(1, 3), card(2, 2), card(3, 1), card(4, 34)];
+    const medius = condition("medius", "Medius Access", 1);
+    const vidolium = condition("vidolium", "Vidolium Access", 2);
+    const throughAsh: HandCondition = {
+      id: "through",
+      name: "Medius + Vidolium — Through 1 Ash",
+      requirements: [
+        { kind: "card", card_id: 1, op: "gte", count: 1 },
+        { kind: "card", card_id: 2, op: "gte", count: 1 },
+      ],
+      excludes: [],
+    };
+    const conditions = [medius, vidolium, throughAsh];
+    const sets: HandConditionSetLike[] = [
+      { id: "normal", name: "Normal Engine Access", condition_ids: ["medius", "vidolium"] },
+      { id: "ash", name: "Access Through 1 Ash", condition_ids: ["through"] },
+    ];
+    const analysis = analyzeHandConditions(deck, 5, conditions, sets);
+    const both = bruteProbability(deck, 5, (counts) => {
+      return (counts.get(1) ?? 0) >= 1 && (counts.get(2) ?? 0) >= 1;
+    });
+    const either = bruteProbability(deck, 5, (counts) => {
+      return (counts.get(1) ?? 0) >= 1 || (counts.get(2) ?? 0) >= 1;
+    });
+    // The "Through 1 Ash" condition is just a Boolean predicate; its name
+    // carries the strategic assertion. The probability is the predicate's.
+    expect(analysis.conditions[2]!.probability).toBeCloseTo(both, 12);
+    // Normal Engine Access = union of Medius OR Vidolium, not their sum.
+    const normal = analysis.sets[0]!;
+    expect(normal.union).toBeCloseTo(either, 12);
+    expect(normal.union).not.toBeCloseTo(
+      analysis.conditions[0]!.probability +
+        analysis.conditions[1]!.probability,
+      5,
+    );
+    // Access Through 1 Ash = the single Through-1-Ash condition.
+    const ash = analysis.sets[1]!;
+    expect(ash.union).toBeCloseTo(both, 12);
+    expect(ash.union).toBeCloseTo(ash.distribution.atLeast[0]!, 12);
+  });
+});

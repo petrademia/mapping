@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { elfnoteArsMagnaDemo } from "./data/elfnoteArsMagnaDemo";
 import { powerPatronArsMagnaDemo } from "./data/powerPatronArsMagnaDemo";
 import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
-import { HandConditionsPanel } from "./components/HandConditionsPanel";
+import { ModelsPanel } from "./components/ModelsPanel";
 import { HandTestPanel } from "./components/HandTestPanel";
 import { DeckEditor } from "./components/DeckEditor";
 import { HandProbabilityExplorer } from "./components/HandProbabilityExplorer";
@@ -20,11 +20,21 @@ import {
 } from "./lib/document";
 import { loadStored, saveStored } from "./lib/persistence";
 
+type Workspace = "profile" | "models" | "explore" | "hand-test";
+
+const WORKSPACES: { key: Workspace; label: string }[] = [
+  { key: "profile", label: "Profile" },
+  { key: "models", label: "Models" },
+  { key: "explore", label: "Explore" },
+  { key: "hand-test", label: "Hand Test" },
+];
+
 export function App() {
   const [doc, setDoc] = useState<MappingDocument>(
     () => loadStored() ?? powerPatronArsMagnaDemo,
   );
   const [catalog, setCatalog] = useState<Catalog>(new Map());
+  const [workspace, setWorkspace] = useState<Workspace>("profile");
   const [status, setStatus] = useState(
     "Local draft. Taxonomy annotations are deck-specific hypotheses.",
   );
@@ -104,47 +114,75 @@ export function App() {
       <div className="workspace">
         <DeckEditor doc={doc} catalog={catalog} onChange={setDoc} />
         <aside>
-          <AnalysisContextSelector
-            context={{
-              turn_order: doc.analysis.turn_order,
-              observation_point: doc.analysis.observation_point,
-            }}
-            openingHandSize={doc.analysis.opening_hand_size}
-            onChange={(context) => setDoc(setAnalysisContext(doc, context))}
-          />
-          <DeckProfile
-            doc={doc}
-            onHandSize={(size) => {
-              if (!Number.isInteger(size) || size < 0) return;
-              setDoc(setOpeningHandSize(doc, size));
-            }}
-          />
-          <RoleSummary doc={doc} />
-          <HandProbabilityExplorer
-            doc={doc}
-            catalog={catalog}
-            onHandSize={(size) => {
-              if (!Number.isInteger(size) || size < 0) return;
-              setDoc(setOpeningHandSize(doc, size));
-            }}
-          />
-          <HandConditionsPanel
-            doc={doc}
-            catalog={catalog}
-            onChange={setDoc}
-            onHandSize={(size) => {
-              if (!Number.isInteger(size) || size < 0) return;
-              setDoc(setOpeningHandSize(doc, size));
-            }}
-          />
-          <HandTestPanel
-            doc={doc}
-            catalog={catalog}
-            onHandSize={(size) => {
-              if (!Number.isInteger(size) || size < 0) return;
-              setDoc(setOpeningHandSize(doc, size));
-            }}
-          />
+          <nav className="context-presets workspace-nav" aria-label="Workspace">
+            {WORKSPACES.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                className={`context-chip${
+                  workspace === entry.key ? " on" : ""
+                }`}
+                onClick={() => setWorkspace(entry.key)}
+              >
+                {entry.label}
+              </button>
+            ))}
+          </nav>
+
+          {workspace === "profile" ? (
+            <>
+              <AnalysisContextSelector
+                context={{
+                  turn_order: doc.analysis.turn_order,
+                  observation_point: doc.analysis.observation_point,
+                }}
+                openingHandSize={doc.analysis.opening_hand_size}
+                onChange={(context) => setDoc(setAnalysisContext(doc, context))}
+              />
+              <DeckProfile
+                doc={doc}
+                onHandSize={(size) => {
+                  if (!Number.isInteger(size) || size < 0) return;
+                  setDoc(setOpeningHandSize(doc, size));
+                }}
+              />
+              <RoleSummary doc={doc} />
+            </>
+          ) : null}
+
+          {workspace === "models" ? (
+            <ModelsPanel
+              doc={doc}
+              catalog={catalog}
+              onChange={setDoc}
+              onHandSize={(size) => {
+                if (!Number.isInteger(size) || size < 0) return;
+                setDoc(setOpeningHandSize(doc, size));
+              }}
+            />
+          ) : null}
+
+          {workspace === "explore" ? (
+            <HandProbabilityExplorer
+              doc={doc}
+              catalog={catalog}
+              onHandSize={(size) => {
+                if (!Number.isInteger(size) || size < 0) return;
+                setDoc(setOpeningHandSize(doc, size));
+              }}
+            />
+          ) : null}
+
+          {workspace === "hand-test" ? (
+            <HandTestPanel
+              doc={doc}
+              catalog={catalog}
+              onHandSize={(size) => {
+                if (!Number.isInteger(size) || size < 0) return;
+                setDoc(setOpeningHandSize(doc, size));
+              }}
+            />
+          ) : null}
         </aside>
       </div>
     </div>
