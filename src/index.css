@@ -541,6 +541,24 @@ h1 {
   border-left: 2px solid var(--danger);
   padding-left: 0.4rem;
 }
+.distinct-constraint {
+  margin: 0.4rem 0;
+  padding: 0.4rem 0.5rem;
+  border-left: 2px solid var(--line);
+}
+.distinct-requirement-list {
+  list-style: none;
+  margin: 0.2rem 0 0.4rem;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.distinct-requirement-list label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
 .hand-exclusion-reason {
   color: var(--danger);
 }

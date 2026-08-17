@@ -26,7 +26,7 @@ import {
   type Role,
 } from "./taxonomy";
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 /**
  * The fixed-id Hand Condition Set backing the "Modeled Engine Access"
@@ -369,17 +369,19 @@ export function removeGroup(
   return {
     ...doc,
     groups: doc.groups.filter((group) => group.id !== groupId),
-    hand_conditions: doc.hand_conditions.map((condition) => ({
-      ...condition,
-      requirements: condition.requirements.filter(
-        (requirement) =>
-          !(requirement.kind === "group" && requirement.group_id === groupId),
-      ),
-      excludes: condition.excludes.filter(
-        (exclusion) =>
-          !(exclusion.kind === "group" && exclusion.group_id === groupId),
-      ),
-    })),
+    hand_conditions: doc.hand_conditions.map((condition) =>
+      normalizeHandCondition({
+        ...condition,
+        requirements: condition.requirements.filter(
+          (requirement) =>
+            !(requirement.kind === "group" && requirement.group_id === groupId),
+        ),
+        excludes: condition.excludes.filter(
+          (exclusion) =>
+            !(exclusion.kind === "group" && exclusion.group_id === groupId),
+        ),
+      }),
+    ),
   };
 }
 
@@ -604,7 +606,7 @@ function deckName(value: unknown): string {
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
   const version = Number(data.schema_version);
-  if (![1, 2, 3, 4, 5, SCHEMA_VERSION].includes(version)) {
+  if (![1, 2, 3, 4, 5, 6, SCHEMA_VERSION].includes(version)) {
     throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
   }
   const legacy = version < 6;
@@ -719,17 +721,27 @@ export function serializeMapping(doc: MappingDocument): string {
     groups: doc.groups.map((group) => ({
       id: group.id,
       name: group.name,
+      ...(group.notes ? { notes: group.notes } : {}),
       card_ids: [...group.card_ids],
     })),
     hand_conditions: doc.hand_conditions.map((condition) => ({
       id: condition.id,
       name: condition.name,
+      ...(condition.notes ? { notes: condition.notes } : {}),
       requirements: condition.requirements.map(serializeCondition),
       excludes: condition.excludes.map(serializeCondition),
+      distinct_constraints: (condition.distinct_constraints ?? []).map(
+        (constraint) => ({
+          id: constraint.id,
+          requirement_ids: [...constraint.requirement_ids],
+          distinct_by: constraint.distinct_by,
+        }),
+      ),
     })),
     hand_condition_sets: doc.hand_condition_sets.map((set) => ({
       id: set.id,
       name: set.name,
+      ...(set.notes ? { notes: set.notes } : {}),
       condition_ids: [...set.condition_ids],
       aggregation: set.aggregation,
     })),

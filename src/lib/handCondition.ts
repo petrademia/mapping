@@ -1,5 +1,11 @@
 import type { ConditionRequirement, CountOperator } from "./handExplorer";
 import { COUNT_OPERATORS } from "./handExplorer";
+import {
+  isPresenceRequirement,
+  type DistinctBy,
+  type DistinctMatchConstraint,
+  DISTINCT_BY,
+} from "./distinctMatch";
 import { isRole, type Role } from "./taxonomy";
 
 const OP_SET = new Set<string>(COUNT_OPERATORS);
@@ -22,7 +28,8 @@ export interface Group {
 /**
  * A user-defined Boolean predicate over the observed hand.
  * A hand H satisfies the condition iff every `requirements` predicate holds
- * AND every `excludes` predicate is false.
+ * AND every `excludes` predicate is false
+ * AND every distinct-match constraint admits an assignment.
  */
 export interface HandCondition {
   id: string;
@@ -33,7 +40,11 @@ export interface HandCondition {
   requirements: ConditionRequirement[];
   /** NONE OF these exclusion predicates may hold. Empty means no exclusions. */
   excludes: ConditionRequirement[];
+  /** Optional distinct-by-card-name constraints over presence (`≥ 1`) requirements. */
+  distinct_constraints?: DistinctMatchConstraint[];
 }
+
+export type ConditionRequirementDraft = ConditionRequirement;
 
 export const SET_AGGREGATIONS = ["any"] as const;
 export type SetAggregation = (typeof SET_AGGREGATIONS)[number];
@@ -79,16 +90,20 @@ export function normalizeGroup(raw: Group): Group {
     : { id, name, notes, card_ids };
 }
 
-export function normalizeCondition(raw: ConditionRequirement): ConditionRequirement {
+export function normalizeCondition(
+  raw: ConditionRequirementDraft | ConditionRequirement,
+): ConditionRequirement {
   if (!Number.isInteger(raw.count) || raw.count < 0) {
     throw new Error("condition count must be a non-negative integer");
   }
   const op = parseOperator(raw.op);
+  const id = raw.id?.trim() || newId("req");
   if (raw.kind === "card") {
     if (!Number.isInteger(raw.card_id) || raw.card_id <= 0) {
       throw new Error("condition card_id must be a positive integer");
     }
     return {
+      id,
       kind: "card",
       card_id: raw.card_id,
       op,
@@ -100,6 +115,7 @@ export function normalizeCondition(raw: ConditionRequirement): ConditionRequirem
       throw new Error(`invalid role: ${raw.role}`);
     }
     return {
+      id,
       kind: "role",
       role: raw.role,
       op,
@@ -109,11 +125,39 @@ export function normalizeCondition(raw: ConditionRequirement): ConditionRequirem
   const group_id = raw.group_id.trim();
   if (!group_id) throw new Error("condition group_id is required");
   return {
+    id,
     kind: "group",
     group_id,
     op,
     count: raw.count,
   };
+}
+
+export function normalizeDistinctMatchConstraint(
+  raw: DistinctMatchConstraint,
+  requirements: readonly ConditionRequirement[],
+): DistinctMatchConstraint | null {
+  const id = raw.id.trim() || newId("distinct");
+  const byId = new Map(
+    requirements
+      .filter((requirement) => Boolean(requirement.id))
+      .map((requirement) => [requirement.id!, requirement]),
+  );
+  const seen = new Set<string>();
+  const requirement_ids: string[] = [];
+  for (const requirementId of raw.requirement_ids) {
+    const trimmed = requirementId.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    const requirement = byId.get(trimmed);
+    if (!requirement || !isPresenceRequirement(requirement)) continue;
+    seen.add(trimmed);
+    requirement_ids.push(trimmed);
+  }
+  if (requirement_ids.length < 2) return null;
+  const distinct_by: DistinctBy = DISTINCT_BY.includes(raw.distinct_by)
+    ? raw.distinct_by
+    : "card_name";
+  return { id, requirement_ids, distinct_by };
 }
 
 export function normalizeHandCondition(raw: HandCondition): HandCondition {
@@ -125,6 +169,13 @@ export function normalizeHandCondition(raw: HandCondition): HandCondition {
   const excludes = Array.isArray(raw.excludes)
     ? raw.excludes.map(normalizeCondition)
     : [];
+  const distinct_constraints = Array.isArray(raw.distinct_constraints)
+    ? raw.distinct_constraints
+        .map((constraint) =>
+          normalizeDistinctMatchConstraint(constraint, requirements),
+        )
+        .filter((constraint): constraint is DistinctMatchConstraint => constraint !== null)
+    : [];
   const notes = optionalNotes(raw.notes);
   const base = {
     id,
@@ -132,6 +183,7 @@ export function normalizeHandCondition(raw: HandCondition): HandCondition {
     name: raw.name.trim(),
     requirements,
     excludes,
+    distinct_constraints,
   };
   return notes === undefined ? base : { ...base, notes };
 }
@@ -186,27 +238,27 @@ export function defaultCondition(
   const op = options.op ?? "gte";
   const count = options.count ?? 1;
   if (kind === "card") {
-    return {
+    return normalizeCondition({
       kind: "card",
       card_id: options.card_id ?? 0,
       op,
       count,
-    };
+    });
   }
   if (kind === "role") {
-    return {
+    return normalizeCondition({
       kind: "role",
       role: options.role ?? "starter",
       op,
       count,
-    };
+    });
   }
-  return {
+  return normalizeCondition({
     kind: "group",
     group_id: options.group_id ?? "",
     op,
     count,
-  };
+  });
 }
 
 export function parseGroup(raw: unknown): Group {
@@ -236,13 +288,32 @@ export function parseHandCondition(raw: unknown): HandCondition {
   const excludes = Array.isArray(record.excludes)
     ? record.excludes.map(parseCondition)
     : [];
+  const distinct_constraints = Array.isArray(record.distinct_constraints)
+    ? record.distinct_constraints.map(parseDistinctMatchConstraint)
+    : [];
   return normalizeHandCondition({
     id: String(record.id ?? ""),
     name: String(record.name ?? ""),
     notes: typeof record.notes === "string" ? record.notes : undefined,
     requirements,
     excludes,
+    distinct_constraints,
   });
+}
+
+function parseDistinctMatchConstraint(raw: unknown): DistinctMatchConstraint {
+  if (raw === null || typeof raw !== "object") {
+    throw new Error("distinct match constraint must be an object");
+  }
+  const record = raw as Record<string, unknown>;
+  const requirement_ids = Array.isArray(record.requirement_ids)
+    ? record.requirement_ids.map((id) => String(id))
+    : [];
+  return {
+    id: String(record.id ?? ""),
+    requirement_ids,
+    distinct_by: "card_name",
+  };
 }
 
 export function parseHandConditionSet(raw: unknown): HandConditionSet {
@@ -268,6 +339,10 @@ function parseCondition(raw: unknown): ConditionRequirement {
   }
   const record = raw as Record<string, unknown>;
   // Support both flat ConditionRequirement shape and nested subject shape.
+  const id =
+    typeof record.id === "string" && record.id.trim()
+      ? record.id.trim()
+      : undefined;
   if (record.subject && typeof record.subject === "object") {
     const subject = record.subject as Record<string, unknown>;
     const op = parseOperator(record.operator ?? record.op ?? "gte");
@@ -275,6 +350,7 @@ function parseCondition(raw: unknown): ConditionRequirement {
     const type = String(subject.type ?? subject.kind ?? "");
     if (type === "card") {
       return normalizeCondition({
+        id,
         kind: "card",
         card_id: Number(subject.card_id),
         op,
@@ -283,6 +359,7 @@ function parseCondition(raw: unknown): ConditionRequirement {
     }
     if (type === "role") {
       return normalizeCondition({
+        id,
         kind: "role",
         role: String(subject.role) as Role,
         op,
@@ -291,6 +368,7 @@ function parseCondition(raw: unknown): ConditionRequirement {
     }
     if (type === "group") {
       return normalizeCondition({
+        id,
         kind: "group",
         group_id: String(subject.group_id),
         op,
@@ -304,6 +382,7 @@ function parseCondition(raw: unknown): ConditionRequirement {
   const count = Number(record.count ?? record.value ?? 1);
   if (kind === "card") {
     return normalizeCondition({
+      id,
       kind: "card",
       card_id: Number(record.card_id),
       op,
@@ -312,6 +391,7 @@ function parseCondition(raw: unknown): ConditionRequirement {
   }
   if (kind === "role") {
     return normalizeCondition({
+      id,
       kind: "role",
       role: String(record.role) as Role,
       op,
@@ -320,6 +400,7 @@ function parseCondition(raw: unknown): ConditionRequirement {
   }
   if (kind === "group") {
     return normalizeCondition({
+      id,
       kind: "group",
       group_id: String(record.group_id),
       op,
@@ -334,6 +415,7 @@ export function serializeCondition(
 ): Record<string, unknown> {
   if (condition.kind === "card") {
     return {
+      ...(condition.id ? { id: condition.id } : {}),
       kind: "card",
       card_id: condition.card_id,
       op: condition.op,
@@ -342,6 +424,7 @@ export function serializeCondition(
   }
   if (condition.kind === "role") {
     return {
+      ...(condition.id ? { id: condition.id } : {}),
       kind: "role",
       role: condition.role,
       op: condition.op,
@@ -349,6 +432,7 @@ export function serializeCondition(
     };
   }
   return {
+    ...(condition.id ? { id: condition.id } : {}),
     kind: "group",
     group_id: condition.group_id,
     op: condition.op,

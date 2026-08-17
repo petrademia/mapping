@@ -91,25 +91,38 @@ describe("modelsAnalysisKey", () => {
     expect(requirement).not.toBe(base);
   });
 
-  it("changes when engine_access_set_id changes", () => {
-    const a = modelsAnalysisKey({
+  it("changes when distinct constraints change", () => {
+    const base = modelsAnalysisKey({
       main,
       groups,
       hand_conditions: conditions,
       hand_condition_sets: sets,
       sample: 5,
       turn_order: "going_first",
-      engine_access_set_id: "s1",
     });
-    const b = modelsAnalysisKey({
+    const withDistinct = modelsAnalysisKey({
       main,
       groups,
-      hand_conditions: conditions,
+      hand_conditions: [
+        {
+          ...conditions[0]!,
+          requirements: [
+            { id: "r1", kind: "card", card_id: 1, op: "gte", count: 1 },
+            { id: "r2", kind: "card", card_id: 2, op: "gte", count: 1 },
+          ],
+          distinct_constraints: [
+            {
+              id: "dc1",
+              requirement_ids: ["r1", "r2"],
+              distinct_by: "card_name",
+            },
+          ],
+        },
+      ],
       hand_condition_sets: sets,
       sample: 5,
       turn_order: "going_first",
-      engine_access_set_id: "other",
     });
-    expect(a).not.toBe(b);
+    expect(withDistinct).not.toBe(base);
   });
 });

@@ -5,6 +5,12 @@ import {
   ratioToNumber,
 } from "./probability";
 import { openingQualityForTurn, type Role } from "./taxonomy";
+import {
+  allDistinctMatchesHold,
+  evaluateDistinctMatch,
+  type DistinctMatchConstraint,
+  type DistinctMatchEvaluation,
+} from "./distinctMatch";
 
 export const COUNT_OPERATORS = [
   "eq",
@@ -23,9 +29,27 @@ export type CountOperator = (typeof COUNT_OPERATORS)[number];
  * a Hand Condition.
  */
 export type ConditionRequirement =
-  | { kind: "card"; card_id: number; op: CountOperator; count: number }
-  | { kind: "role"; role: Role; op: CountOperator; count: number }
-  | { kind: "group"; group_id: string; op: CountOperator; count: number };
+  | {
+      id?: string;
+      kind: "card";
+      card_id: number;
+      op: CountOperator;
+      count: number;
+    }
+  | {
+      id?: string;
+      kind: "role";
+      role: Role;
+      op: CountOperator;
+      count: number;
+    }
+  | {
+      id?: string;
+      kind: "group";
+      group_id: string;
+      op: CountOperator;
+      count: number;
+    };
 
 /** Optional group membership lookup for `kind: "group"` subjects. */
 export type GroupMembership = ReadonlyMap<string, ReadonlySet<number>>;
@@ -133,7 +157,9 @@ export function allRequirementsHold(
 
 /**
  * A modeled Hand Condition: ALL OF `requirements` must hold AND NONE OF
- * `excludes` may hold. Both sides use the same condition primitive.
+ * `excludes` may hold, AND every distinct-match constraint must admit an
+ * injective card-name assignment. Both sides of requires/excludes use the
+ * same condition primitive.
  */
 export interface HandConditionLike {
   id: string;
@@ -141,11 +167,14 @@ export interface HandConditionLike {
   requirements: readonly ConditionRequirement[];
   /** NONE OF these exclusion predicates may hold. Missing means no exclusions. */
   excludes?: readonly ConditionRequirement[];
+  /** Optional distinct-by-card-name constraints over presence requirements. */
+  distinct_constraints?: readonly DistinctMatchConstraint[];
 }
 
 /**
- * A hand satisfies the condition iff every requirement holds and the hand
- * evaluates FALSE for every exclusion predicate.
+ * A hand satisfies the condition iff every requirement holds, the hand
+ * evaluates FALSE for every exclusion predicate, and every distinct-match
+ * constraint has a valid assignment.
  */
 export function handConditionHolds(
   hand: readonly number[],
@@ -157,8 +186,15 @@ export function handConditionHolds(
     return false;
   }
   const excludes = condition.excludes ?? [];
-  return !excludes.some((exclusion) =>
-    conditionHolds(hand, deck, exclusion, groups),
+  if (excludes.some((exclusion) => conditionHolds(hand, deck, exclusion, groups))) {
+    return false;
+  }
+  return allDistinctMatchesHold(
+    hand,
+    deck,
+    condition.requirements,
+    condition.distinct_constraints ?? [],
+    groups,
   );
 }
 
@@ -208,7 +244,8 @@ export interface PredicateEvaluation {
 
 /**
  * Structured evaluation of one Hand Condition against a single hand.
- * `passed` is true iff every requirement passed AND no exclusion matched.
+ * `passed` is true iff every requirement passed, no exclusion matched, and
+ * every distinct-match constraint has a valid assignment.
  */
 export interface ConditionEvaluation {
   conditionId: string;
@@ -216,12 +253,13 @@ export interface ConditionEvaluation {
   passed: boolean;
   requirements: PredicateEvaluation[];
   excludes: PredicateEvaluation[];
+  distinct_constraints: DistinctMatchEvaluation[];
 }
 
 /**
  * Evaluate one Hand Condition against one exact hand, returning why every
- * requirement and exclusion passed or failed. Evaluates the predicates
- * directly - it never enumerates the hand space.
+ * requirement, exclusion, and distinct-match constraint passed or failed.
+ * Evaluates the predicates directly - it never enumerates the hand space.
  */
 export function evaluateHandCondition(
   hand: readonly number[],
@@ -247,16 +285,28 @@ export function evaluateHandCondition(
       contributors: predicateContributors(hand, deck, predicate, groups),
     };
   });
+  const distinct_constraints = (condition.distinct_constraints ?? []).map(
+    (constraint) =>
+      evaluateDistinctMatch(
+        hand,
+        deck,
+        condition.requirements,
+        constraint,
+        groups,
+      ),
+  );
   const passed =
     requirements.length > 0 &&
     requirements.every((requirement) => requirement.passed) &&
-    !excludes.some((exclusion) => exclusion.passed);
+    !excludes.some((exclusion) => exclusion.passed) &&
+    distinct_constraints.every((constraint) => constraint.passed);
   return {
     conditionId: condition.id,
     name: condition.name,
     passed,
     requirements,
     excludes,
+    distinct_constraints,
   };
 }
 

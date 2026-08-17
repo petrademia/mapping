@@ -101,7 +101,7 @@ MAPPING provides:
 
 - deck composition and quantities
 - human taxonomy hypotheses (Role + Opening Quality)
-- human Hand Conditions (Requires / Excludes) and a derived Modeled Engine Access set
+- human Hand Conditions (Requires / Excludes / optional distinct matches) and a derived Modeled Engine Access set
 
 YAPPING is expected to measure (not implemented here):
 
@@ -141,11 +141,15 @@ Nervedo Access
     Citrinitas >= 1
 ```
 
-A Hand Condition has two parts:
+A Hand Condition has three parts:
 
 - **Requires** - ALL OF these predicates must hold in the hand.
 - **Excludes** - NONE OF these predicates may hold; a hand whose composition
   satisfies any exclusion is rejected.
+- **Distinct matches** (optional) - selected Requires of the form `≥ 1` must be
+  satisfiable by different card names (injective assignment). Count predicates
+  (`≥ 2`, `= 2`, …) keep counting physical copies and cannot join a distinct
+  constraint in v0.
 
 Both sides use the same condition primitive (Card / Role / Group subjects with
 the same operators). `Excludes Citrinitas >= 1` reads as `NOT(Citrinitas >= 1)`
@@ -217,7 +221,13 @@ satisfied condition is a combinatorial property of the user's definitions, not
 evidence of two independent combo routes. Do not label this combo success,
 playability, or win rate.
 
-If a requirement needs "another" card, exclude the primary card from the group membership. v0 does not auto-enforce distinct physical copies across overlapping subjects, and does not auto-infer Excludes from Opening Quality or Role taxonomy. v0 does not generalize membership in an outcome from a condition's name.
+If overlapping groups share cards (for example Medius is both starter and
+extender), raw `≥ 1` predicates can both pass on one card name. Use a
+**distinct match** on those Requires so Medius + Medius fails while
+Medius + Vidolium can pass. Distinct matching is by card name (card id), not
+by physical copy. v0 does not auto-infer Excludes from Opening Quality or Role
+taxonomy, and does not generalize membership in an outcome from a condition's
+name.
 
 ### Hand Test
 
@@ -232,10 +242,11 @@ why each predicate passed or failed.
   (opening 5 / opening 5 / first 6 cards seen). *Manual selection* uses a
   searchable stepper that enforces deck copy limits and the observed sample
   size.
-- **Condition trace**: every requirement and exclusion shows its actual count,
-  PASS/FAIL, and the contributing cards (especially useful for debugging Group
-  definitions). An exclusion that matches is flagged and explains why the
-  condition fails.
+- **Condition trace**: every requirement, exclusion, and distinct-card
+  constraint shows PASS/FAIL. Requirements and exclusions include actual count
+  and contributing cards; distinct constraints show eligible names and, when
+  successful, the assignment. An exclusion that matches is flagged and explains
+  why the condition fails.
 - **Modeled Outcomes**: each outcome shows PASS/FAIL and how many of its member
   conditions the hand satisfies (`N_S(H) = Σ 1[C_i(H)]`), the single-hand
   counterpart of the multiplicity distribution. Satisfying multiple conditions
@@ -350,7 +361,7 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; paste-add appends without replacing
-- define Hand Conditions (Requires / Excludes), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-outcome union, pairwise overlap, and multiplicity distribution
+- define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-outcome union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Modeled Outcomes, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
 - inspect the Deck Profile: modeled outcomes (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
@@ -369,11 +380,11 @@ Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hyperge
 
 ## Schema
 
-MAPPING owns a versioned document (`schema_version: 6`):
+MAPPING owns a versioned document (`schema_version: 7`):
 
 ```json
 {
-  "schema_version": 6,
+  "schema_version": 7,
   "name": "power_patron_ars_magna_v0",
   "main": [{
     "card_id": 62962630,
@@ -401,12 +412,13 @@ MAPPING owns a versioned document (`schema_version: 6`):
     "name": "Nervedo Access",
     "notes": "Nervedo plus a valid S/T, without brick Nervedo alone",
     "requirements": [
-      { "kind": "card", "card_id": 123, "op": "gte", "count": 1 },
-      { "kind": "group", "group_id": "valid-nervedo-st", "op": "gte", "count": 1 }
+      { "id": "req-nervedo", "kind": "card", "card_id": 123, "op": "gte", "count": 1 },
+      { "id": "req-st", "kind": "group", "group_id": "valid-nervedo-st", "op": "gte", "count": 1 }
     ],
     "excludes": [
-      { "kind": "card", "card_id": 456, "op": "gte", "count": 1 }
-    ]
+      { "id": "ex-citrinitas", "kind": "card", "card_id": 456, "op": "gte", "count": 1 }
+    ],
+    "distinct_constraints": []
   }],
   "hand_condition_sets": [{
     "id": "modeled-engine-access",

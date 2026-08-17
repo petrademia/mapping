@@ -7,6 +7,7 @@ import {
   upsertHandCondition,
   upsertHandConditionSet,
   type MappingCard,
+  SCHEMA_VERSION,
 } from "./document";
 import {
   analyzeHandConditions,
@@ -277,7 +278,7 @@ describe("condition sets: union and overlap", () => {
         analysis: { opening_hand_size: 5 },
       }),
     );
-    expect(restored.schema_version).toBe(6);
+    expect(restored.schema_version).toBe(SCHEMA_VERSION);
     const engine = restored.hand_condition_sets.find(
       (set) => set.id === "modeled-engine-access",
     );

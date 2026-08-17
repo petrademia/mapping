@@ -16,6 +16,7 @@ import {
   analyzeHandConditions,
   type PredicateEvaluation,
 } from "../lib/handExplorer";
+import type { DistinctMatchEvaluation } from "../lib/distinctMatch";
 import {
   drawRandomHand,
   evaluateHandTest,
@@ -374,6 +375,18 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                       exclusion
                     />
                   ))}
+                  {evaluation.distinct_constraints.length > 0 ? (
+                    <p className="access-allof">Distinct-card requirement</p>
+                  ) : null}
+                  {evaluation.distinct_constraints.map((constraint) => (
+                    <DistinctRow
+                      key={constraint.constraintId}
+                      evaluation={constraint}
+                      catalog={catalog}
+                      doc={doc}
+                      requirements={evaluation.requirements}
+                    />
+                  ))}
                 </div>
               );
             })
@@ -381,6 +394,69 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         </>
       ) : null}
     </section>
+  );
+}
+
+function DistinctRow({
+  evaluation,
+  catalog,
+  doc,
+  requirements,
+}: {
+  evaluation: DistinctMatchEvaluation;
+  catalog: Catalog;
+  doc: MappingDocument;
+  requirements: readonly PredicateEvaluation[];
+}) {
+  function labelFor(requirementId: string): string {
+    const requirement = requirements.find(
+      (row) => row.predicate.id === requirementId,
+    )?.predicate;
+    if (!requirement) return requirementId;
+    const subject =
+      requirement.kind === "card"
+        ? displayName(requirement.card_id, undefined, catalog)
+        : requirement.kind === "role"
+          ? ROLE_LABELS[requirement.role]
+          : doc.groups.find((group) => group.id === requirement.group_id)?.name ??
+            requirement.group_id;
+    return subject;
+  }
+
+  return (
+    <div className="predicate-row">
+      <span className={evaluation.passed ? "hand-pass" : "hand-fail"}>
+        {evaluation.passed ? "✓" : "✗"}{" "}
+        {evaluation.requirement_ids.map(labelFor).join(" and ")} require
+        different card names
+      </span>
+      {Object.keys(evaluation.eligible).length > 0 ? (
+        <span className="explorer-notation">
+          available matches:{" "}
+          {evaluation.requirement_ids
+            .map((id) => {
+              const names = (evaluation.eligible[id] ?? []).map((cardId) =>
+                displayName(cardId, undefined, catalog),
+              );
+              return `${labelFor(id)}: ${names.length > 0 ? names.join(", ") : "—"}`;
+            })
+            .join("; ")}
+        </span>
+      ) : null}
+      {evaluation.assignment ? (
+        <span className="explorer-notation">
+          assignment:{" "}
+          {Object.entries(evaluation.assignment)
+            .map(
+              ([requirementId, cardId]) =>
+                `${labelFor(requirementId)} → ${displayName(cardId, undefined, catalog)}`,
+            )
+            .join("; ")}
+        </span>
+      ) : evaluation.detail ? (
+        <span className="explorer-notation">{evaluation.detail}</span>
+      ) : null}
+    </div>
   );
 }
 
