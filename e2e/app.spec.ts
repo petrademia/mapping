@@ -258,19 +258,6 @@ test.describe("Deck view", () => {
     await side.locator(".deck-tile").first().click();
     await expect(side.getByText("Going First").first()).toBeVisible();
   });
-
-  test("the List view keeps the detailed table, and the choice is remembered", async ({ page }) => {
-    await openApp(page);
-    await page.getByRole("button", { name: "List", exact: true }).click();
-    await expect(page.locator(".deck-section table").first()).toBeVisible();
-    await expect(section(page, "Extra Deck").getByText("Going First")).toHaveCount(0);
-    await expect(section(page, "Main Deck").getByText("Going First").first()).toBeVisible();
-
-    await page.reload();
-    await expect(page.locator(".deck-section table").first()).toBeVisible();
-    await page.getByRole("button", { name: "Cards", exact: true }).click();
-    await expect(page.locator(".deck-tile").first()).toBeVisible();
-  });
 });
 
 test.describe("Card Rank", () => {

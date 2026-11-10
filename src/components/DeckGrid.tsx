@@ -129,9 +129,8 @@ function DetailRow({
 /**
  * The deck as card art, like a deck-builder: one tile per physical copy, so
  * copies of a card sit side by side. Click any copy and its editor opens right
- * under that row (no scrolling to the end of the section). The List view keeps
- * the detailed table. Extra Deck cards are never drawn, so they have no roles
- * or opening quality to edit.
+ * under that row (no scrolling to the end of the section). Extra Deck cards
+ * are never drawn, so they have no roles or opening quality to edit.
  */
 export function DeckGrid({ doc, catalog, onChange, handTest }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
