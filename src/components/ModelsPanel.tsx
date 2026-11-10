@@ -40,6 +40,7 @@ import {
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { ProbabilityError } from "../lib/probability";
 import { sortCheckedFirst } from "../lib/sortCheckedFirst";
+import { CardStrip, conditionCards, DeckPicker, requirementCards } from "./ModelArt";
 import { openingQualityCoverage, ROLES, type Role } from "../lib/taxonomy";
 
 const OP_LABELS: Record<CountOperator, string> = {
@@ -158,7 +159,6 @@ export function ModelsPanel({
   onHandSize,
 }: Props) {
   const [view, setView] = useState<ModelsView>("groups");
-  const [groupFilter, setGroupFilter] = useState("");
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
   const context = analysisContextOf(doc);
@@ -314,8 +314,6 @@ export function ModelsPanel({
                 group={group}
                 doc={doc}
                 catalog={catalog}
-                filter={groupFilter}
-                onFilter={setGroupFilter}
                 onChange={(next) => onChange(upsertGroup(doc, next))}
                 onRemove={() => onChange(removeGroup(doc, group.id))}
               />
@@ -418,29 +416,16 @@ function GroupEditor({
   group,
   doc,
   catalog,
-  filter,
-  onFilter,
   onChange,
   onRemove,
 }: {
   group: Group;
   doc: MappingDocument;
   catalog: Catalog;
-  filter: string;
-  onFilter: (value: string) => void;
   onChange: (group: Group) => void;
   onRemove: () => void;
 }) {
-  const needle = filter.trim().toLowerCase();
   const members = new Set(group.card_ids);
-  const cards = sortCheckedFirst(
-    doc.main.filter((card) => {
-      if (!needle) return true;
-      const name = displayName(card.card_id, card.name, catalog).toLowerCase();
-      return name.includes(needle) || String(card.card_id).includes(needle);
-    }),
-    (card) => members.has(card.card_id),
-  );
 
   return (
     <div className="access-block">
@@ -460,35 +445,25 @@ function GroupEditor({
         label={`Notes for ${group.name || "group"}`}
         onCommit={(notes) => onChange({ ...group, notes })}
       />
-      <input
-        type="search"
-        value={filter}
-        placeholder="Filter main deck…"
-        aria-label={`Filter cards for ${group.name}`}
-        onChange={(event) => onFilter(event.target.value)}
+      <p className="note">
+        {members.size === 0
+          ? "Click the cards that belong in this group."
+          : `${members.size} ${members.size === 1 ? "card" : "cards"} in this group. Click a card to add or remove it.`}
+      </p>
+      <DeckPicker
+        deck={doc.main}
+        catalog={catalog}
+        selected={members}
+        label={`Cards in ${group.name || "group"}`}
+        onToggle={(cardId) =>
+          onChange({
+            ...group,
+            card_ids: members.has(cardId)
+              ? group.card_ids.filter((id) => id !== cardId)
+              : [...group.card_ids, cardId],
+          })
+        }
       />
-      <ul className="group-members">
-        {cards.map((card) => {
-          const checked = members.has(card.card_id);
-          return (
-            <li key={card.card_id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => {
-                    const card_ids = checked
-                      ? group.card_ids.filter((id) => id !== card.card_id)
-                      : [...group.card_ids, card.card_id];
-                    onChange({ ...group, card_ids });
-                  }}
-                />
-                {displayName(card.card_id, card.name, catalog)} ×{card.quantity}
-              </label>
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }
@@ -614,6 +589,13 @@ function ConditionEditor({
           Delete
         </button>
       </div>
+      <CardStrip
+        cardIds={conditionCards(condition, doc)}
+        deck={doc.main}
+        catalog={catalog}
+        max={10}
+        label={`Cards ${condition.name || "this condition"} reads`}
+      />
       <EntityNotes
         value={condition.notes}
         label={`Notes for ${condition.name || "hand condition"}`}
@@ -816,7 +798,10 @@ function RequirementEditor({
   onChange: (requirement: ConditionRequirement) => void;
   onRemove: () => void;
 }) {
+  const [picking, setPicking] = useState(false);
+  const counted = requirementCards(requirement, doc);
   return (
+    <div className="requirement-block">
     <div className="condition-controls access-requirement">
       <label>
         Subject
@@ -859,25 +844,26 @@ function RequirementEditor({
       </label>
 
       {requirement.kind === "card" ? (
-        <label className="condition-card">
+        <span className="condition-card">
           Card
-          <select
-            value={requirement.card_id || ""}
-            onChange={(event) =>
-              onChange({
-                ...requirement,
-                card_id: Number(event.target.value),
-              })
+          <button
+            type="button"
+            className="requirement-card"
+            aria-expanded={picking}
+            aria-label={
+              requirement.card_id
+                ? `Card: ${displayName(requirement.card_id, doc.main.find((c) => c.card_id === requirement.card_id)?.name, catalog)}. Change`
+                : "Choose a card"
             }
+            onClick={() => setPicking((open) => !open)}
           >
-            <option value="">Select card</option>
-            {doc.main.map((card) => (
-              <option key={card.card_id} value={card.card_id}>
-                {displayName(card.card_id, card.name, catalog)} ×{card.quantity}
-              </option>
-            ))}
-          </select>
-        </label>
+            {requirement.card_id ? (
+              <CardStrip cardIds={[requirement.card_id]} deck={doc.main} catalog={catalog} />
+            ) : (
+              <span className="requirement-choose">Choose a card</span>
+            )}
+          </button>
+        </span>
       ) : null}
 
       {requirement.kind === "role" ? (
@@ -960,6 +946,28 @@ function RequirementEditor({
       <button type="button" className="ghost" onClick={onRemove}>
         Remove
       </button>
+    </div>
+      {requirement.kind === "card" && picking ? (
+        <DeckPicker
+          deck={doc.main}
+          catalog={catalog}
+          selected={new Set(requirement.card_id ? [requirement.card_id] : [])}
+          label="Choose a card"
+          onToggle={(cardId) => {
+            onChange({ ...requirement, card_id: cardId });
+            setPicking(false);
+          }}
+        />
+      ) : null}
+      {requirement.kind !== "card" ? (
+        <CardStrip
+          cardIds={counted}
+          deck={doc.main}
+          catalog={catalog}
+          max={14}
+          label="Cards this counts"
+        />
+      ) : null}
     </div>
   );
 }
@@ -1052,6 +1060,12 @@ function ModeledOutcomeEditor({
                     }
                   />
                   <span className="explorer-title">{condition.name}</span>
+                  <CardStrip
+                    cardIds={conditionCards(condition, doc)}
+                    deck={doc.main}
+                    catalog={catalog}
+                    max={6}
+                  />
                   <span className="engine-member-prob">
                     {probability !== undefined
                       ? formatPercent(probability)

@@ -296,6 +296,55 @@ test.describe("Deck view", () => {
   });
 });
 
+test.describe("Models are card art", () => {
+  test.beforeEach(async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Models" }).click();
+  });
+  const view = (page: Page, name: string) =>
+    page.getByRole("navigation", { name: "Models" }).getByRole("button", { name });
+
+  test("a Group is built by clicking cards in the Main Deck", async ({ page }) => {
+    await page.getByRole("button", { name: "+ Add group" }).click();
+    const grid = page.locator(".pick-grid").first();
+    await expect(grid.locator(".pick-tile")).toHaveCount(await grid.locator(".pick-tile").count());
+    await expect(page.getByText("Click the cards that belong in this group.")).toBeVisible();
+    await grid.locator(".pick-tile").nth(1).click();
+    await expect(page.getByText("1 card in this group")).toBeVisible();
+    await expect(grid.locator(".pick-tile.on")).toHaveCount(1);
+    await grid.locator(".pick-tile.on").click();
+    await expect(page.getByText("Click the cards that belong in this group.")).toBeVisible();
+  });
+
+  test("a Hand Condition picks its card from the deck art", async ({ page }) => {
+    await view(page, "Hand Conditions").click();
+    await page.getByRole("button", { name: "+ Add Hand Condition" }).click();
+    await page.getByRole("button", { name: "+ Requirement" }).click();
+    const chosen = page.getByRole("button", { name: /^Card: .*Change$/ }).last();
+    const before = await chosen.getAttribute("aria-label");
+    await chosen.click();
+    await page.getByRole("list", { name: "Choose a card" }).locator(".pick-tile").nth(3).click();
+    await expect(page.getByRole("button", { name: /^Card: .*Change$/ }).last()).not.toHaveAttribute(
+      "aria-label",
+      before!,
+    );
+    await expect(page.getByRole("list", { name: "Choose a card" })).toHaveCount(0);
+    // The condition shows the cards it reads as art.
+    await expect(page.locator(".access-block .card-strip").first()).toBeVisible();
+  });
+
+  test("a Group requirement shows the cards it counts", async ({ page }) => {
+    await page.getByRole("button", { name: "+ Add group" }).click();
+    await page.locator(".pick-grid").first().locator(".pick-tile").nth(0).click();
+    await view(page, "Hand Conditions").click();
+    await page.getByRole("button", { name: "+ Add Hand Condition" }).click();
+    await page.getByRole("button", { name: "+ Requirement" }).click();
+    await page.getByLabel("Subject").last().selectOption("group");
+    await page.locator("select").filter({ has: page.locator("option", { hasText: "Select group" }) }).selectOption({ index: 1 });
+    await expect(page.getByRole("list", { name: "Cards this counts" }).locator("li")).toHaveCount(1);
+  });
+});
+
 test.describe("Dragging cards in the deck", () => {
   const section = (page: Page, title: string) =>
     page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: title }) });

@@ -322,7 +322,8 @@ h1 {
   gap: 0.45rem;
   grid-template-columns: 1fr 1fr;
 }
-.condition-controls label {
+.condition-controls label,
+.condition-controls .condition-card {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -1234,3 +1235,23 @@ button svg { flex: none; vertical-align: -0.15em; }
 .deck-tile { user-select: none; touch-action: none; }
 .deck-tile.dragging .hand-image-frame { transition: none; transform: none; }
 .deck-tile:active .hand-image-frame { transition: none; }
+
+/* Card-art pickers and strips for Groups, Hand Conditions and Hand Goals. */
+.pick-grid { list-style: none; margin: 0.5rem 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, 52px); gap: 0.3rem; }
+.pick-tile { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.pick-tile .hand-image-frame { transition: opacity 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out; }
+.pick-tile:hover .hand-image-frame, .pick-tile:focus-visible .hand-image-frame { transform: translateY(-2px); }
+.pick-tile.dim .hand-image-frame { opacity: 0.4; }
+.pick-tile.on .hand-image-frame { border-color: var(--brass); box-shadow: 0 0 0 3px var(--brass); }
+.pick-qty { position: absolute; right: 2px; bottom: 2px; padding: 0 0.25rem; border-radius: 3px; background: rgba(0,0,0,0.75); color: #fff; font: 0.65rem "Red Hat Mono", ui-monospace, monospace; }
+.card-strip { list-style: none; margin: 0.3rem 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center; }
+.card-strip li { width: 30px; }
+.card-strip li.card-strip-more { width: auto; font-size: 0.75rem; color: var(--muted); }
+.requirement-block { margin-bottom: 0.4rem; }
+.requirement-card { padding: 0.15rem; background: none; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
+.requirement-card .card-strip { margin: 0; }
+.requirement-card .card-strip li { width: 36px; }
+.requirement-choose { font-size: 0.8rem; color: var(--muted); padding: 0.4rem; }
+.engine-member .card-strip { margin: 0; }
+.condition-card .requirement-card { align-self: flex-start; }
+.condition-card .requirement-card .card-strip li { width: 44px; }
