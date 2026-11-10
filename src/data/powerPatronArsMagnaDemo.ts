@@ -31,7 +31,7 @@ function tax(
  * claimed optimal tournament deck.
  */
 export const powerPatronArsMagnaDemo: MappingDocument = {
-  schema_version: 8,
+  schema_version: 9,
   name: "power_patron_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
@@ -111,6 +111,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
   engine_access_set_id: "modeled-engine-access",
   configurations: [],
   active_configuration_id: null,
+  card_rank: { going_first: [], going_second: [] },
   main: [
     {
       card_id: 70488851,

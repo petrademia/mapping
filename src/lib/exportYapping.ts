@@ -4,6 +4,7 @@ import {
   sectionSize,
   type MappingDocument,
 } from "./document";
+import { rankedIds } from "./cardRank";
 import {
   openingQualityForTurn,
   uniqueRoles,
@@ -31,6 +32,11 @@ export interface YappingExport {
       "going_first" | "going_second",
       Record<string, Exclude<OpeningQualityValue, null>>
     >;
+    /**
+     * Manual card preference order (best first) per turn order. Present only
+     * for contexts the user has ranked. An ordering, not a score.
+     */
+    card_rank?: Partial<Record<"going_first" | "going_second", number[]>>;
   };
 }
 
@@ -76,7 +82,17 @@ function mergedOpeningQualityForTurn(
   return result;
 }
 
+function exportedRank(doc: MappingDocument): YappingExport["metadata"]["card_rank"] {
+  const rank: NonNullable<YappingExport["metadata"]["card_rank"]> = {};
+  for (const context of ["going_first", "going_second"] as const) {
+    const ids = rankedIds(doc, context);
+    if (ids.length > 0) rank[context] = ids;
+  }
+  return Object.keys(rank).length > 0 ? rank : undefined;
+}
+
 export function exportYapping(doc: MappingDocument): YappingExport {
+  const card_rank = exportedRank(doc);
   const main_deck = expandCopies(doc.main);
   const extra_deck = expandCopies(doc.extra);
   const side_deck = expandCopies(doc.side);
@@ -98,6 +114,7 @@ export function exportYapping(doc: MappingDocument): YappingExport {
         going_first: mergedOpeningQualityForTurn(doc, "going_first"),
         going_second: mergedOpeningQualityForTurn(doc, "going_second"),
       },
+      ...(card_rank ? { card_rank } : {}),
     },
   };
 }

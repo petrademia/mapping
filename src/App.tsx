@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearMenu } from "./components/ClearMenu";
+import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { loadDefaultDeck } from "./lib/defaultDeck";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
@@ -33,12 +34,13 @@ import {
 } from "./lib/document";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test";
+type Workspace = "profile" | "models" | "hand-test" | "rank";
 
 const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "profile", label: "Profile" },
   { key: "models", label: "Models" },
   { key: "hand-test", label: "Hand Test" },
+  { key: "rank", label: "Rank" },
 ];
 
 const WORKSPACE_ID = "workspace";
@@ -241,6 +243,10 @@ export function App() {
                 setDoc(setOpeningHandSize(doc, size));
               }}
             />
+          ) : null}
+
+          {workspace === "rank" ? (
+            <RankPanel doc={doc} catalog={catalog} onChange={setDoc} />
           ) : null}
         </aside>
       </div>

@@ -147,6 +147,66 @@ test.describe("Hand Test", () => {
   });
 });
 
+test.describe("Card Rank", () => {
+  test.beforeEach(async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+  });
+
+  const names = (page: Page, label: string) =>
+    page.getByRole("region", { name: `${label} ranking` }).locator(".rank-name");
+
+  test("shows a list for going first and one for going second", async ({ page }) => {
+    await expect(page.getByRole("region", { name: "Going First ranking" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Going Second ranking" })).toBeVisible();
+    await expect(page.getByText("Not ranked yet").first()).toBeVisible();
+  });
+
+  test("move buttons reorder one list and leave the other alone", async ({ page }) => {
+    const first = names(page, "Going First");
+    const second = names(page, "Going Second");
+    const before = await first.allInnerTexts();
+    expect(before.length).toBeGreaterThan(2);
+
+    await page
+      .getByRole("region", { name: "Going First ranking" })
+      .getByRole("button", { name: /^Move .* down in Going First$/ })
+      .first()
+      .click();
+
+    const after = await first.allInnerTexts();
+    expect(after[0]).toBe(before[1]);
+    expect(after[1]).toBe(before[0]);
+    expect((await second.allInnerTexts())[0]).toBe(before[0]);
+    await expect(page.getByText("Not ranked yet")).toHaveCount(1);
+  });
+
+  test("dragging a card reorders the list", async ({ page }) => {
+    const list = page.getByRole("region", { name: "Going Second ranking" });
+    const before = await names(page, "Going Second").allInnerTexts();
+    await list.locator("li").nth(3).dragTo(list.locator("li").nth(0));
+    const after = await names(page, "Going Second").allInnerTexts();
+    expect(after[0]).toBe(before[3]);
+    expect(after[1]).toBe(before[0]);
+  });
+
+  test("the order survives a reload and Reset puts a list back", async ({ page }) => {
+    const first = names(page, "Going First");
+    const before = await first.allInnerTexts();
+    await page
+      .getByRole("region", { name: "Going First ranking" })
+      .getByRole("button", { name: /^Move .* down in Going First$/ })
+      .first()
+      .click();
+    await page.reload();
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    expect((await first.allInnerTexts())[0]).toBe(before[1]);
+
+    await page.getByRole("region", { name: "Going First ranking" }).getByRole("button", { name: "Reset" }).click();
+    expect(await first.allInnerTexts()).toEqual(before);
+  });
+});
+
 test.describe("Paste a deck list", () => {
   async function pasteList(page: Page, text: string): Promise<void> {
     await page.getByText("Paste a deck list").click();

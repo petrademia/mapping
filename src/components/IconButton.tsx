@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 
-export type IconName = "trash" | "minus" | "plus" | "check" | "x";
+export type IconName = "trash" | "minus" | "plus" | "check" | "x" | "grip" | "up" | "down";
 
 const PATHS: Record<IconName, string[]> = {
   // Lid, body and two ribs.
@@ -14,6 +14,10 @@ const PATHS: Record<IconName, string[]> = {
   minus: ["M4 8h8"],
   plus: ["M4 8h8", "M8 4v8"],
   check: ["M3.5 8.5l3 3 6-7"],
+  // Six dots: a drag handle.
+  grip: ["M6 4h.01", "M10 4h.01", "M6 8h.01", "M10 8h.01", "M6 12h.01", "M10 12h.01"],
+  up: ["M4 10l4-4 4 4"],
+  down: ["M4 6l4 4 4-4"],
   x: ["M4.5 4.5l7 7", "M11.5 4.5l-7 7"],
 };
 

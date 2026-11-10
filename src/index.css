@@ -617,6 +617,32 @@ h1 {
 .qty svg { display: block; }
 button svg { flex: none; vertical-align: -0.15em; }
 
+.rank-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+@media (max-width: 1280px) { .rank-columns { grid-template-columns: minmax(0, 1fr); } }
+.rank-list-block > header { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.rank-actions { display: inline-flex; gap: 0.4rem; }
+.rank-actions button { padding: 0.2rem 0.5rem; font-size: 0.85rem; }
+.rank-actions button:disabled { opacity: 0.5; cursor: default; }
+.rank-list { list-style: none; margin: 0.4rem 0; padding: 0; display: grid; gap: 0.25rem; }
+.rank-list li {
+  display: grid;
+  grid-template-columns: 1rem 1.6rem 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #1c221e;
+  cursor: grab;
+}
+.rank-list li.dragging { opacity: 0.45; }
+.rank-list li.drop-target { border-color: var(--brass); box-shadow: 0 -2px 0 var(--brass); }
+.rank-grip { color: var(--muted); display: inline-flex; }
+.rank-pos { font-family: "Red Hat Mono", ui-monospace, monospace; color: var(--brass-text); text-align: right; }
+.rank-list .card-thumb { width: 28px; height: 41px; }
+.rank-name { display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
+.rank-copies { font-size: 0.8rem; color: var(--muted); }
+
 /* Icon-only buttons: a square target with the tooltip as its label. */
 .icon-button {
   display: inline-flex;

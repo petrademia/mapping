@@ -9,6 +9,7 @@ import {
   sectionSize,
   type MappingDocument,
 } from "../lib/document";
+import { clearRank } from "../lib/cardRank";
 import { ClearButton } from "./ClearButton";
 
 interface Props {
@@ -117,6 +118,13 @@ export function ClearMenu({ doc, onChange, onStatus }: Props) {
       message: "Empty every Hand Goal? Engine Access stays, empty.",
       run: () => clearModeledOutcomes(doc),
       done: "Cleared all Hand Goals",
+    },
+    {
+      label: "Card ranks",
+      count: doc.card_rank.going_first.length + doc.card_rank.going_second.length,
+      message: "Reset the going first and going second card ranks to deck order?",
+      run: () => clearRank(doc),
+      done: "Cleared the card ranks",
     },
     {
       label: "Post-Side lists",

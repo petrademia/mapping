@@ -20,6 +20,7 @@ import {
   normalizeConfigurations,
   type SidingConfiguration,
 } from "./configuration";
+import { emptyRank, parseCardRank, type CardRank } from "./cardRank";
 import {
   EMPTY_TAXONOMY,
   mergeTaxonomies,
@@ -31,7 +32,7 @@ import {
   type Role,
 } from "./taxonomy";
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 /**
  * The fixed-id Hand Condition Set backing the "Modeled Engine Access"
@@ -75,6 +76,8 @@ export interface MappingDocument {
   configurations: SidingConfiguration[];
   /** Configuration analyzed by the workspaces; null = Pre-Side. */
   active_configuration_id: string | null;
+  /** Manual card preference order per turn order (see cardRank.ts). */
+  card_rank: CardRank;
 }
 
 /**
@@ -141,6 +144,7 @@ export function createDocument(name: string): MappingDocument {
     analysis: defaultAnalysis(),
     configurations: [],
     active_configuration_id: null,
+    card_rank: emptyRank(),
   };
 }
 
@@ -708,7 +712,7 @@ function deckName(value: unknown): string {
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
   const version = Number(data.schema_version);
-  if (![1, 2, 3, 4, 5, 6, 7, SCHEMA_VERSION].includes(version)) {
+  if (![1, 2, 3, 4, 5, 6, 7, 8, SCHEMA_VERSION].includes(version)) {
     throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
   }
   const legacy = version < 6;
@@ -789,6 +793,7 @@ export function parseMappingJson(text: string): MappingDocument {
       analysis: parsedAnalysis,
       configurations,
       active_configuration_id: activeId,
+      card_rank: parseCardRank(data.card_rank),
     };
   }
   return {
@@ -816,6 +821,7 @@ export function parseMappingJson(text: string): MappingDocument {
     analysis: parsedAnalysis,
     configurations,
     active_configuration_id: activeId,
+    card_rank: parseCardRank(data.card_rank),
   };
 }
 
@@ -870,6 +876,10 @@ export function serializeMapping(doc: MappingDocument): string {
     })),
     active_configuration_id:
       findConfiguration(doc, doc.active_configuration_id)?.id ?? null,
+    card_rank: {
+      going_first: [...doc.card_rank.going_first],
+      going_second: [...doc.card_rank.going_second],
+    },
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
 }
