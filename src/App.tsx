@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CardImpactPanel } from "./components/CardImpactPanel";
+import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
@@ -135,6 +136,22 @@ export function App() {
             >
               New deck
             </button>
+            <ClearButton
+              label="Default deck"
+              confirmLabel="Replace"
+              message="Replace the current deck and models with default.ydk?"
+              onConfirm={() => {
+                void loadDefaultDeck().then((deck) => {
+                  if (!deck) {
+                    setStatus("Could not load default.ydk.");
+                    return;
+                  }
+                  setDoc(deck);
+                  setResetKey((key) => key + 1);
+                  setStatus("Loaded the default deck from default.ydk.");
+                });
+              }}
+            />
             <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
           </div>
         </div>

@@ -10,6 +10,8 @@ interface Props {
   detail?: number;
   /** Show an icon-only button (the label becomes its tooltip and accessible name). */
   icon?: IconName;
+  /** Text of the confirming button; defaults to "Clear". */
+  confirmLabel?: string;
   disabled?: boolean;
   className?: string;
   onConfirm: () => void;
@@ -24,6 +26,7 @@ export function ClearButton({
   message,
   detail,
   icon,
+  confirmLabel = "Clear",
   disabled,
   className,
   onConfirm,
@@ -65,7 +68,7 @@ export function ClearButton({
           onConfirm();
         }}
       >
-        Clear
+        {confirmLabel}
       </button>
       <button type="button" autoFocus onClick={() => setConfirming(false)}>
         Cancel

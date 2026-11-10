@@ -276,6 +276,27 @@ test.describe("Card Rank", () => {
   });
 });
 
+test("the Default deck button loads default.ydk over whatever is there", async ({ page }) => {
+  await openApp(page);
+  await page.getByRole("button", { name: "New deck" }).click();
+  await expect(page.locator(".counts")).toContainText("0 main");
+
+  await page.getByRole("button", { name: "Default deck" }).click();
+  await expect(page.getByText("Replace the current deck and models with default.ydk?")).toBeVisible();
+  await page.getByRole("button", { name: "Replace", exact: true }).click();
+
+  await expect(page.locator(".counts")).toContainText(`${DEFAULT.main} main`);
+  await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra} extra`);
+  await expect(page.locator(".counts")).toContainText(`${DEFAULT.side} side`);
+});
+
+test("an existing saved draft is not replaced by the default deck on load", async ({ page }) => {
+  await openApp(page);
+  await page.getByRole("button", { name: "New deck" }).click();
+  await page.reload();
+  await expect(page.locator(".counts")).toContainText("0 main");
+});
+
 test.describe("Paste a deck list", () => {
   async function pasteList(page: Page, text: string): Promise<void> {
     await page.getByText("Paste a deck list").click();
