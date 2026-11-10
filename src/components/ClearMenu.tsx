@@ -107,16 +107,16 @@ export function ClearMenu({ doc, onChange, onStatus }: Props) {
     {
       label: "Hand Conditions",
       count: doc.hand_conditions.length,
-      message: `Remove all ${doc.hand_conditions.length} Hand Conditions? They leave every Modeled Outcome.`,
+      message: `Remove all ${doc.hand_conditions.length} Hand Conditions? They leave every Hand Goal.`,
       run: () => clearHandConditions(doc),
       done: "Cleared all Hand Conditions",
     },
     {
-      label: "Modeled Outcomes",
+      label: "Hand Goals",
       count: outcomeCount(doc),
-      message: "Empty every Modeled Outcome? Engine Access stays, empty.",
+      message: "Empty every Hand Goal? Engine Access stays, empty.",
       run: () => clearModeledOutcomes(doc),
-      done: "Cleared all Modeled Outcomes",
+      done: "Cleared all Hand Goals",
     },
     {
       label: "Post-Side lists",

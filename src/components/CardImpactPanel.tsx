@@ -22,7 +22,7 @@ interface Props {
 
 /**
  * Read-only ranking of Main Deck cards by how much holding them changes the
- * chance of a Modeled Outcome, for the selected Analysis Context. A statistic
+ * chance of a Hand Goal, for the selected Analysis Context. A statistic
  * about the model, not a score you assign.
  */
 export function CardImpactPanel({ doc, catalog }: Props) {
@@ -68,17 +68,17 @@ export function CardImpactPanel({ doc, catalog }: Props) {
       </header>
       {selected === null ? (
         <p className="empty">
-          Put Hand Conditions into a Modeled Outcome in Models to rank cards by
+          Put Hand Conditions into a Hand Goal in Models to rank cards by
           impact.
         </p>
       ) : (
         <>
           <p className="note">
-            How much holding a card changes the chance of the outcome. Zero
-            means the outcome does not depend on it.
+            How much holding a card changes the chance of the goal. Zero
+            means the goal does not depend on it.
           </p>
           <label className="impact-select">
-            Outcome
+            Hand Goal
             <select
               value={selected.id}
               onChange={(event) => setChosenId(event.target.value)}

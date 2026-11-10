@@ -216,7 +216,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         </label>
       </header>
       <p className="note">
-        Check hands against your Hand Conditions and Modeled Outcomes for{" "}
+        Check hands against your Hand Conditions and Hand Goals for{" "}
         {analysisContextLabel(context, opening)} (
         {sampleSizeDescription(context, opening)}). A check mark means your
         model matches the hand. It does not test that the line plays out.
@@ -279,7 +279,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         <>
           <dl className="explorer-results" aria-label="Batch results">
             {batchSummary.sets.length === 0 ? (
-              <p className="empty">Define a Modeled Outcome to see pass rates.</p>
+              <p className="empty">Define a Hand Goal to see pass rates.</p>
             ) : (
               batchSummary.sets.map((set) => (
                 <div key={set.id} className="explorer-row">
@@ -443,9 +443,9 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
             </p>
           ) : null}
 
-          <h3 className="panel-subhead">Modeled Outcomes</h3>
+          <h3 className="panel-subhead">Hand Goals</h3>
           {result.sets.length === 0 ? (
-            <p className="empty">No modeled outcomes yet. Create them in Models.</p>
+            <p className="empty">No hand goals yet. Create them in Models.</p>
           ) : (
             <dl className="explorer-results">
               {result.sets.map((set) => (

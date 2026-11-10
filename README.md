@@ -121,7 +121,7 @@ YAPPING is expected to measure (not implemented here):
 | **Taxonomy** | Card-level human role hypothesis (`starter` / `extender` / `interaction`) |
 | **Hand Condition** | Hand-level user-defined Boolean predicate (ALL OF Requires AND NONE OF Excludes over Card / Role / Group predicates) |
 | **Group** | Named deck-specific set of Main Deck cards |
-| **Modeled Outcome** | User-facing interpretation formed from one or more Hand Conditions (ANY / union semantics); backed by the internal `HandConditionSet` |
+| **Hand Goal** | User-facing interpretation formed from one or more Hand Conditions (ANY / union semantics); backed by the internal `HandConditionSet` (called Modeled Outcome in earlier versions; saved files still use `hand_condition_sets`). It is a match on the opening hand, not a board state |
 | **YAPPING** | Strategic validation / game-tree outcomes |
 
 Access Conditions generalized into Hand Conditions: a condition is no longer
@@ -160,9 +160,9 @@ human-modeled hand-composition constraint, not a claim that Citrinitas is
 
 MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Hand Conditions are strategically independent routes (they may converge on the same choke point).
 
-### Modeled Outcomes and exact event analysis
+### Hand Goals and exact event analysis
 
-A **Modeled Outcome** combines Hand Conditions into an outcome the user cares
+A **Hand Goal** combines Hand Conditions into a goal the user cares
 about. It is satisfied when ANY selected Hand Condition matches the opening
 hand (`ANY of` the members, OR / union semantics). Example:
 
@@ -183,7 +183,7 @@ hand evaluation, and probabilities are never summed or averaged.
 
 ### Opening Quality among matching hands
 
-Each Modeled Outcome also exposes (behind an "Opening Quality" disclosure) the
+Each Hand Goal also exposes (behind an "Opening Quality" disclosure) the
 conditional Opening Quality distribution of the hands that satisfy it, under
 the current Analysis Context's turn order. With `U(H)` = number of
 Undesirable-classified physical cards drawn:
@@ -214,7 +214,7 @@ Treating each condition as an event, MAPPING also exposes:
 - multiplicity buckets `P(N = k)` that are mutually exclusive and jointly
   exhaustive (`Σ P(N = k) = 1`).
 
-**Modeled Engine Access** is just the modeled outcome with the fixed id
+**Modeled Engine Access** is just the hand goal with the fixed id
 `modeled-engine-access` (backed by an internal `HandConditionSet` - a normal
 set, not a separate mechanism). The Deck Profile reads that set. More than one
 satisfied condition is a combinatorial property of the user's definitions, not
@@ -233,7 +233,7 @@ name.
 
 Probability analysis asks *how often* a condition occurs; **Hand Test** asks
 whether one *exact* hand satisfies it. It evaluates the user's existing model
-(Hand Conditions + Modeled Outcomes) against a single concrete hand and explains
+(Hand Conditions + Hand Goals) against a single concrete hand and explains
 why each predicate passed or failed.
 
 - **Hand acquisition**: *Draw Random Hand* samples uniformly over physical
@@ -247,7 +247,7 @@ why each predicate passed or failed.
   and contributing cards; distinct constraints show eligible names and, when
   successful, the assignment. An exclusion that matches is flagged and explains
   why the condition fails.
-- **Modeled Outcomes**: each outcome shows PASS/FAIL and how many of its member
+- **Hand Goals**: each goal shows PASS/FAIL and how many of its member
   conditions the hand satisfies (`N_S(H) = Σ 1[C_i(H)]`), the single-hand
   counterpart of the multiplicity distribution. Satisfying multiple conditions
   is not evidence of independent routes.
@@ -266,18 +266,18 @@ compete with analysis results for vertical space:
 
 - **Profile** - Analysis Context, Deck Profile, Taxonomy / Annotation Analysis.
 - **Models** - a sub-navigated workspace: [Groups] [Hand Conditions]
-  [Modeled Outcomes].
+  [Hand Goals].
 - **Hand Test** - evaluate one exact hand against the model.
 
 ### Deck Profile
 
 The **Deck Profile** panel is a compact strategic summary that separates
-**modeled outcomes** from raw annotation diagnostics. It never reports a
+**hand goals** from raw annotation diagnostics. It never reports a
 single aggregate "Deck Quality" score:
 
 | Layer | What it shows |
 | --- | --- |
-| **Modeled Outcomes** | Engine Access (P(any selected engine-access condition)), Access + Interaction-tagged, Access + No Undesirable |
+| **Hand Goals** | Engine Access (P(any selected engine-access condition)), Access + Interaction-tagged, Access + No Undesirable |
 | **Access Multiplicity** | P(N ≥ 1), P(N ≥ 2), P(N ≥ 3) over the selected access conditions (not "resilience") |
 | **Conditional on Access** | P(Interaction-tagged \| Access), P(No Undesirable \| Access) |
 | **Annotation & composition analysis** (collapsed) | Opening Quality composition, Access composition, interaction-tagged cards, context comparison, and **Annotation Coverage** (x / N deck slots classified per turn order) |
@@ -293,7 +293,7 @@ evaluation.
 
 Raw taxonomy and Opening Quality annotation statistics live in
 **Taxonomy / Annotation Analysis** (role slots + opening-quality slots) and
-never compete visually with modeled outcomes.
+never compete visually with hand goals.
 
 ### Deck Configuration
 
@@ -370,11 +370,11 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
 - add cards by catalog name search or passcode; Extra Deck monsters (Fusion, Synchro, Xyz, Link, from `public/extra-deck.json`) are routed to the Extra Deck when Main is selected, Side is never rerouted; paste-add appends without replacing
-- define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-outcome union, pairwise overlap, and multiplicity distribution
-- test one exact hand (random or manual) against all Hand Conditions and Modeled Outcomes, with per-predicate traces and population probabilities
+- define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Hand Goals (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-goal union, pairwise overlap, and multiplicity distribution
+- test one exact hand (random or manual) against all Hand Conditions and Hand Goals, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
-- inspect the Deck Profile: modeled outcomes (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
-- inspect raw taxonomy density and per-context opening-quality counts separately from modeled outcomes
+- inspect the Deck Profile: hand goals (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
+- inspect raw taxonomy density and per-context opening-quality counts separately from hand goals
 - save locally (browser `localStorage` plus file download)
 - Save YDK exports the current list for Omega / external tools
 - export a YAPPING-readable archetype JSON

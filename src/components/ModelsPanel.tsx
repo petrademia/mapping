@@ -150,7 +150,7 @@ type ModelsView = "groups" | "conditions" | "outcomes";
 const VIEWS: { key: ModelsView; label: string }[] = [
   { key: "groups", label: "Groups" },
   { key: "conditions", label: "Hand Conditions" },
-  { key: "outcomes", label: "Modeled Outcomes" },
+  { key: "outcomes", label: "Hand Goals" },
 ];
 
 export function ModelsPanel({
@@ -228,7 +228,7 @@ export function ModelsPanel({
     onChange(
       upsertHandConditionSet(doc, {
         id: newId("outcome"),
-        name: "New modeled outcome",
+        name: "New hand goal",
         condition_ids: [],
         aggregation: "any",
       }),
@@ -282,8 +282,8 @@ export function ModelsPanel({
           like "Nervedo and a valid S/T".
         </li>
         <li>
-          <strong>Modeled Outcomes</strong> are what you want from a hand. A
-          hand matches an outcome when it matches any of its Hand Conditions.
+          <strong>Hand Goals</strong> are what you want from a hand. A
+          hand matches a goal when it matches any of its Hand Conditions.
         </li>
       </ol>
       <p className="note">
@@ -366,13 +366,13 @@ export function ModelsPanel({
 
       {view === "outcomes" ? (
         <>
-          <h3 className="panel-subhead">Modeled Outcomes</h3>
+          <h3 className="panel-subhead">Hand Goals</h3>
           <p className="note">
-            Group Hand Conditions into an outcome you care about. A hand matches
-            the outcome when it matches any of them.
+            Group Hand Conditions into a goal you care about. A hand matches
+            the goal when it matches any of them.
           </p>
           {doc.hand_condition_sets.length === 0 ? (
-            <p className="empty">No modeled outcomes yet.</p>
+            <p className="empty">No hand goals yet.</p>
           ) : (
             doc.hand_condition_sets.map((set) => {
               const setSummary = analysis?.sets.find(
@@ -413,7 +413,7 @@ export function ModelsPanel({
             })
           )}
           <button type="button" onClick={addOutcome}>
-            + Add Modeled Outcome
+            + Add Hand Goal
           </button>
         </>
       ) : null}
@@ -1023,17 +1023,17 @@ function ModeledOutcomeEditor({
       <div className="access-block-head">
         <DeferredNameInput
           value={set.name}
-          placeholder="Untitled modeled outcome"
-          label="Modeled outcome name"
+          placeholder="Untitled hand goal"
+          label="Hand Goal name"
           onCommit={(name) => onSetChange({ ...set, name })}
         />
         <button type="button" className="ghost" onClick={onRemove}>
-          Delete outcome
+          Delete goal
         </button>
       </div>
       <EntityNotes
         value={set.notes}
-        label={`Notes for ${set.name || "modeled outcome"}`}
+        label={`Notes for ${set.name || "hand goal"}`}
         onCommit={(notes) => onSetChange({ ...set, notes })}
       />
       <p className="access-allof">ANY OF</p>
@@ -1181,7 +1181,7 @@ function ModeledOutcomeEditor({
             <details className="panel-details">
               <summary>Opening Quality</summary>
               <p className="explorer-notation">
-                Among hands satisfying this outcome
+                Among hands satisfy this goal
                 ({formatPercent(setSummary.union)}), by the{" "}
                 {context.turn_order === "going_first"
                   ? "Going First"
@@ -1190,7 +1190,7 @@ function ModeledOutcomeEditor({
               </p>
               {setSummary.openingQuality.undesirable[0] === null ? (
                 <p className="empty">
-                  No hands currently satisfy this modeled outcome.
+                  No hands currently satisfy this hand goal.
                 </p>
               ) : (
                 <dl className="explorer-results">
@@ -1249,8 +1249,8 @@ function ModeledOutcomeEditor({
       ) : (
         <p className="empty">
           {deck === 0
-            ? "Add main-deck cards to compute outcome probabilities."
-            : "Select at least one condition above as a member of this outcome."}
+            ? "Add main-deck cards to compute goal probabilities."
+            : "Select at least one condition above as a member of this goal."}
         </p>
       )}
     </div>

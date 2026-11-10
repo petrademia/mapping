@@ -138,7 +138,7 @@ export function DeckProfile({ doc, onHandSize }: Props) {
       <p className="note">
         Exact opening-hand profile under{" "}
         {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. Modeled outcomes come from
+        {sampleSizeDescription(context, opening)}. Hand Goals come from
         the configured Hand Conditions; raw composition statistics below are
         descriptive annotations, not strategic verdicts. Not combo success, win
         rate, or YAPPING utility.
@@ -155,7 +155,7 @@ export function DeckProfile({ doc, onHandSize }: Props) {
       ) : profile ? (
         <div className="probs">
           <article>
-            <h3>Modeled Outcomes</h3>
+            <h3>Hand Goals</h3>
             <p className="explorer-notation">
               Union over the Hand Conditions selected as engine access;
               overlapping conditions are not double-counted.
