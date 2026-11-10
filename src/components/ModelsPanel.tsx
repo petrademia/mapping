@@ -142,9 +142,11 @@ interface Props {
   catalog: Catalog;
   onChange: (doc: MappingDocument) => void;
   onHandSize: (size: number) => void;
+  /** Which view opens first; Groups by default. */
+  initialView?: ModelsView;
 }
 
-type ModelsView = "groups" | "conditions" | "outcomes";
+export type ModelsView = "groups" | "conditions" | "outcomes";
 
 const VIEWS: { key: ModelsView; label: string }[] = [
   { key: "groups", label: "Groups" },
@@ -157,8 +159,9 @@ export function ModelsPanel({
   catalog,
   onChange,
   onHandSize,
+  initialView = "groups",
 }: Props) {
-  const [view, setView] = useState<ModelsView>("groups");
+  const [view, setView] = useState<ModelsView>(initialView);
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
   const context = analysisContextOf(doc);

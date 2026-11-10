@@ -84,7 +84,6 @@ export function ImportExport({
       </button>
       <button
         type="button"
-        className="primary"
         onClick={() => {
           download(`${slug(doc.name)}.yapping.json`, serializeYapping(exportDoc));
           onStatus("Exported YAPPING archetype JSON");

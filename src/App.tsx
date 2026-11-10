@@ -23,7 +23,8 @@ import {
   mergeAnalysisEdit,
 } from "./lib/configuration";
 import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
-import { ModelsPanel } from "./components/ModelsPanel";
+import { ModelsPanel, type ModelsView } from "./components/ModelsPanel";
+import { GoalOdds, NextStep } from "./components/NextStep";
 import { HandTestPanel } from "./components/HandTestPanel";
 import { DeckEditor } from "./components/DeckEditor";
 import { ImportExport } from "./components/ImportExport";
@@ -93,6 +94,8 @@ export function App() {
   // The shuffled deck order behind the drawn hand, kept so it survives tab switches.
   const [handOrder, setHandOrder] = useState<number[] | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
+  // Which Models view opens when the next-step button sends you there.
+  const [modelsStart, setModelsStart] = useState<ModelsView>("groups");
   const [status, setStatus] = useState(
     "Local draft. Taxonomy annotations are deck-specific hypotheses.",
   );
@@ -320,6 +323,20 @@ export function App() {
               : null}
           </p>
 
+          {workspace === "profile" ? (
+            <>
+              <NextStep
+                doc={view}
+                onDefineGoal={() => {
+                  setModelsStart("outcomes");
+                  setWorkspace("models");
+                }}
+                onTestHand={() => setWorkspace("hand-test")}
+              />
+              <GoalOdds doc={view} />
+            </>
+          ) : null}
+
           <ConfigurationPanel doc={doc} catalog={catalog} onChange={setDoc} />
 
           {workspace === "profile" ? (
@@ -347,6 +364,7 @@ export function App() {
           {workspace === "models" ? (
             <ModelsPanel
               key={resetKey}
+              initialView={modelsStart}
               doc={view}
               catalog={catalog}
               onChange={changeView}

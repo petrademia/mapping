@@ -1,25 +1,35 @@
 :root {
-  color-scheme: dark;
-  --ground: #1f2420;
-  --panel: #2a312c;
-  --paper: #cfd5c8;
-  --ink: #1a2218;
-  --mist: #dfe6d8;
-  --muted: #9ba797;
-  --brass: #b08d57;
-  /* Brass for text on dark panels: 5.9:1 on --panel (plain --brass is 4.3:1). */
-  --brass-text: #cda869;
-  --line: #4a554c;
-  --danger: #c45c4a;
-  --starter: #d4a017;
-  --extender: #3d9b8f;
-  --interaction: #c45c4a;
-  --desirable: #6a9b5a;
-  --neutral: #8b9688;
+  color-scheme: light;
+  /* Binder Pages: cream stock on a tan desk, a charcoal spine rail, red tab ink. */
+  --ground: #d9cfbd;
+  --panel: #f6f0e2;
+  --paper: #fffdf6;
+  --sunken: #ece3cf;
+  --field: #fffdf6;
+  --hover: #ece3cf;
+  --ink: #25221d;
+  --mist: #25221d;
+  --muted: #6b6253;
+  --rail: #2b2824;
+  --rail-ink: #f3ecdc;
+  --brass: #b4472a;
+  /* Red tab ink for text on cream: 6.2:1 on --panel. */
+  --brass-text: #8b3219;
+  --accent-text: #8b3219;
+  --line: #b8ab93;
+  --danger: #a8372a;
+  --danger-text: #8a2f21;
+  --pass: #3f6b32;
+  --fail: #a8372a;
+  --starter: #b8860b;
+  --extender: #2f7f74;
+  --interaction: #b4472a;
+  --desirable: #4f7f3f;
+  --neutral: #7a7466;
   --undesirable: #8a7a6b;
-  --unclassified: #5c6658;
+  --unclassified: #b8ab93;
   --swatch: #7a8f7a;
-  font-family: Figtree, ui-sans-serif, system-ui, sans-serif;
+  font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
   background: var(--ground);
   color: var(--mist);
 }
@@ -27,9 +37,7 @@
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; margin: 0; }
 body {
-  background:
-    radial-gradient(1200px 500px at 10% -10%, #2d382f 0%, transparent 50%),
-    var(--ground);
+  background: var(--ground);
 }
 
 button, input, select, textarea {
@@ -49,13 +57,13 @@ button, .file-button {
 button.primary {
   background: var(--brass);
   border-color: var(--brass);
-  color: #1a160f;
+  color: #fffdf6;
   font-weight: 600;
 }
 
 button.ghost { border: 0; color: var(--muted); padding: 0.2rem 0.4rem; }
-.deck-section button.ghost { color: #4b5548; }
-input::placeholder, textarea::placeholder { color: #9aa396; opacity: 1; }
+.deck-section button.ghost { color: var(--muted); }
+input::placeholder, textarea::placeholder { color: #8a8171; opacity: 1; }
 
 /* Avoid one-word last lines and ragged headings. */
 p, li, dd { text-wrap: pretty; }
@@ -80,7 +88,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 h1 {
-  font-family: Fraunces, ui-serif, serif;
+  font-family: "Young Serif", ui-serif, serif;
   font-size: 2.6rem;
   font-weight: 500;
   margin: 0;
@@ -99,7 +107,7 @@ h1 {
 }
 
 .deck-meta input, .panel input, .add-card input, .add-card select, textarea, .role-draft {
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
   padding: 0.45rem 0.55rem;
 }
@@ -122,7 +130,7 @@ h1 {
 .add-card .card-search { position: relative; display: inline-flex; }
 .add-card .card-search input {
   width: 16rem;
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
   padding: 0.45rem 0.55rem;
 }
@@ -139,9 +147,9 @@ h1 {
   border: 1px solid var(--line);
   max-height: 12rem;
   overflow: auto;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0.5rem 1rem rgba(37, 34, 29, 0.18);
 }
-.catalog-hits li { border-bottom: 1px solid #252c26; }
+.catalog-hits li { border-bottom: 1px solid var(--line); }
 .catalog-hits li:last-child { border-bottom: 0; }
 .catalog-hits button {
   display: flex;
@@ -155,7 +163,7 @@ h1 {
   color: var(--mist);
   background: transparent;
 }
-.catalog-hits button:hover { background: #1f2420; }
+.catalog-hits button:hover { background: var(--hover); }
 .catalog-hit-id {
   flex-shrink: 0;
   font-family: "Red Hat Mono", ui-monospace, monospace;
@@ -190,34 +198,34 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  border-bottom: 1px solid #b7bfb0;
+  border-bottom: 1px solid var(--line);
   margin-bottom: 0.6rem;
 }
 
 .deck-section h2, .panel h2 {
-  font-family: Fraunces, ui-serif, serif;
+  font-family: "Young Serif", ui-serif, serif;
   font-size: 1.15rem;
   font-weight: 500;
   margin: 0;
 }
 
-.deck-section p, .deck-section .empty { margin: 0; color: #4b5548; }
+.deck-section p, .deck-section .empty { margin: 0; color: var(--muted); }
 .deck-section table { width: 100%; border-collapse: collapse; }
 .deck-section th {
   text-align: left;
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #4b5548;
+  color: var(--muted);
   padding: 0.35rem 0.4rem;
 }
-.deck-section td { padding: 0.55rem 0.4rem; vertical-align: top; border-top: 1px solid #d5dccf; }
+.deck-section td { padding: 0.55rem 0.4rem; vertical-align: top; border-top: 1px solid var(--sunken); }
 .card-name { display: flex; flex-direction: column; gap: 0.15rem; min-width: 12rem; }
-.card-id { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.75rem; color: #4b5548; }
+.card-id { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.75rem; color: var(--muted); }
 
 .qty { display: flex; align-items: center; gap: 0.2rem; }
-.qty input { width: 3rem; text-align: center; background: #e7ebe1; color: var(--ink); border-color: #b7bfb0; }
-.qty button { color: var(--ink); border-color: #b7bfb0; padding: 0.15rem 0.45rem; }
+.qty input { width: 3rem; text-align: center; background: var(--sunken); color: var(--ink); border-color: var(--line); }
+.qty button { color: var(--ink); border-color: var(--line); padding: 0.15rem 0.45rem; }
 
 .taxonomy-cell { min-width: 16rem; }
 .taxonomy-block { display: grid; gap: 0.25rem; margin-bottom: 0.45rem; }
@@ -226,7 +234,7 @@ h1 {
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #4b5548;
+  color: var(--muted);
 }
 .roles,
 .opening-quality { display: flex; flex-wrap: wrap; gap: 0.3rem; }
@@ -240,24 +248,24 @@ h1 {
   justify-content: space-between;
   gap: 0.6rem;
   font-size: 0.78rem;
-  color: #4b5548;
+  color: var(--muted);
 }
 .quality-context select {
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
   color: var(--mist);
   padding: 0.22rem 0.35rem;
-  color-scheme: dark;
+  color-scheme: light;
 }
 .chip {
-  border: 1px dashed color-mix(in srgb, var(--swatch) 70%, #1a2218);
-  color: #3a4338;
+  border: 1px dashed color-mix(in srgb, var(--swatch) 70%, var(--ink));
+  color: var(--ink);
   padding: 0.15rem 0.45rem;
   font-size: 0.78rem;
   font-family: "Red Hat Mono", ui-monospace, monospace;
 }
 .chip.on {
-  background: color-mix(in srgb, var(--swatch) 28%, #cfd5c8);
+  background: color-mix(in srgb, var(--swatch) 28%, var(--paper));
   border-style: solid;
   color: var(--ink);
 }
@@ -285,7 +293,7 @@ h1 {
 .density-row { display: grid; grid-template-columns: 0.7rem 7.5rem 1fr 4.5rem; gap: 0.45rem; align-items: center; }
 .swatch { width: 0.7rem; height: 0.7rem; background: var(--swatch); }
 .role-label { font-size: 0.82rem; }
-.track { height: 0.55rem; background: #171b18; overflow: hidden; }
+.track { height: 0.55rem; background: var(--field); overflow: hidden; }
 .fill { height: 100%; background: var(--swatch); }
 .frac { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.78rem; text-align: right; }
 
@@ -332,7 +340,7 @@ h1 {
 }
 .condition-controls select,
 .condition-controls input {
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
   color: var(--mist);
   padding: 0.3rem 0.4rem;
@@ -379,7 +387,7 @@ h1 {
 }
 .access-block-head input {
   flex: 1;
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
   color: var(--mist);
   padding: 0.3rem 0.4rem;
@@ -391,7 +399,7 @@ h1 {
   margin: 0 0 0.45rem;
   min-height: 2.4rem;
   resize: vertical;
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
   color: var(--mist);
   padding: 0.35rem 0.45rem;
@@ -417,7 +425,7 @@ h1 {
 .access-requirement {
   margin-bottom: 0.45rem;
   padding-bottom: 0.45rem;
-  border-bottom: 1px solid #222822;
+  border-bottom: 1px solid var(--hover);
 }
 .access-prob {
   font-family: "Red Hat Mono", ui-monospace, monospace;
@@ -488,7 +496,7 @@ h1 {
   aspect-ratio: 177 / 254;
   border-radius: 3px;
   overflow: hidden;
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
 }
 .hand-image-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -522,7 +530,7 @@ h1 {
 .deck-empty-state strong { color: var(--mist); font-weight: 600; }
 
 .impact-select { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); margin: 0.4rem 0; }
-.impact-select select { background: #171b18; border: 1px solid var(--line); padding: 0.4rem 0.5rem; }
+.impact-select select { background: var(--field); border: 1px solid var(--line); padding: 0.4rem 0.5rem; }
 .impact-baseline { margin: 0.4rem 0; color: var(--muted); }
 .impact-baseline strong { color: var(--mist); font-family: "Red Hat Mono", ui-monospace, monospace; font-weight: 500; }
 .impact-list { list-style: none; margin: 0.4rem 0; padding: 0; display: grid; gap: 0.35rem; }
@@ -537,9 +545,9 @@ h1 {
 .impact-list .card-thumb { width: 28px; height: 41px; }
 .impact-name { display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
 .impact-sub { font-size: 0.8rem; color: var(--muted); }
-.impact-bar { display: block; height: 0.5rem; background: #171b18; border-radius: 2px; overflow: hidden; }
+.impact-bar { display: block; height: 0.5rem; background: var(--field); border-radius: 2px; overflow: hidden; }
 .impact-fill { display: block; height: 100%; background: var(--brass); }
-.impact-fill.negative { background: #c45c4a; }
+.impact-fill.negative { background: var(--fail); }
 .impact-value { text-align: right; font-family: "Red Hat Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.85rem; }
 
 /* A popover: it floats over the page and never moves the toolbar. */
@@ -552,9 +560,9 @@ h1 {
   z-index: 20;
   min-width: 17rem;
   padding: 0.4rem;
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  box-shadow: 0 8px 24px rgb(37 34 29 / 0.22);
 }
 .clear-popover ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
 .clear-popover .empty { margin: 0.2rem 0.4rem 0.4rem; }
@@ -566,13 +574,13 @@ h1 {
   border-color: transparent;
   text-align: left;
 }
-.clear-popover li > button:hover:not(:disabled) { border-color: var(--line); background: #222822; }
+.clear-popover li > button:hover:not(:disabled) { border-color: var(--line); background: var(--hover); }
 .clear-popover li > button:disabled { color: var(--muted); opacity: 0.6; cursor: default; }
 .clear-popover .delete-confirm { padding: 0.3rem; }
 .clear-detail { font-family: "Red Hat Mono", ui-monospace, monospace; color: var(--muted); }
 .deck-meta .row-actions { align-items: flex-start; }
 .deck-section .delete-confirm { color: var(--ink); }
-.deck-section .delete-confirm button { color: var(--ink); border-color: #b7bfb0; }
+.deck-section .delete-confirm button { color: var(--ink); border-color: var(--line); }
 .deck-section .delete-confirm button.danger { color: #8a2f21; border-color: #8a2f21; }
 
 .models-steps { margin: 0 0 0.6rem; padding-left: 1.2rem; color: var(--muted); display: grid; gap: 0.2rem; }
@@ -601,7 +609,7 @@ h1 {
   right: 0.25rem;
   padding: 0.05rem 0.35rem;
   border-radius: 999px;
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--line);
   font-family: "Red Hat Mono", ui-monospace, monospace;
   font-size: 0.8rem;
@@ -612,8 +620,8 @@ h1 {
 .pick-remove:disabled { opacity: 0.4; cursor: default; }
 
 .pass-mark { display: inline-flex; vertical-align: -0.2em; margin-right: 0.15rem; }
-.pass-mark.pass { color: #9cc58c; }
-.pass-mark.fail { color: #e08f7e; }
+.pass-mark.pass { color: var(--pass); }
+.pass-mark.fail { color: var(--fail); }
 .qty button { display: inline-flex; align-items: center; justify-content: center; }
 .qty svg { display: block; }
 button svg { flex: none; vertical-align: -0.15em; }
@@ -654,7 +662,7 @@ button svg { flex: none; vertical-align: -0.15em; }
   min-width: 1.5rem;
   padding: 0.02rem 0.3rem;
   border-radius: 3px;
-  background: #171b18;
+  background: var(--field);
   border: 1px solid var(--brass);
   color: var(--brass-text);
   font-family: "Red Hat Mono", ui-monospace, monospace;
@@ -668,7 +676,7 @@ button svg { flex: none; vertical-align: -0.15em; }
   bottom: 0.2rem;
   padding: 0 0.3rem;
   border-radius: 3px;
-  background: #171b18;
+  background: var(--field);
   color: var(--muted);
   font-size: 0.8rem;
 }
@@ -710,8 +718,8 @@ button svg { flex: none; vertical-align: -0.15em; }
 }
 .icon-button:hover:not(:disabled) { border-color: currentColor; color: var(--mist); }
 .icon-button:disabled { opacity: 0.4; cursor: default; }
-.deck-section .icon-button { color: #4b5548; }
-.deck-section .icon-button:hover:not(:disabled) { color: var(--ink); border-color: #4b5548; }
+.deck-section .icon-button { color: var(--muted); }
+.deck-section .icon-button:hover:not(:disabled) { color: var(--ink); border-color: var(--muted); }
 .pick-remove.icon-button { width: 100%; height: 1.75rem; border-color: var(--line); }
 @media (pointer: coarse) { .icon-button { width: 2.75rem; height: 2.75rem; } }
 
@@ -732,12 +740,12 @@ button svg { flex: none; vertical-align: -0.15em; }
   height: 58px;
   border-radius: 2px;
   overflow: hidden;
-  background: #aeb7a6;
+  background: var(--sunken);
   display: inline-block;
 }
-.card-thumb.empty { background: transparent; border: 1px dashed #b7bfb0; }
+.card-thumb.empty { background: transparent; border: 1px dashed var(--line); }
 .card-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.hand-card .card-thumb { width: 28px; height: 41px; background: #171b18; }
+.hand-card .card-thumb { width: 28px; height: 41px; background: var(--field); }
 .hand-card .card-thumb.empty { border-color: var(--line); }
 .hand-card .explorer-title { flex: 1; }
 .hand-card {
@@ -745,7 +753,7 @@ button svg { flex: none; vertical-align: -0.15em; }
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  border-bottom: 1px solid #222822;
+  border-bottom: 1px solid var(--hover);
   padding-bottom: 0.25rem;
 }
 .hand-picker {
@@ -833,12 +841,12 @@ button svg { flex: none; vertical-align: -0.15em; }
 }
 .context-chip {
   --swatch: var(--brass);
-  background: #171b18;
+  background: var(--field);
   color: var(--mist);
   border-color: var(--line);
 }
 .context-chip.on {
-  background: color-mix(in srgb, var(--brass) 28%, #171b18);
+  background: color-mix(in srgb, var(--brass) 28%, var(--field));
   color: var(--mist);
   border-color: var(--brass);
 }
@@ -882,7 +890,7 @@ button svg { flex: none; vertical-align: -0.15em; }
 [data-quality="undesirable"] { --swatch: var(--undesirable); }
 [data-quality="unclassified"] { --swatch: var(--unclassified); }
 
-.deck-section .ghost { color: #6a7466; }
+.deck-section .ghost { color: var(--muted); }
 
 .counts span { white-space: nowrap; }
 
@@ -920,20 +928,20 @@ button svg { flex: none; vertical-align: -0.15em; }
 }
 .configuration-summary strong { font-family: "Red Hat Mono", ui-monospace, monospace; font-weight: 500; }
 .configuration-summary span { color: var(--muted); font-size: 0.9rem; }
-.configuration-summary .configuration-warn { color: #d2ad72; font-weight: 600; }
+.configuration-summary .configuration-warn { color: var(--accent-text); font-weight: 600; }
 
 .diff-chips { list-style: none; margin: 0 0 0.6rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .diff-chips li {
   padding: 0.2rem 0.55rem;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #171b18;
+  background: var(--field);
   font-size: 0.85rem;
   color: var(--mist);
 }
 .diff-chips li b { font-family: "Red Hat Mono", ui-monospace, monospace; font-weight: 600; }
-.diff-chips li.out b { color: #e08f7e; }
-.diff-chips li.in b { color: #9cc58c; }
+.diff-chips li.out b { color: var(--fail); }
+.diff-chips li.in b { color: var(--pass); }
 
 .configuration-table-wrap {
   max-height: 18rem;
@@ -959,7 +967,7 @@ button svg { flex: none; vertical-align: -0.15em; }
 .configuration-table .config-card { min-width: 0; overflow-wrap: anywhere; }
 .configuration-table .qty-value { min-width: 1.6rem; text-align: center; font-family: "Red Hat Mono", ui-monospace, monospace; }
 .configuration-table button:disabled { opacity: 0.5; cursor: default; }
-.configuration-table .qty button { color: var(--mist); border-color: var(--line); background: #171b18; min-width: 2rem; min-height: 2rem; }
+.configuration-table .qty button { color: var(--mist); border-color: var(--line); background: var(--field); min-width: 2rem; min-height: 2rem; }
 .configuration-table th:not(:first-child),
 .configuration-table td:not(:first-child) { text-align: center; white-space: nowrap; }
 .configuration-table .qty { justify-content: center; }
@@ -998,11 +1006,11 @@ button svg { flex: none; vertical-align: -0.15em; }
   border-radius: 999px;
   font-family: "Red Hat Mono", ui-monospace, monospace;
   font-size: 0.78rem;
-  color: #e3c48c;
+  color: var(--accent-text);
 }
 
 .delete-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--mist); }
-.delete-confirm button.danger { border-color: var(--danger); color: #f0a898; }
+.delete-confirm button.danger { border-color: var(--danger); color: var(--danger-text); }
 
 @media (pointer: coarse) {
   .configuration-chips .context-chip { min-height: 2.75rem; }
@@ -1021,7 +1029,7 @@ button svg { flex: none; vertical-align: -0.15em; }
     gap: 0.75rem;
     margin: 0 -1.25rem 0.75rem;
     padding: 0.45rem 1.25rem;
-    background: #171b18;
+    background: var(--field);
     border-bottom: 1px solid var(--line);
     font-size: 0.85rem;
     color: var(--muted);
@@ -1036,7 +1044,7 @@ button svg { flex: none; vertical-align: -0.15em; }
   background: none;
   border: 0;
   padding: 0;
-  color: #d2ad72;
+  color: var(--accent-text);
   text-decoration: underline;
   text-underline-offset: 0.15em;
   font-size: 0.85rem;
@@ -1088,7 +1096,7 @@ button svg { flex: none; vertical-align: -0.15em; }
 .deck-tile:hover .hand-image-frame { transform: translateY(-2px); }
 .deck-tile.selected .hand-image-frame { box-shadow: 0 0 0 2px var(--brass); border-color: var(--brass); }
 .tile-pips { position: absolute; left: 0.25rem; bottom: 0.3rem; display: flex; gap: 0.15rem; }
-.tile-pip { width: 0.5rem; height: 0.5rem; border-radius: 50%; border: 1px solid #171b18; background: var(--swatch); }
+.tile-pip { width: 0.5rem; height: 0.5rem; border-radius: 50%; border: 1px solid var(--field); background: var(--swatch); }
 .tile-pip[data-role="starter"] { background: var(--starter); }
 .tile-pip[data-role="extender"] { background: var(--extender); }
 .tile-pip[data-role="interaction"] { background: var(--interaction); }
@@ -1100,7 +1108,7 @@ button svg { flex: none; vertical-align: -0.15em; }
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.deck-detail { margin: 0.6rem 0 0.4rem; padding: 0.7rem 0.8rem; border: 1px solid #b7bfb0; background: #dde3d6; }
+.deck-detail { margin: 0.6rem 0 0.4rem; padding: 0.7rem 0.8rem; border: 1px solid var(--line); background: var(--sunken); }
 .deck-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; margin-bottom: 0.5rem; }
 .deck-detail-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 0.4rem; }
 
@@ -1112,7 +1120,7 @@ button svg { flex: none; vertical-align: -0.15em; }
 }
 .configuration-table .group-row th {
   position: static;
-  background: #222822;
+  background: var(--hover);
   color: var(--brass-text);
   text-align: left;
   font-weight: 600;
@@ -1141,7 +1149,7 @@ button svg { flex: none; vertical-align: -0.15em; }
   background: none;
   border: 0;
   padding: 0;
-  color: #d2ad72;
+  color: var(--accent-text);
   text-decoration: underline;
   text-underline-offset: 0.15em;
   cursor: pointer;
@@ -1255,3 +1263,137 @@ button svg { flex: none; vertical-align: -0.15em; }
 .engine-member .card-strip { margin: 0; }
 .condition-card .requirement-card { align-self: flex-start; }
 .condition-card .requirement-card .card-strip li { width: 44px; }
+
+/* ---- Binder Pages -------------------------------------------------------
+   The app is one cream binder page on a tan desk. A charcoal spine rail holds
+   the deck and its actions, workspaces are binder tabs fused to the page, and
+   structure is hairline only. */
+body { background: var(--ground); }
+.app {
+  background: var(--panel);
+  max-width: 1320px;
+  min-height: 100vh;
+  padding: 0 1.5rem 4rem;
+  box-shadow: 0 0 0 1px var(--line), 0 24px 48px rgba(37, 34, 29, 0.14);
+}
+.masthead {
+  margin: 0 -1.5rem 1.25rem;
+  padding: 1.1rem 1.5rem 1.2rem;
+  background: var(--rail);
+  color: var(--rail-ink);
+  border-bottom: 0;
+}
+.masthead h1 { color: var(--rail-ink); font-size: 2.1rem; }
+.masthead .tag, .masthead .deck-meta label, .masthead .counts { color: color-mix(in srgb, var(--rail-ink) 78%, transparent); }
+.masthead .deck-meta input {
+  background: color-mix(in srgb, var(--rail-ink) 10%, transparent);
+  border-color: color-mix(in srgb, var(--rail-ink) 35%, transparent);
+  color: var(--rail-ink);
+}
+.masthead button, .masthead .file-button {
+  color: var(--rail-ink);
+  border-color: color-mix(in srgb, var(--rail-ink) 40%, transparent);
+}
+.masthead button:hover:not(:disabled) { border-color: var(--rail-ink); }
+.masthead button.primary { background: var(--brass); border-color: var(--brass); color: #fffdf6; }
+.masthead .clear-popover { color: var(--ink); }
+.masthead .clear-popover button { color: var(--ink); border-color: var(--line); }
+.masthead :focus-visible { outline-color: var(--rail-ink); }
+
+.panel { background: var(--paper); border: 1px solid var(--line); }
+.deck-section { background: var(--paper); border: 1px solid var(--line); }
+.deck-section h2, .panel h2 { font-family: "Young Serif", ui-serif, serif; font-weight: 400; letter-spacing: 0; }
+
+/* Binder tabs: the active tab is fused to the page below it. */
+.workspace-nav { gap: 0.15rem; padding-bottom: 0; margin-bottom: 0.9rem; border-bottom: 1px solid var(--line); }
+.workspace-nav .context-chip {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: -1px;
+  padding: 0.45rem 0.9rem;
+  color: var(--muted);
+}
+.workspace-nav .context-chip.on {
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 0 3px 0 var(--brass);
+  border-bottom: 1px solid var(--panel);
+}
+.workspace-nav .context-chip:hover:not(.on) { color: var(--ink); }
+
+/* Sleeves: each card sits in a pocket with a pale edge. */
+.hand-image-frame {
+  border-color: rgba(37, 34, 29, 0.28);
+  box-shadow: 0 0 0 2px rgba(255, 253, 246, 0.9);
+}
+
+/* Focus: picking a card pulls it forward and lets the rest of the page drop back. */
+.deck-grid:has(.deck-tile.selected) .deck-tile:not(.selected) { opacity: 0.55; }
+.deck-grid .deck-tile { transition: opacity 160ms ease-out; }
+.deck-tile.selected .hand-image-frame { transform: translateY(-3px); }
+
+.next-step { border-color: var(--brass); }
+.next-step p { margin: 0 0 0.7rem; }
+.goal-odds .odds-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-top: 1px solid var(--line); }
+.goal-odds .odds-row:first-of-type { border-top: 0; }
+.goal-odds .odds-name { font-weight: 600; }
+.goal-odds .odds-value { text-align: right; font-variant-numeric: tabular-nums; }
+.goal-odds .odds-percent { display: block; font-size: 1.25rem; font-weight: 700; }
+.goal-odds .odds-fraction { display: block; font-size: 0.72rem; color: var(--muted); font-family: "Red Hat Mono", ui-monospace, monospace; }
+::selection { background: color-mix(in srgb, var(--brass) 30%, var(--paper)); }
+
+/* Ten cards to a row: a 60-card deck is exactly six full rows. */
+.deck-grid, .deck-grid-section .hand-deck-grid {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+@media (max-width: 640px) {
+  .deck-grid, .deck-grid-section .hand-deck-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* ---- One button system -------------------------------------------------
+   Every action is an outlined ink button of the same height and radius; one
+   filled red button per surface carries the primary action. File pickers and
+   menu triggers use the same box, so nothing looks like a different kind. */
+button, .file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 500;
+  line-height: 1.2;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+button:hover:not(:disabled):not(.primary):not(.ghost), .file-button:hover { background: var(--hover); border-color: var(--ink); }
+button:disabled { opacity: 0.45; cursor: default; }
+button.primary { background: var(--brass); border-color: var(--brass); color: #fffdf6; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: var(--brass-text); border-color: var(--brass-text); }
+button.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+button.ghost:hover:not(:disabled) { color: var(--ink); background: var(--hover); }
+.masthead button, .masthead .file-button {
+  background: transparent;
+  color: var(--rail-ink);
+  border-color: color-mix(in srgb, var(--rail-ink) 45%, transparent);
+}
+.masthead button:hover:not(:disabled):not(.primary) { background: color-mix(in srgb, var(--rail-ink) 14%, transparent); border-color: var(--rail-ink); }
+.masthead button.primary { background: var(--brass); border-color: var(--brass); color: #fffdf6; }
+.masthead button.primary:hover:not(:disabled) { background: #c9573a; border-color: #c9573a; }
+.toolbar-actions { margin: 0.9rem 0 0.4rem; gap: 0.5rem; }
+.toolbar-actions summary { cursor: pointer; color: var(--accent-text); font-weight: 500; min-height: 2.25rem; display: inline-flex; align-items: center; }
+
+.masthead { grid-template-columns: minmax(16rem, 1fr) minmax(0, 1.8fr); align-items: start; }
+.masthead .deck-meta .row-actions { gap: 0.4rem; }
+
+input::placeholder, textarea::placeholder { color: #6f6657; opacity: 1; }
+.workspace-nav .context-chip { padding: 0.55rem 0.95rem; }
+
+.context-presets .chip.context-chip, .analysis-context-panel .context-chip { padding: 0.5rem 0.8rem; }
