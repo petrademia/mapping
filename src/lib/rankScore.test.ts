@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scorerFor } from "./rankScore";
+import { copiesValue, scorerFor } from "./rankScore";
 import type { MappingCard } from "./document";
 
 const card = (card_id: number, quantity: number): MappingCard => ({
@@ -23,7 +23,8 @@ describe("rank score", () => {
   });
 
   it("scores the best possible hand 100%", () => {
-    expect(scorer.score({ 1: 3, 2: 2 })).toBeCloseTo(1);
+    // Best five copies by value: 1st of card 1, 1st of 2, 1st of 3, 2nd of 1 and 1st of 4.
+    expect(scorer.score({ 1: 2, 2: 1, 3: 1, 4: 1 })).toBeCloseTo(1);
   });
 
   it("scores a weaker hand lower, and lower still the further down the ranking", () => {
@@ -53,6 +54,23 @@ describe("rank score", () => {
     };
     pick(0, []);
     expect(scorer.expected(5)).toBeCloseTo(sum / count, 10);
+  });
+
+  it("counts a second copy at half and a third at a quarter", () => {
+    expect(copiesValue(1, 1)).toBe(1);
+    expect(copiesValue(1, 2)).toBeCloseTo(1.5);
+    expect(copiesValue(1, 3)).toBeCloseTo(1.75);
+    expect(copiesValue(0.5, 2)).toBeCloseTo(0.75);
+  });
+
+  it("does not punish a deck for running three copies of its best card", () => {
+    const distinct = Array.from({ length: 42 }, (_, i) => card(i + 1, 1));
+    const stacked = [card(1, 3), ...distinct.slice(1, 40)];
+    const a = scorerFor(distinct, distinct.map((c) => c.card_id), "going_first");
+    const b = scorerFor(stacked, stacked.map((c) => c.card_id), "going_first");
+    const hand = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    // The same hand scores about the same in both decks, not far lower in the stacked one.
+    expect(Math.abs(a.score(hand) - b.score(hand))).toBeLessThan(0.1);
   });
 
   it("lets five good cards beat one great card with four dead ones by a wide margin", () => {
