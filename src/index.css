@@ -483,13 +483,14 @@ h1 {
 .hand-images.sm li { width: 68px; }
 .hand-image-frame {
   display: block;
+  width: 100%;
   aspect-ratio: 177 / 254;
   border-radius: 3px;
   overflow: hidden;
   background: #171b18;
   border: 1px solid var(--line);
 }
-.hand-images img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hand-image-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hand-image-missing {
   display: flex;
   height: 100%;
@@ -509,6 +510,7 @@ h1 {
   overflow-wrap: anywhere;
 }
 .hand-images.sm .hand-image-name { -webkit-line-clamp: 4; }
+.hand-image-roles { font-size: 0.8rem; color: var(--brass-text); line-height: 1.2; }
 
 .deck-empty-state {
   margin: 0 0 0.75rem;
@@ -580,11 +582,13 @@ h1 {
   margin: 0.6rem 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 0.8rem 0.6rem;
+  /* Fixed tile width: an image's natural size must never set the column. */
+  grid-template-columns: repeat(auto-fill, 88px);
+  justify-content: space-between;
+  gap: 0.9rem 0.6rem;
 }
-.hand-picker-grid li { display: grid; gap: 0.25rem; align-content: start; }
-.pick-tile { position: relative; display: block; padding: 0; border: 0; background: none; cursor: pointer; }
+.hand-picker-grid li { display: grid; gap: 0.25rem; align-content: start; min-width: 0; width: 88px; }
+.pick-tile { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
 .pick-tile .hand-image-frame { transition: border-color 120ms ease-out, transform 120ms ease-out; }
 .pick-tile:hover .hand-image-frame { border-color: var(--brass); transform: translateY(-2px); }
 .pick-tile[aria-disabled="true"] { cursor: default; opacity: 0.55; }

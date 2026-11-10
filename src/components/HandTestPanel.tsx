@@ -8,7 +8,6 @@ import {
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
-import { CardThumb } from "./CardThumb";
 import { CardFrame, HandImages } from "./HandImages";
 import {
   analysisContextOf,
@@ -243,30 +242,13 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
 
       {hand && result && totalSelected === sample && issues.length === 0 ? (
         <>
-          <h3 className="panel-subhead">Tested Hand</h3>
-          <HandImages deck={doc.main} counts={hand.card_counts} catalog={catalog} />
-          <ul className="hand-cards">
-            {doc.main.map((card) => {
-              const count = hand.card_counts[card.card_id] ?? 0;
-              if (count === 0) return null;
-              return (
-                <li key={card.card_id} className="hand-card">
-                  <CardThumb
-                    cardId={card.card_id}
-                    name={displayName(card.card_id, card.name, catalog)}
-                  />
-                  <span className="explorer-title">
-                    {displayName(card.card_id, card.name, catalog)} ×{count}
-                  </span>
-                  {card.taxonomy.roles.length > 0 ? (
-                    <span className="explorer-notation">
-                      {card.taxonomy.roles.map((role) => ROLE_LABELS[role]).join(", ")}
-                    </span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
+          <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
+          <HandImages
+            deck={doc.main}
+            counts={hand.card_counts}
+            catalog={catalog}
+            showRoles
+          />
           <p className="explorer-notation">
             Exact composition probability:{" "}
             {exactProbability !== null ? formatPercent(exactProbability) : "—"}
@@ -464,7 +446,18 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                       </span>
                     ))}
                   </span>
-                  <button type="button" onClick={() => setHand(entry.hand)}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHand(entry.hand);
+                      // The tester sits above this list; bring it into view.
+                      requestAnimationFrame(() =>
+                        document
+                          .getElementById("tested-hand")
+                          ?.scrollIntoView({ block: "start" }),
+                      );
+                    }}
+                  >
                     Open in tester
                   </button>
                 </div>

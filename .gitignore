@@ -10,6 +10,10 @@ coverage
 
 .cache
 
+# Playwright output
+test-results/
+playwright-report/
+
 # Local card art (scripts/fetch-card-images.py); not redistributed from this repo
 public/cards/
 

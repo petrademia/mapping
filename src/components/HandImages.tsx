@@ -10,6 +10,8 @@ interface Props {
   catalog: Catalog;
   /** "md" for the single tested hand, "sm" for the generated list. */
   size?: "md" | "sm";
+  /** Show each card's Roles under its name. */
+  showRoles?: boolean;
 }
 
 /** A card-shaped frame with the local image, or an empty "No image" frame. */
@@ -31,7 +33,7 @@ export function CardFrame({ cardId }: { cardId: number }) {
  * underneath. A card without a local image shows an empty frame, so the hand
  * still reads from the names.
  */
-export function HandImages({ deck, counts, catalog, size = "md" }: Props) {
+export function HandImages({ deck, counts, catalog, size = "md", showRoles = false }: Props) {
   const cards: MappingCard[] = [];
   for (const card of deck) {
     const copies = counts[card.card_id] ?? 0;
@@ -45,6 +47,13 @@ export function HandImages({ deck, counts, catalog, size = "md" }: Props) {
           <li key={`${card.card_id}-${index}`} title={name}>
             <CardFrame cardId={card.card_id} />
             <span className="hand-image-name">{name}</span>
+            {showRoles && card.taxonomy.roles.length > 0 ? (
+              <span className="hand-image-roles">
+                {card.taxonomy.roles
+                  .map((role) => role.charAt(0).toUpperCase() + role.slice(1))
+                  .join(", ")}
+              </span>
+            ) : null}
           </li>
         );
       })}
