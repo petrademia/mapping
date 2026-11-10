@@ -17,6 +17,7 @@ import {
   setConfigurationNotes,
 } from "../lib/configuration";
 import { sectionSize, type MappingDocument } from "../lib/document";
+import { CardThumb } from "./CardThumb";
 import { Icon } from "./IconButton";
 
 export const CONFIGURATION_PANEL_ID = "deck-configuration";
@@ -131,6 +132,58 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
       })
     : [];
   const rows = onlyChanged ? allRows.filter((row) => row.changed) : allRows;
+
+  // Cards that are only in the Side Deck are the ones you can bring in, so they
+  // get their own group at the top instead of hiding after every main card.
+  type Row = (typeof allRows)[number];
+  const sideRows = rows.filter((row) => row.pre === 0);
+  const mainRows = rows.filter((row) => row.pre > 0);
+  const sideOnlyCount = allRows.filter((row) => row.pre === 0).length;
+
+  function renderRow({ card, main, pre, changed }: Row) {
+    const name = displayName(card.card_id, card.name, catalog);
+    const set = (value: number) =>
+      onChange(setConfigurationMainQuantity(doc, active!.id, card.card_id, value));
+    return (
+      <tr key={card.card_id} className={changed ? "changed" : undefined}>
+        <td className="config-card">
+          <span className="config-card-id">
+            <CardThumb cardId={card.card_id} name={name} />
+            <strong>{name}</strong>
+          </span>
+        </td>
+        <td>{pre}</td>
+        <td>
+          <div className="qty">
+            <button
+              type="button"
+              aria-label={`Move one ${name} to Side`}
+              aria-disabled={main <= 0}
+              onClick={() => main > 0 && set(main - 1)}
+            >
+              <Icon name="minus" />
+            </button>
+            <span className="qty-value">{main}</span>
+            <button
+              type="button"
+              aria-label={`Move one ${name} to Main`}
+              aria-disabled={main >= card.quantity}
+              onClick={() => main < card.quantity && set(main + 1)}
+            >
+              <Icon name="plus" />
+            </button>
+            {changed ? (
+              <span className="change-badge" title="Changed from Pre-Side">
+                <span className="visually-hidden">changed from Pre-Side by </span>
+                {signed(main - pre)}
+              </span>
+            ) : null}
+          </div>
+        </td>
+        <td>{card.quantity - main}</td>
+      </tr>
+    );
+  }
 
   return (
     <section
@@ -253,8 +306,18 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
             />
             Changed cards only
           </label>
+          <p className="note configuration-howto">
+            To swap, take a card out of Main with the minus button, then bring
+            one in from your Side Deck with the plus button.
+          </p>
+          {sideOnlyCount === 0 ? (
+            <p className="note configuration-warn-note" role="note">
+              Your Side Deck is empty, so there is nothing to bring in. Add
+              cards to the Side Deck in the deck list, then swap them here.
+            </p>
+          ) : null}
           {rows.length === 0 ? (
-            <p className="note">No changes yet. Use − to move a copy out of Main.</p>
+            <p className="note">No changes yet.</p>
           ) : null}
           <div className="configuration-table-wrap">
             <table className="configuration-table">
@@ -267,47 +330,22 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ card, main, pre, changed }) => {
-                  const name = displayName(card.card_id, card.name, catalog);
-                  const set = (value: number) =>
-                    onChange(setConfigurationMainQuantity(doc, active.id, card.card_id, value));
-                  return (
-                    <tr key={card.card_id} className={changed ? "changed" : undefined}>
-                      <td className="config-card">
-                        <strong>{name}</strong>
-                      </td>
-                      <td>{pre}</td>
-                      <td>
-                        <div className="qty">
-                          <button
-                            type="button"
-                            aria-label={`Move one ${name} to Side`}
-                            aria-disabled={main <= 0}
-                            onClick={() => main > 0 && set(main - 1)}
-                          >
-                            <Icon name="minus" />
-                          </button>
-                          <span className="qty-value">{main}</span>
-                          <button
-                            type="button"
-                            aria-label={`Move one ${name} to Main`}
-                            aria-disabled={main >= card.quantity}
-                            onClick={() => main < card.quantity && set(main + 1)}
-                          >
-                            <Icon name="plus" />
-                          </button>
-                          {changed ? (
-                            <span className="change-badge" title="Changed from Pre-Side">
-                              <span className="visually-hidden">changed from Pre-Side by </span>
-                              {signed(main - pre)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td>{card.quantity - main}</td>
-                    </tr>
-                  );
-                })}
+                {sideRows.length > 0 ? (
+                  <tr className="group-row">
+                    <th colSpan={4} scope="colgroup">
+                      Side Deck: bring these in with plus
+                    </th>
+                  </tr>
+                ) : null}
+                {sideRows.map(renderRow)}
+                {mainRows.length > 0 ? (
+                  <tr className="group-row">
+                    <th colSpan={4} scope="colgroup">
+                      Main Deck: send these out with minus
+                    </th>
+                  </tr>
+                ) : null}
+                {mainRows.map(renderRow)}
               </tbody>
             </table>
           </div>

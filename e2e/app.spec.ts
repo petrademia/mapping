@@ -278,7 +278,11 @@ test.describe("Deck Configuration", () => {
     await page.getByRole("button", { name: "Post-Side", exact: true }).click();
     await expect(page.locator(".analyzing-strip")).toContainText("Post-Side 1");
 
-    await page.getByRole("button", { name: /^Move one .* to Side$/ }).first().click();
+    // A card that is in Main (a Side-only card's minus is a no-op).
+    await page
+      .locator('button[aria-label^="Move one"][aria-label$="to Side"][aria-disabled="false"]')
+      .first()
+      .click();
     await expect(page.locator(".analyzing-strip")).toContainText(`${DEFAULT.main - 1} main`);
     await expect(page.locator(".diff-chips li")).toHaveCount(1);
 
@@ -287,6 +291,41 @@ test.describe("Deck Configuration", () => {
 
     await page.getByRole("radio", { name: "Pre-Side" }).click();
     await expect(page.locator(".analyzing-strip")).toContainText(`${DEFAULT.main} main`);
+  });
+
+  test("Side Deck cards are listed first and can be swapped in for a Main card", async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("button", { name: "Post-Side", exact: true }).click();
+
+    // The default deck has side cards: they come first, under their own heading.
+    const groups = page.locator(".configuration-table .group-row");
+    await expect(groups.first()).toContainText("Side Deck");
+    await expect(groups.nth(1)).toContainText("Main Deck");
+    await expect(page.getByText("To swap, take a card out of Main")).toBeVisible();
+
+    // Bring one Side card in, send one Main card out: same size, two changes.
+    await page
+      .locator('button[aria-label^="Move one"][aria-label$="to Main"][aria-disabled="false"]')
+      .first()
+      .click();
+    // The last enabled minus belongs to a Main card (Side cards are listed first).
+    await page
+      .locator('button[aria-label^="Move one"][aria-label$="to Side"][aria-disabled="false"]')
+      .last()
+      .click();
+    await expect(page.locator(".analyzing-strip")).toContainText(`${DEFAULT.main} main`);
+    await expect(page.locator(".diff-chips li")).toHaveCount(2);
+    await expect(page.locator(".configuration-summary")).toContainText("2 swapped, same size as Pre-Side");
+  });
+
+  test("explains when there is no Side Deck to swap in", async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("button", { name: "Clear", exact: true }).first().click();
+    const menu = page.getByRole("group", { name: "Clear", exact: true });
+    await menu.getByRole("button", { name: /Side Deck/ }).click();
+    await menu.getByRole("button", { name: "Clear", exact: true }).click();
+    await page.getByRole("button", { name: "Post-Side", exact: true }).click();
+    await expect(page.getByText("Your Side Deck is empty, so there is nothing to bring in")).toBeVisible();
   });
 
   test("the configuration chips support arrow keys", async ({ page }) => {

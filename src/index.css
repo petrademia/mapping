@@ -1002,6 +1002,24 @@ button svg { flex: none; vertical-align: -0.15em; }
   color: var(--muted);
 }
 
+.configuration-howto { margin: 0.2rem 0 0.5rem; }
+.configuration-warn-note {
+  padding: 0.5rem 0.7rem;
+  border: 1px dashed var(--brass);
+  color: var(--mist);
+}
+.configuration-table .group-row th {
+  position: static;
+  background: #222822;
+  color: var(--brass-text);
+  text-align: left;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  border-top: 1px solid var(--line);
+}
+.config-card-id { display: flex; align-items: center; gap: 0.5rem; }
+.config-card-id .card-thumb { width: 28px; height: 41px; }
+
 .configuration-details { margin-top: 0.7rem; }
 .configuration-details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
 .configuration-details[open] summary { margin-bottom: 0.4rem; }
