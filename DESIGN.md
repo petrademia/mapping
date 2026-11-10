@@ -75,6 +75,8 @@ components:
 
 ## Overview
 
+Implementation: tokens live in `src/styles/tokens.css`, the only place a raw colour, size or duration is defined. `base.css` holds elements and the one control family, `shell.css` the page, rail and tabs, `cards.css` every card tile and grid, and `panels.css` the workspace panels. Components use tokens only.
+
 MAPPING is where one person tunes their own Yu-Gi-Oh! deck, so the deck is the page. Everything sits on a single cream binder page resting on a tan desk. A charcoal spine rail across the top holds the deck name and its actions. Workspaces are binder tabs fused to the page. Structure is hairline only: one 1px warm-tan rule weight, no boxes inside boxes, so the card art stays the loudest thing on screen.
 
 The refusals: no dark dashboard of floating panels, no navy and gold deck-site look, no kickers above headings, no gradient or glass, no hard offset shadows.

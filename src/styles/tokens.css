@@ -1,0 +1,79 @@
+/* Design tokens: the only place a raw colour, size or duration is defined.
+   Binder Pages: cream stock on a tan desk, a charcoal spine rail, red tab ink. */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --ground: #d9cfbd;       /* the desk behind the page */
+  --panel: #f6f0e2;        /* the binder page */
+  --paper: #fffdf6;        /* sleeves, panels, inputs */
+  --sunken: #ece3cf;       /* tabs, hover, quiet fills */
+  --rail: #2b2824;         /* the charcoal spine */
+  --rail-ink: #f3ecdc;
+
+  /* Ink */
+  --ink: #25221d;
+  --muted: #6b6253;        /* 5.3:1 on --panel */
+  --line: #b8ab93;         /* the one hairline colour */
+
+  /* Accent: red tab ink */
+  --accent: #b4472a;
+  --accent-strong: #8b3219; /* red text on cream, 6.2:1 */
+  --accent-hover: #c9573a;  /* hover on the dark rail */
+
+  /* State */
+  --danger: #a8372a;
+  --danger-strong: #8a2f21;
+  --pass: #3f6b32;
+
+  /* Roles and opening quality */
+  --starter: #b8860b;
+  --extender: #2f7f74;
+  --interaction: #b4472a;
+  --desirable: #4f7f3f;
+  --neutral: #7a7466;
+  --undesirable: #8a7a6b;
+  --unclassified: #b8ab93;
+  --swatch: #7a8f7a;
+
+  /* Type */
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Young Serif", ui-serif, serif;
+  --font-mono: "Red Hat Mono", ui-monospace, monospace;
+  --text-2xs: 0.7rem;
+  --text-xs: 0.78rem;
+  --text-sm: 0.85rem;
+  --text-md: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.5rem;
+  --text-display: 2.1rem;
+
+  /* Space: a quarter-rem scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+
+  /* Shape */
+  --radius-sm: 3px;        /* controls, tiles, badges */
+  --radius-tab: 6px;
+  --radius-pill: 999px;
+  --control-h: 2.25rem;    /* every button, chip, input and select */
+  --control-border: color-mix(in srgb, var(--ink) 45%, transparent);
+
+  /* Depth: sleeves and popovers only */
+  --shadow-page: 0 24px 48px color-mix(in srgb, var(--ink) 14%, transparent);
+  --shadow-pop: 0 8px 24px color-mix(in srgb, var(--ink) 22%, transparent);
+  --sleeve: 0 0 0 2px color-mix(in srgb, var(--paper) 90%, transparent);
+
+  /* Motion */
+  --duration: 120ms;
+  --ease: ease-out;
+
+  font-family: var(--font-sans);
+  background: var(--ground);
+  color: var(--ink);
+}

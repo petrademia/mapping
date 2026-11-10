@@ -1,0 +1,223 @@
+/* Card art: the sleeve, the tile and every grid that shows cards (deck, hand,
+   pick, swap, rank, search). A tile is a button reduced to its card art. */
+
+/* ---- The sleeve: every card image sits in a pale-edged pocket ---------- */
+.hand-image-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 177 / 254;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  box-shadow: var(--sleeve);
+}
+.hand-image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* The image must never start a drag of its own. */
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+.hand-image-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.hand-images { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0; padding: 0; list-style: none; }
+.hand-images li { display: grid; align-content: start; gap: var(--space-1); width: 88px; }
+.hand-images.sm li { width: 68px; }
+
+/* Small fixed thumbnail beside a name (Card Impact). */
+.card-thumb {
+  display: inline-block;
+  flex: none;
+  width: 40px;
+  height: 58px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+.card-thumb.empty { border: 1px dashed var(--line); background: transparent; }
+.card-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* ---- Tiles ------------------------------------------------------------- */
+.deck-tile, .hand-tile, .pick-tile, .rank-tile, .swap-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+:is(.deck-tile, .hand-tile, .pick-tile, .rank-tile, .swap-tile):hover {
+  background: none;
+  border: 0;
+}
+:is(.deck-tile, .hand-tile, .pick-tile, .rank-tile, .swap-tile) .hand-image-frame {
+  transition: opacity var(--duration) var(--ease), box-shadow var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+:is(.deck-tile, .hand-tile, .pick-tile, .rank-tile, .swap-tile):hover .hand-image-frame,
+:is(.pick-tile, .swap-tile):focus-visible .hand-image-frame {
+  transform: translateY(-2px);
+}
+
+/* Chosen: a red box and a small lift. */
+.deck-tile.selected .hand-image-frame,
+.hand-tile.in-hand .hand-image-frame,
+.pick-tile.on .hand-image-frame,
+.rank-tile.grabbed .hand-image-frame,
+.swap-tile.changed .hand-image-frame {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent);
+}
+.deck-tile.selected .hand-image-frame { transform: translateY(-3px); box-shadow: 0 0 0 2px var(--accent); }
+.hand-tile.in-hand .hand-image-frame { opacity: 1; transform: translateY(-3px); }
+.rank-tile.grabbed .hand-image-frame { transform: translateY(-4px); }
+.swap-tile.changed .hand-image-frame { box-shadow: 0 0 0 2px var(--accent); }
+.rank-tile.drop-target .hand-image-frame { box-shadow: 0 0 0 3px var(--ink); }
+
+/* Not chosen: the rest drops back. */
+.hand-tile.out .hand-image-frame,
+.pick-tile.dim .hand-image-frame { opacity: 0.4; }
+.deck-grid:has(.deck-tile.selected) .deck-tile:not(.selected) { opacity: 0.55; }
+.deck-tile { transition: opacity var(--duration) var(--ease); }
+.rank-tile.dragging { opacity: 0.4; }
+
+.pick-tile[aria-disabled="true"] { cursor: default; opacity: 0.55; }
+.hand-tile[aria-disabled="true"] { cursor: default; }
+.pick-tile[aria-disabled="true"]:hover .hand-image-frame,
+.hand-tile[aria-disabled="true"]:hover .hand-image-frame { transform: none; }
+
+/* Draggable tiles */
+.deck-tile { color: var(--ink); text-align: left; cursor: grab; user-select: none; touch-action: none; }
+.rank-tile { cursor: grab; }
+.deck-tile:active .hand-image-frame,
+.deck-grid li[data-dragging] .hand-image-frame { transition: none; }
+.deck-grid li[data-dragging] .hand-image-frame { transform: none; }
+.deck-grid li[data-dragging] .deck-tile { opacity: 0.35; cursor: grabbing; }
+.deck-grid li.drop-before { box-shadow: -4px 0 0 var(--accent); }
+.deck-grid-section.drop-end { outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+/* Badges on a tile */
+.tile-pips { position: absolute; left: var(--space-1); bottom: var(--space-1); display: flex; gap: var(--space-1); }
+.tile-pip { width: 0.5rem; height: 0.5rem; border: 1px solid var(--paper); border-radius: 50%; background: var(--swatch); }
+.tile-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.rank-num,
+.rank-copies,
+.rank-badge,
+.pick-qty {
+  position: absolute;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+}
+.rank-num {
+  top: var(--space-1);
+  left: var(--space-1);
+  min-width: 1.5rem;
+  border: 1px solid var(--accent);
+  background: var(--paper);
+  color: var(--accent-strong);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: center;
+}
+.rank-copies { right: var(--space-1); bottom: var(--space-1); background: var(--paper); color: var(--muted); font-size: var(--text-xs); }
+.rank-badge { left: 2px; bottom: 2px; background: var(--rail); color: var(--rail-ink); font-size: var(--text-2xs); }
+.pick-qty { right: 2px; bottom: 2px; background: color-mix(in srgb, var(--rail) 90%, transparent); color: var(--paper); font-size: var(--text-2xs); }
+
+/* ---- Grids ------------------------------------------------------------- */
+.deck-grid, .pick-grid, .swap-grid, .rank-grid, .hand-deck-grid {
+  display: grid;
+  margin: var(--space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+.deck-grid li, .rank-grid li { min-width: 0; }
+.deck-grid .deck-detail-row { grid-column: 1 / -1; min-width: 0; }
+
+/* Ten cards to a row: a 60-card deck is exactly six full rows. The editor row
+   spans the grid and later tiles fill the gap, so it opens under the row you clicked. */
+.deck-grid, .hand-deck-grid {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: var(--space-2);
+}
+@media (max-width: 640px) {
+  .deck-grid, .hand-deck-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+.pick-grid, .swap-grid { grid-template-columns: repeat(auto-fill, 52px); gap: var(--space-1); }
+.swap-grid { margin: 0; }
+.rank-grid { grid-template-columns: repeat(auto-fill, 64px); gap: var(--space-2); }
+
+.hand-deck { margin: var(--space-2) 0; }
+.hand-deck .hand-total { margin: 0 0 var(--space-2); color: var(--muted); font-family: var(--font-mono); }
+.hand-deck-grid { margin: 0; }
+.swap-heading { margin: var(--space-3) 0 var(--space-1); font-size: var(--text-sm); font-weight: 500; color: var(--muted); }
+
+.deck-detail { margin: var(--space-2) 0; padding: var(--space-3); border: 1px solid var(--line); background: var(--sunken); }
+.deck-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-bottom: var(--space-2); }
+.deck-detail-actions { display: inline-flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+
+.rank-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+.rank-list-block > header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.rank-actions { display: inline-flex; gap: var(--space-2); }
+.rank-actions button { padding: var(--space-1) var(--space-2); font-size: var(--text-sm); }
+
+/* ---- Search results ---------------------------------------------------- */
+.search-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: var(--space-2);
+  max-height: 22rem;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.search-results:empty { display: none; }
+.search-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 0;
+  padding: var(--space-1);
+  border: 1px solid transparent;
+  background: none;
+  text-align: left;
+}
+.search-result:hover, .search-result:focus-visible { border-color: var(--accent); background: none; }
+.search-result.full { opacity: 0.5; cursor: default; }
+.search-result-name { font-size: var(--text-2xs); line-height: 1.2; color: var(--muted); }
+.search-result-count { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--muted); }
+
+/* ---- Strips: a small row of card art that summarises cards ------------- */
+.card-strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin: var(--space-1) 0; padding: 0; list-style: none; }
+.card-strip li { width: 30px; }
+.card-strip li.card-strip-more { width: auto; font-size: var(--text-xs); color: var(--muted); }
+.engine-member .card-strip, .requirement-card .card-strip { margin: 0; }
+.requirement-card {
+  min-height: 0;
+  padding: var(--space-1);
+  background: none;
+}
+.requirement-card .card-strip li { width: 36px; }
+.condition-card .requirement-card { align-self: flex-start; }
+.condition-card .requirement-card .card-strip li { width: 44px; }
+.requirement-choose { padding: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
