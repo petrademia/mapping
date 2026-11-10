@@ -9,6 +9,7 @@ import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { CardFrame, HandImages } from "./HandImages";
+import { IconButton, PassMark } from "./IconButton";
 import {
   analysisContextOf,
   sectionSize,
@@ -288,7 +289,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                         set.passed ? "hand-pass-title" : "hand-fail-title"
                       }
                     >
-                      {set.passed ? "✓" : "✗"} {set.name}
+                      <PassMark passed={set.passed} /> {set.name}
                     </span>
                     <span className="explorer-notation">
                       {set.passed ? "Matched" : "Not matched"} ·{" "}
@@ -320,7 +321,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                         evaluation.passed ? "hand-pass-title" : "hand-fail-title"
                       }
                     >
-                      {evaluation.passed ? "✓" : "✗"} {evaluation.name}
+                      <PassMark passed={evaluation.passed} /> {evaluation.name}
                     </span>
                     {population !== undefined ? (
                       <span className="explorer-notation">
@@ -442,7 +443,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                         key={set.setId}
                         className={set.passed ? "hand-pass-title" : "hand-fail-title"}
                       >
-                        {set.passed ? "✓" : "✗"} {set.name}
+                        <PassMark passed={set.passed} /> {set.name}
                       </span>
                     ))}
                   </span>
@@ -511,15 +512,13 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                   </span>
                 </button>
                 <span className="hand-image-name">{name}</span>
-                <button
-                  type="button"
+                <IconButton
+                  icon="minus"
                   className="pick-remove"
-                  aria-label={`Remove ${name} from the hand`}
+                  label={`Remove ${name} from the hand`}
                   disabled={count === 0}
                   onClick={() => setCount(card.card_id, count - 1)}
-                >
-                  Remove
-                </button>
+                />
               </li>
             );
           })}
@@ -561,7 +560,7 @@ function DistinctRow({
   return (
     <div className="predicate-row">
       <span className={evaluation.passed ? "hand-pass" : "hand-fail"}>
-        {evaluation.passed ? "✓" : "✗"}{" "}
+        <PassMark passed={evaluation.passed} />{" "}
         {evaluation.requirement_ids.map(labelFor).join(" and ")} require
         different card names
       </span>
@@ -640,7 +639,7 @@ function PredicateRow({
       }
     >
       <span className={evaluation.passed ? "hand-pass" : "hand-fail"}>
-        {evaluation.passed ? "✓" : "✗"} {text}
+        <PassMark passed={evaluation.passed} /> {text}
       </span>
       <span className="explorer-notation">actual: {evaluation.actualCount}</span>
       {contributorNames.length > 0 ? (

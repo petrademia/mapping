@@ -126,7 +126,8 @@ test.describe("Hand Test", () => {
     const first = page.locator(".hand-picker-grid .pick-tile").first();
     await first.click();
     await expect(page.locator(".hand-total")).toContainText("1 / 5");
-    await page.getByRole("button", { name: /^Remove / }).first().click();
+    // Scoped to the picker: deck cards have their own Remove buttons.
+    await page.locator(".hand-picker-grid").getByRole("button", { name: /^Remove / }).first().click();
     await expect(page.locator(".hand-total")).toContainText("0 / 5");
   });
 });
@@ -165,7 +166,7 @@ test.describe("Deck Configuration", () => {
     await openApp(page);
     await expect(page.locator(".analyzing-strip")).toContainText("Pre-Side");
 
-    await page.getByRole("button", { name: "+ Post-Side" }).click();
+    await page.getByRole("button", { name: "Post-Side", exact: true }).click();
     await expect(page.locator(".analyzing-strip")).toContainText("Post-Side 1");
 
     await page.getByRole("button", { name: /^Move one .* to Side$/ }).first().click();
@@ -181,7 +182,7 @@ test.describe("Deck Configuration", () => {
 
   test("the configuration chips support arrow keys", async ({ page }) => {
     await openApp(page);
-    await page.getByRole("button", { name: "+ Post-Side" }).click();
+    await page.getByRole("button", { name: "Post-Side", exact: true }).click();
     await expect(page.getByRole("radio", { name: "Post-Side 1" })).toBeChecked();
     await page.getByRole("radio", { name: "Post-Side 1" }).focus();
     await page.keyboard.press("ArrowLeft");

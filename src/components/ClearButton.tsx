@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IconButton, type IconName } from "./IconButton";
 
 interface Props {
   /** Button text, e.g. "Clear Main Deck". */
@@ -7,6 +8,8 @@ interface Props {
   message: string;
   /** Optional count shown at the right of the label, e.g. cards in the deck. */
   detail?: number;
+  /** Show an icon-only button (the label becomes its tooltip and accessible name). */
+  icon?: IconName;
   disabled?: boolean;
   className?: string;
   onConfirm: () => void;
@@ -20,6 +23,7 @@ export function ClearButton({
   label,
   message,
   detail,
+  icon,
   disabled,
   className,
   onConfirm,
@@ -27,6 +31,17 @@ export function ClearButton({
   const [confirming, setConfirming] = useState(false);
 
   if (!confirming) {
+    if (icon) {
+      return (
+        <IconButton
+          icon={icon}
+          label={label}
+          className={className}
+          disabled={disabled}
+          onClick={() => setConfirming(true)}
+        />
+      );
+    }
     return (
       <button
         type="button"

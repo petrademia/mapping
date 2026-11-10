@@ -34,8 +34,8 @@ export function DeckSection({ doc, section, catalog, onChange }: Props) {
         <p>{sectionSize(cards)} cards</p>
         {cards.length > 0 ? (
           <ClearButton
-            label="Clear"
-            className="ghost"
+            label={`Clear ${TITLES[section]}`}
+            icon="trash"
             message={`Remove all ${sectionSize(cards)} cards from the ${TITLES[section]}?`}
             onConfirm={() => onChange(clearSection(doc, section))}
           />

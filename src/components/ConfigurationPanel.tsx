@@ -17,6 +17,7 @@ import {
   setConfigurationNotes,
 } from "../lib/configuration";
 import { sectionSize, type MappingDocument } from "../lib/document";
+import { Icon } from "./IconButton";
 
 export const CONFIGURATION_PANEL_ID = "deck-configuration";
 
@@ -197,7 +198,7 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
             focusSelectedChip();
           }}
         >
-          + Post-Side
+          <Icon name="plus" /> Post-Side
         </button>
       </div>
       <p className="note configuration-hint">
@@ -284,7 +285,7 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
                             aria-disabled={main <= 0}
                             onClick={() => main > 0 && set(main - 1)}
                           >
-                            {"−"}
+                            <Icon name="minus" />
                           </button>
                           <span className="qty-value">{main}</span>
                           <button
@@ -293,7 +294,7 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
                             aria-disabled={main >= card.quantity}
                             onClick={() => main < card.quantity && set(main + 1)}
                           >
-                            +
+                            <Icon name="plus" />
                           </button>
                           {changed ? (
                             <span className="change-badge" title="Changed from Pre-Side">

@@ -3,6 +3,7 @@ import { displayName } from "../lib/catalog";
 import { CardThumb } from "./CardThumb";
 import type { MappingCard } from "../lib/document";
 import type { OpeningQualityValue, Role } from "../lib/taxonomy";
+import { IconButton } from "./IconButton";
 import { OpeningQualityEditor } from "./OpeningQualityEditor";
 import { QuantityEditor } from "./QuantityEditor";
 import { RoleEditor } from "./RoleEditor";
@@ -52,9 +53,11 @@ export function CardRow({
         />
       </td>
       <td>
-        <button type="button" className="ghost" onClick={onRemove}>
-          Remove
-        </button>
+        <IconButton
+          icon="trash"
+          label={`Remove ${displayName(card.card_id, card.name, catalog)}`}
+          onClick={onRemove}
+        />
       </td>
     </tr>
   );

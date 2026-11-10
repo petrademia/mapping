@@ -34,6 +34,14 @@ describe("default deck", () => {
     expect(doc.configurations).toEqual([]);
   });
 
+  it("keeps Extra and Side cards when a ydk has them, like the bundled file's layout", () => {
+    // The bundled file has an empty !side section; a deck with side cards must keep them.
+    const withSide = deckFromYdkText(`${ydkText.trimEnd()}\n24224830\n24224830\n`);
+    expect(sectionSize(withSide.side)).toBe(2);
+    expect(sectionSize(withSide.extra)).toBe(sectionSize(doc.extra));
+    expect(sectionSize(withSide.main)).toBe(sectionSize(doc.main));
+  });
+
   it("reads explicit sections from ydk text", () => {
     const small = deckFromYdkText("#main\n1\n1\n#extra\n2\n!side\n3\n");
     expect(small.main).toEqual([expect.objectContaining({ card_id: 1, quantity: 2 })]);

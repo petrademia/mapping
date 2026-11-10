@@ -610,6 +610,31 @@ h1 {
 .pick-remove { padding: 0.15rem 0.3rem; font-size: 0.8rem; }
 .pick-remove:disabled { opacity: 0.4; cursor: default; }
 
+.pass-mark { display: inline-flex; vertical-align: -0.2em; margin-right: 0.15rem; }
+.pass-mark.pass { color: #9cc58c; }
+.pass-mark.fail { color: #e08f7e; }
+.qty button { display: inline-flex; align-items: center; justify-content: center; }
+.qty svg { display: block; }
+button svg { flex: none; vertical-align: -0.15em; }
+
+/* Icon-only buttons: a square target with the tooltip as its label. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-color: transparent;
+  color: var(--muted);
+}
+.icon-button:hover:not(:disabled) { border-color: currentColor; color: var(--mist); }
+.icon-button:disabled { opacity: 0.4; cursor: default; }
+.deck-section .icon-button { color: #4b5548; }
+.deck-section .icon-button:hover:not(:disabled) { color: var(--ink); border-color: #4b5548; }
+.pick-remove.icon-button { width: 100%; height: 1.75rem; border-color: var(--line); }
+@media (pointer: coarse) { .icon-button { width: 2.75rem; height: 2.75rem; } }
+
 .hand-batch-controls { align-items: end; flex-wrap: wrap; }
 .hand-batch-controls label { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); }
 .hand-batch-controls input { width: 5.5rem; }
