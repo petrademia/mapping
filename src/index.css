@@ -1397,3 +1397,17 @@ input::placeholder, textarea::placeholder { color: #6f6657; opacity: 1; }
 .workspace-nav .context-chip { padding: 0.55rem 0.95rem; }
 
 .context-presets .chip.context-chip, .analysis-context-panel .context-chip { padding: 0.5rem 0.8rem; }
+
+/* Compare decks. */
+.compare-names { margin: 0.6rem 0 0.2rem; }
+.compare-table { width: 100%; border-collapse: collapse; margin: 0.6rem 0 1rem; font-size: 0.9rem; }
+.compare-table caption { text-align: left; font-family: "Young Serif", ui-serif, serif; font-size: 1rem; padding: 0.3rem 0; }
+.compare-table th, .compare-table td { padding: 0.45rem 0.4rem; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.compare-table thead th { border-top: 0; font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.compare-table tbody th { font-weight: 600; }
+.compare-table .num { font-variant-numeric: tabular-nums; }
+.compare-table .num .odds-fraction { display: block; font-size: 0.68rem; color: var(--muted); font-family: "Red Hat Mono", ui-monospace, monospace; }
+.compare-table .delta { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; color: var(--muted); }
+.compare-table .delta.gain { color: var(--pass); }
+.compare-table .delta.loss { color: var(--fail); }
+

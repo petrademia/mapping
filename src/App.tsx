@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
+import { ComparePanel } from "./components/ComparePanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
@@ -43,7 +44,7 @@ import {
 import { observedCards } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank";
+type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare";
 
 const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "profile", label: "Profile" },
@@ -51,6 +52,7 @@ const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "hand-test", label: "Hand Test" },
   { key: "batch", label: "Many hands" },
   { key: "rank", label: "Rank" },
+  { key: "compare", label: "Compare" },
 ];
 
 const WORKSPACE_ID = "workspace";
@@ -402,6 +404,20 @@ export function App() {
                 requestAnimationFrame(() =>
                   document.getElementById("hand-test-top")?.scrollIntoView({ block: "start" }),
                 );
+              }}
+            />
+          ) : null}
+
+          {workspace === "compare" ? (
+            <ComparePanel
+              key={resetKey}
+              doc={view}
+              catalog={catalog}
+              onUse={(deck) => {
+                setDoc(deck);
+                setResetKey((key) => key + 1);
+                setTestedHand(null);
+                setStatus("Replaced the deck with the compared deck.");
               }}
             />
           ) : null}

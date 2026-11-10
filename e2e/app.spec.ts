@@ -332,6 +332,77 @@ test.describe("Binder Pages shell", () => {
   });
 });
 
+test.describe("Compare decks", () => {
+  // The default deck with its first three Main Deck cards removed.
+  function trimmedDefaultYdk(): string {
+    const lines = readFileSync("public/default.ydk", "utf8").split(/\r?\n/);
+    const mainAt = lines.findIndex((line) => line.trim() === "#main");
+    let removed = 0;
+    return lines
+      .filter((line, index) => {
+        if (index > mainAt && removed < 3 && /^\d+$/.test(line.trim())) {
+          removed += 1;
+          return false;
+        }
+        return true;
+      })
+      .join("\n");
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Compare" }).click();
+  });
+
+  test("starts empty and says what to do", async ({ page }) => {
+    await expect(page.getByText("No deck loaded to compare.")).toBeVisible();
+  });
+
+  test("loads a second deck and compares slots and the cards that differ", async ({ page }) => {
+    await page.locator('.compare-panel input[type="file"]').setInputFiles({
+      name: "slim.ydk",
+      mimeType: "text/plain",
+      buffer: Buffer.from(trimmedDefaultYdk()),
+    });
+    const results = page.getByLabel("Comparison");
+    await expect(results).toBeVisible();
+    await expect(results.getByRole("table", { name: "Slots" })).toBeVisible();
+    await expect(results.getByRole("row", { name: /Main Deck size/ })).toContainText(`${DEFAULT.main}`);
+    await expect(results.getByRole("row", { name: /Main Deck size/ })).toContainText(`${DEFAULT.main - 3}`);
+    await expect(results.getByRole("list", { name: "Cards the compared deck drops" }).locator("li").first()).toBeVisible();
+  });
+
+  test("compares Hand Goal odds with the exact hand count", async ({ page }) => {
+    // Define a goal that reads a card both decks hold.
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Models" }).click();
+    await page.getByRole("navigation", { name: "Models" }).getByRole("button", { name: "Hand Goals" }).click();
+    await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
+    await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
+    await page.locator('.engine-member input[type="checkbox"]').last().check();
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Compare" }).click();
+    await page.locator('.compare-panel input[type="file"]').setInputFiles({
+      name: "slim.ydk",
+      mimeType: "text/plain",
+      buffer: Buffer.from(trimmedDefaultYdk()),
+    });
+    const table = page.getByRole("table", { name: "Hand Goal odds" });
+    await expect(table).toBeVisible();
+    await expect(table.locator(".odds-fraction").first()).toContainText(/\d[\d,]* \/ [\d,]+/);
+    await expect(page.getByRole("table", { name: "Consistency" }).getByRole("row", { name: /Brick/ })).toBeVisible();
+  });
+
+  test("Use compared deck replaces the deck", async ({ page }) => {
+    await page.locator('.compare-panel input[type="file"]').setInputFiles({
+      name: "slim.ydk",
+      mimeType: "text/plain",
+      buffer: Buffer.from(trimmedDefaultYdk()),
+    });
+    await page.getByRole("button", { name: "Use compared deck" }).click();
+    await page.getByRole("button", { name: "Replace", exact: true }).click();
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.main - 3} main`);
+  });
+});
+
 test.describe("Models are card art", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);
