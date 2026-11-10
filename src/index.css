@@ -1218,3 +1218,9 @@ button svg { flex: none; vertical-align: -0.15em; }
 
 .deck-grid-section .hand-deck { margin: 0.5rem 0; }
 .deck-grid-section .hand-deck-grid { grid-template-columns: repeat(auto-fill, 76px); gap: 0.4rem; }
+
+.search-result.full { opacity: 0.5; cursor: default; }
+.search-result-count { font-size: 0.68rem; color: var(--muted); font-family: "Red Hat Mono", ui-monospace, monospace; }
+.card-search-panel .view-toggle { margin: 0; align-items: center; flex-wrap: wrap; }
+.card-search-panel select { margin-left: auto; }
+.deck-violations { border-color: #c0504d; background: color-mix(in srgb, #c0504d 14%, transparent); }

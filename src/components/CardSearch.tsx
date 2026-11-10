@@ -1,4 +1,11 @@
 import { useState } from "react";
+import {
+  allowedCopies,
+  copiesInDeck,
+  limitLabel,
+  type Banlist,
+  type Format,
+} from "../lib/banlist";
 import { displayName, searchCatalog, type Catalog } from "../lib/catalog";
 import { addCard, type DeckSection, type MappingDocument } from "../lib/document";
 import { routeSection, type ExtraDeckIds } from "../lib/sectionRouting";
@@ -8,6 +15,9 @@ interface Props {
   doc: MappingDocument;
   catalog: Catalog;
   extraIds: ExtraDeckIds;
+  banlist: Banlist;
+  format: Format;
+  onFormatChange: (format: Format) => void;
   onChange: (doc: MappingDocument) => void;
   onStatus: (message: string) => void;
 }
@@ -18,22 +28,56 @@ const SECTIONS: { key: DeckSection; label: string }[] = [
   { key: "extra", label: "Extra" },
   { key: "side", label: "Side" },
 ];
+const FORMATS: { key: Format; label: string }[] = [
+  { key: "ocg", label: "OCG list" },
+  { key: "tcg", label: "TCG list" },
+  { key: "ae", label: "AE list" },
+  { key: "none", label: "No list" },
+];
 
 /**
- * Card search beside the deck: type a name or passcode, click a card to add one
- * copy to the chosen section. Extra Deck monsters always land in the Extra Deck.
+ * Card search beside the deck. Main shows cards that belong in the Main Deck,
+ * Extra shows Extra Deck monsters, and Side shows everything; a click adds one
+ * copy to that section. A card never goes past 3 copies across Main, Extra and
+ * Side, or past the limit of the chosen forbidden and limited list.
  */
-export function CardSearch({ doc, catalog, extraIds, onChange, onStatus }: Props) {
+export function CardSearch({
+  doc,
+  catalog,
+  extraIds,
+  banlist,
+  format,
+  onFormatChange,
+  onChange,
+  onStatus,
+}: Props) {
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState<DeckSection>("main");
 
   const trimmed = query.trim();
-  const hits = trimmed === "" ? [] : searchCatalog(catalog, trimmed, RESULT_LIMIT);
+  const belongs = (id: number) =>
+    target === "side" || extraIds.size === 0 || extraIds.has(id) === (target === "extra");
+  const hits =
+    trimmed === ""
+      ? []
+      : searchCatalog(catalog, trimmed, 200)
+          .filter((hit) => belongs(hit.card_id))
+          .slice(0, RESULT_LIMIT);
   // A passcode missing from the catalog can still be added by its number.
   const numeric = /^\d+$/.test(trimmed) && Number(trimmed) > 0 ? Number(trimmed) : null;
   const unknownId = numeric !== null && !catalog.has(numeric) ? numeric : null;
 
   function add(cardId: number): void {
+    const label = displayName(cardId, catalog.get(cardId), catalog);
+    const allowed = allowedCopies(banlist, format, cardId);
+    if (copiesInDeck(doc, cardId) >= allowed) {
+      onStatus(
+        allowed === 0
+          ? `${label} is forbidden on the ${format.toUpperCase()} list.`
+          : `${label} is already at its limit of ${allowed} ${allowed === 1 ? "copy" : "copies"}.`,
+      );
+      return;
+    }
     const section = routeSection(target, cardId, extraIds, (id) => catalog.has(id));
     onChange(
       addCard(doc, section, {
@@ -46,11 +90,36 @@ export function CardSearch({ doc, catalog, extraIds, onChange, onStatus }: Props
         name: catalog.get(cardId),
       }),
     );
-    const label = displayName(cardId, catalog.get(cardId), catalog);
     onStatus(
       section === target
         ? `Added ${label}`
         : `Added ${label} to the ${section === "extra" ? "Extra" : "Main"} Deck`,
+    );
+  }
+
+  function renderResult(cardId: number, name: string) {
+    const allowed = allowedCopies(banlist, format, cardId);
+    const have = copiesInDeck(doc, cardId);
+    const full = have >= allowed;
+    const label = limitLabel(allowed);
+    return (
+      <li key={cardId}>
+        <button
+          type="button"
+          className={full ? "search-result full" : "search-result"}
+          title={`${name} (${cardId})`}
+          aria-label={`Add ${name}`}
+          aria-disabled={full}
+          onClick={() => add(cardId)}
+        >
+          <CardFrame cardId={cardId} />
+          <span className="search-result-name">{name}</span>
+          <span className="search-result-count">
+            {have}/{allowed}
+            {label ? ` · ${label}` : ""}
+          </span>
+        </button>
+      </li>
     );
   }
 
@@ -77,38 +146,26 @@ export function CardSearch({ doc, catalog, extraIds, onChange, onStatus }: Props
             {entry.label}
           </button>
         ))}
+        <select
+          aria-label="Forbidden and limited list"
+          value={format}
+          onChange={(event) => onFormatChange(event.target.value as Format)}
+        >
+          {FORMATS.map((entry) => (
+            <option key={entry.key} value={entry.key}>
+              {entry.label}
+            </option>
+          ))}
+        </select>
       </div>
       {trimmed !== "" && hits.length === 0 && unknownId === null ? (
-        <p className="empty">No card matches.</p>
+        <p className="empty">
+          No {target === "main" ? "Main Deck" : target === "extra" ? "Extra Deck" : ""} card matches.
+        </p>
       ) : null}
       <ul className="search-results">
-        {hits.map((hit) => (
-          <li key={hit.card_id}>
-            <button
-              type="button"
-              className="search-result"
-              title={`${hit.name} (${hit.card_id})`}
-              aria-label={`Add ${hit.name}`}
-              onClick={() => add(hit.card_id)}
-            >
-              <CardFrame cardId={hit.card_id} />
-              <span className="search-result-name">{hit.name}</span>
-            </button>
-          </li>
-        ))}
-        {unknownId !== null ? (
-          <li>
-            <button
-              type="button"
-              className="search-result"
-              aria-label={`Add passcode ${unknownId}`}
-              onClick={() => add(unknownId)}
-            >
-              <CardFrame cardId={unknownId} />
-              <span className="search-result-name">Passcode {unknownId}</span>
-            </button>
-          </li>
-        ) : null}
+        {hits.map((hit) => renderResult(hit.card_id, hit.name))}
+        {unknownId !== null ? renderResult(unknownId, `Passcode ${unknownId}`) : null}
       </ul>
     </section>
   );

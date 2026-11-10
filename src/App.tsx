@@ -5,6 +5,9 @@ import { ClearMenu } from "./components/ClearMenu";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
+import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
+import { download, slug } from "./lib/download";
+import { serializeYdk } from "./lib/ydk";
 import { loadDefaultDeck } from "./lib/defaultDeck";
 import type { TestedHand } from "./lib/handTest";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
@@ -65,6 +68,23 @@ export function App() {
   const [catalog, setCatalog] = useState<Catalog>(new Map());
   const [imageIds, setImageIds] = useState<CardImageIds>(new Set());
   const [extraIds, setExtraIds] = useState<ExtraDeckIds>(new Set());
+  const [banlist, setBanlist] = useState<Banlist>({});
+  const [format, setFormat] = useState<Format>(() => {
+    try {
+      const saved = localStorage.getItem("mapping.format");
+      return saved === "tcg" || saved === "ae" || saved === "none" ? saved : "ocg";
+    } catch {
+      return "ocg";
+    }
+  });
+  const changeFormat = (next: Format) => {
+    setFormat(next);
+    try {
+      localStorage.setItem("mapping.format", next);
+    } catch {
+      /* the choice just will not persist */
+    }
+  };
   // Bumped by Clear everything so workspace panels drop their local state.
   const [resetKey, setResetKey] = useState(0);
   // The hand being tested; lives here so the Many hands tab can open one in Hand Test.
@@ -140,6 +160,7 @@ export function App() {
     void loadCatalog().then(setCatalog);
     void loadCardImageIds().then(setImageIds);
     void loadExtraDeckIds().then(setExtraIds);
+    void loadBanlist().then(setBanlist);
   }, []);
 
   return (
@@ -186,6 +207,19 @@ export function App() {
               onConfirm={loadDefault}
             />
             <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                download(
+                  `${slug(doc.name)}.ydk`,
+                  serializeYdk({ main: view.main, extra: view.extra, side: view.side }),
+                );
+                setStatus("Saved YDK");
+              }}
+            >
+              Save YDK
+            </button>
           </div>
         </div>
       </header>
@@ -221,6 +255,9 @@ export function App() {
           doc={doc}
           catalog={catalog}
           extraIds={extraIds}
+          banlist={banlist}
+          format={format}
+          onFormatChange={changeFormat}
           onChange={setDoc}
           onStatus={setStatus}
           handTest={handTestView}

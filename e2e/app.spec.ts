@@ -74,20 +74,47 @@ test("card search finds the newest cards, even from a partial phrase", async ({ 
   await expect(page.locator(".search-results")).toContainText(
     "Ars Magna Academic Arcane Apparition Acropolis",
   );
+  // Omega Vidolium is an Extra Deck monster: Main hides it, Extra shows it.
   await search.fill("omega vidolium");
+  await expect(page.locator(".search-results")).not.toContainText("Omega Vidolium");
+  await page.getByRole("group", { name: "Add to" }).getByRole("button", { name: "Extra" }).click();
   await expect(page.locator(".search-results")).toContainText("Omega Vidolium the Power Patron of Heaven's End");
 });
 
-test("an Extra Deck monster added with Main selected goes to the Extra Deck", async ({ page }) => {
+test("an Extra Deck monster is added to the Extra Deck from the Extra filter", async ({ page }) => {
   await openApp(page);
   await page.getByRole("button", { name: "New deck" }).click();
   await expect(page.locator(".counts")).toContainText("0 extra");
 
-  await expect(page.getByRole("button", { name: "Main", exact: true }).first()).toBeVisible();
+  await page.getByRole("group", { name: "Add to" }).getByRole("button", { name: "Extra" }).click();
   await addCardBySearch(page, "omega vidolium");
 
-  await expect(page.getByRole("status").filter({ hasText: "to the Extra Deck" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Added Omega Vidolium" })).toBeVisible();
   await expect(page.locator(".counts")).toContainText("1 extra");
+  await expect(page.locator(".counts")).toContainText("0 main");
+});
+
+test("a card cannot go past 3 copies across Main, Extra and Side", async ({ page }) => {
+  await openApp(page);
+  await page.getByRole("button", { name: "New deck" }).click();
+  await page.getByLabel("Forbidden and limited list").selectOption("none");
+  await page.getByLabel("Card name or passcode").fill("vidolium unstable");
+  const result = page.locator(".search-result").first();
+  // A full card is aria-disabled; force the click to prove the app refuses it.
+  for (let copy = 0; copy < 4; copy += 1) await result.click({ force: true });
+  await expect(page.locator(".counts")).toContainText("3 main");
+  await expect(page.getByRole("status").filter({ hasText: "limit of 3" })).toBeVisible();
+});
+
+test("a forbidden card cannot be added under the OCG list", async ({ page }) => {
+  await openApp(page);
+  await page.getByRole("button", { name: "New deck" }).click();
+  await page.getByLabel("Forbidden and limited list").selectOption("ocg");
+  // Abyss Dweller is an Extra Deck monster, so look under Side, which shows every card.
+  await page.getByRole("group", { name: "Add to" }).getByRole("button", { name: "Side" }).click();
+  await page.getByLabel("Card name or passcode").fill("21044178");
+  await page.locator(".search-result").first().click({ force: true });
+  await expect(page.getByRole("status").filter({ hasText: "forbidden" })).toBeVisible();
   await expect(page.locator(".counts")).toContainText("0 main");
 });
 

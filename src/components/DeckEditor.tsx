@@ -9,29 +9,52 @@ import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
 import { DeckGrid, type HandTestView } from "./DeckGrid";
 import { CardSearch } from "./CardSearch";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
+import { deckViolations, limitLabel, type Banlist, type Format } from "../lib/banlist";
+import { displayName } from "../lib/catalog";
 
 interface Props {
   doc: MappingDocument;
   catalog: Catalog;
   extraIds: ExtraDeckIds;
+  banlist: Banlist;
+  format: Format;
+  onFormatChange: (format: Format) => void;
   onChange: (doc: MappingDocument) => void;
   onStatus: (message: string) => void;
   /** Set while Hand Test is open: the Main Deck shows the shuffled hand. */
   handTest?: HandTestView | null;
 }
 
-export function DeckEditor({ doc, catalog, extraIds, onChange, onStatus, handTest }: Props) {
+export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatChange, onChange, onStatus, handTest }: Props) {
   const active = findConfiguration(doc, doc.active_configuration_id);
+  const violations = deckViolations(doc, banlist, format);
   return (
     <div className="deck-editor-layout">
     <CardSearch
       doc={doc}
       catalog={catalog}
       extraIds={extraIds}
+      banlist={banlist}
+      format={format}
+      onFormatChange={onFormatChange}
       onChange={onChange}
       onStatus={onStatus}
     />
     <div className="deck-editor" id={DECK_LIST_ID}>
+      {violations.length > 0 ? (
+        <p className="deck-editor-banner deck-violations" role="alert">
+          This deck breaks the {format.toUpperCase()} list:{" "}
+          {violations
+            .map((v) => {
+              const name = displayName(v.card_id, doc.main.concat(doc.extra, doc.side).find((c) => c.card_id === v.card_id)?.name, catalog);
+              return v.allowed === 0
+                ? `${name} is forbidden`
+                : `${name} has ${v.copies} copies, ${limitLabel(v.allowed) || "max 3"} allows ${v.allowed}`;
+            })
+            .join("; ")}
+          .
+        </p>
+      ) : null}
       {active ? (
         <p className="deck-editor-banner" role="note">
           This list is <strong>Pre-Side</strong>. Analysis is showing{" "}

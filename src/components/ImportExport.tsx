@@ -12,22 +12,8 @@ import {
   routeParsed,
   type ExtraDeckIds,
 } from "../lib/sectionRouting";
-import { parseDeckText, serializeYdk } from "../lib/ydk";
-
-function download(filename: string, text: string): void {
-  const blob = new Blob([text], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
-function slug(name: string): string {
-  const cleaned = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
-  return cleaned.replace(/^_+|_+$/g, "") || "deck";
-}
+import { download, slug } from "../lib/download";
+import { parseDeckText } from "../lib/ydk";
 
 interface Props {
   doc: MappingDocument;
@@ -95,20 +81,6 @@ export function ImportExport({
         onClick={() => download(`${slug(doc.name)}.mapping.json`, serializeMapping(doc))}
       >
         Save mapping
-      </button>
-      <button
-        type="button"
-        className="primary"
-        onClick={() => {
-          download(`${slug(doc.name)}.ydk`, serializeYdk({
-            main: exportDoc.main,
-            extra: exportDoc.extra,
-            side: exportDoc.side,
-          }));
-          onStatus("Saved YDK");
-        }}
-      >
-        Save YDK
       </button>
       <button
         type="button"
