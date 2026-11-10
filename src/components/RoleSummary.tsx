@@ -23,7 +23,7 @@ const QUALITY_LABELS: Record<OpeningQualityBucket, string> = {
   desirable: "desirable",
   neutral: "neutral",
   undesirable: "undesirable",
-  unclassified: "unclassified",
+  unclassified: "not set",
 };
 
 interface Props {
@@ -97,7 +97,7 @@ export function RoleSummary({ doc }: Props) {
       <h3 className="panel-subhead">Opening quality slots</h3>
       <p className="note">
         Mutually exclusive per card entry, evaluated per turn order. Counts
-        should sum to main deck size when including unclassified (GF{" "}
+        should sum to main deck size when including not set (GF{" "}
         {qualitySlotSumGF} / {deck}; GS {qualitySlotSumGS} / {deck}).
       </p>
       <p className="panel-subhead">Going First</p>

@@ -4,8 +4,8 @@ import { displayName, searchCatalog } from "../lib/catalog";
 import {
   addCard,
   addFromParsed,
-  documentFromParsed,
   parseMappingJson,
+  replaceDeck,
   serializeMapping,
   type DeckSection,
   type MappingDocument,
@@ -66,9 +66,17 @@ export function ImportExport({
         onStatus(`Loaded MAPPING JSON (${filename})`);
         return;
       }
-      const name = filename.replace(/\.(ydk|txt|json)$/i, "") || doc.name;
-      onChange(documentFromParsed(name, parseDeckText(trimmed), catalog));
-      onStatus(`Imported deck list (${filename})`);
+      // A deck list replaces the cards only; models stay.
+      const fromPaste = filename === "paste";
+      const name = fromPaste
+        ? undefined
+        : filename.replace(/\.(ydk|txt|json)$/i, "") || undefined;
+      onChange(replaceDeck(doc, parseDeckText(trimmed), name));
+      onStatus(
+        fromPaste
+          ? "Replaced the deck. Groups and Hand Conditions were kept."
+          : `Loaded ${filename}. Groups and Hand Conditions were kept.`,
+      );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Import failed";
       onStatus(message);
@@ -227,24 +235,30 @@ export function ImportExport({
         <button type="submit">Add card</button>
       </form>
       <details className="paste">
-        <summary>Paste deck or add lines</summary>
+        <summary>Paste a deck list</summary>
         <textarea
           value={paste}
           onChange={(event) => setPaste(event.target.value)}
           placeholder={"62962630 3\n44362883 1\n#extra\n44146295 1"}
+          aria-label="Deck list to paste"
         />
+        <p className="note">
+          Replace deck swaps the cards and keeps your Groups, Hand Conditions
+          and Hand Goals. Add to deck keeps everything and appends.
+        </p>
         <button
           type="button"
+          disabled={paste.trim() === ""}
           onClick={() => {
             importText(paste, "paste");
             setPaste("");
           }}
         >
-          Import paste
+          Replace deck
         </button>
         <button
           type="button"
-          className="primary"
+          disabled={paste.trim() === ""}
           onClick={() => {
             try {
               const { sections, moved } = routeParsed(
@@ -255,18 +269,18 @@ export function ImportExport({
               onChange(addFromParsed(doc, sections));
               setPaste("");
               onStatus(
-                `Added lines to deck (default section: ${addSection})${
+                `Added the pasted cards (cards without a #section go to ${addSection})${
                   moved > 0 ? `; moved ${moved} to the right section` : ""
                 }`,
               );
             } catch (caught) {
               onStatus(
-                caught instanceof Error ? caught.message : "Add lines failed",
+                caught instanceof Error ? caught.message : "Could not add the pasted cards",
               );
             }
           }}
         >
-          Add lines
+          Add to deck
         </button>
       </details>
     </div>

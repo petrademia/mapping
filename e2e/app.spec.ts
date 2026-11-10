@@ -147,6 +147,38 @@ test.describe("Hand Test", () => {
   });
 });
 
+test.describe("Paste a deck list", () => {
+  async function pasteList(page: Page, text: string): Promise<void> {
+    await page.getByText("Paste a deck list").click();
+    await page.getByLabel("Deck list to paste").fill(text);
+  }
+
+  test("Replace deck swaps the cards and keeps the name", async ({ page }) => {
+    await openApp(page);
+    await pasteList(page, "#main\n70488851\n70488851\n#extra\n90917401\n!side\n24224830");
+    await page.getByRole("button", { name: "Replace deck" }).click();
+    await expect(page.locator(".counts")).toContainText("2 main");
+    await expect(page.locator(".counts")).toContainText("1 extra");
+    await expect(page.locator(".counts")).toContainText("1 side");
+    await expect(page.getByLabel("Deck", { exact: true })).toHaveValue("default deck");
+  });
+
+  test("Add to deck appends and sends Extra Deck monsters to Extra", async ({ page }) => {
+    await openApp(page);
+    await pasteList(page, "90917401 1\n70488851 1");
+    await page.getByRole("button", { name: "Add to deck" }).click();
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.main + 1} main`);
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra + 1} extra`);
+  });
+
+  test("the buttons stay disabled until there is something to paste", async ({ page }) => {
+    await openApp(page);
+    await page.getByText("Paste a deck list").click();
+    await expect(page.getByRole("button", { name: "Replace deck" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Add to deck" })).toBeDisabled();
+  });
+});
+
 test.describe("Clear menu", () => {
   test("clears one section after confirming, and cancel keeps the cards", async ({ page }) => {
     await openApp(page);

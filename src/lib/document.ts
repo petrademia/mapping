@@ -255,6 +255,33 @@ export function setQuantity(
   return replaceSection(doc, section, cards);
 }
 
+/**
+ * Replace the card lists with a parsed deck. Groups, Hand Conditions and Hand
+ * Goals stay (they name cards by id), and Post-Side lists are dropped because
+ * they only describe the old pool. No card names are stored, so names follow
+ * the catalog.
+ */
+export function replaceDeck(
+  doc: MappingDocument,
+  parsed: {
+    main: { card_id: number; quantity: number }[];
+    extra: { card_id: number; quantity: number }[];
+    side: { card_id: number; quantity: number }[];
+  },
+  name?: string,
+): MappingDocument {
+  const fresh = documentFromParsed(name ?? doc.name, parsed, new Map());
+  return {
+    ...doc,
+    name: fresh.name,
+    main: fresh.main,
+    extra: fresh.extra,
+    side: fresh.side,
+    configurations: [],
+    active_configuration_id: null,
+  };
+}
+
 /** Remove every card from one deck section. Other sections and models stay. */
 export function clearSection(
   doc: MappingDocument,

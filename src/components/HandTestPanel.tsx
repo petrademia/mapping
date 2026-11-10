@@ -42,7 +42,7 @@ const QUALITY_LABELS: { key: "desirable" | "neutral" | "undesirable" | "unclassi
   { key: "desirable", label: "Desirable" },
   { key: "neutral", label: "Neutral" },
   { key: "undesirable", label: "Undesirable" },
-  { key: "unclassified", label: "Unclassified" },
+  { key: "unclassified", label: "Not set" },
 ];
 
 function formatPercent(value: number): string {

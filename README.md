@@ -37,7 +37,7 @@ Role                    Opening Quality (per turn order)
 - `null` means the user has not evaluated opening quality in that context.
 - `neutral` means the user evaluated it and considers it neither desirable nor
   undesirable in that context.
-- `unclassified` (`null`) is **not** the same as `neutral`: neutral is an
+- `unclassified` (`null`, shown as **Not set** in the UI) is **not** the same as `neutral`: neutral is an
   intentional judgment.
 - Do not flatten these into one tag list. They have different meanings and constraints.
 - Annotations are **human deckbuilding hypotheses** for a specific deck/configuration: `Role(card, deck)`, not objective card properties.

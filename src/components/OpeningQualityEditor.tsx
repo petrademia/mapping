@@ -4,7 +4,7 @@ import type {
 } from "../lib/taxonomy";
 
 const OPTIONS: { value: OpeningQualityValue; label: string }[] = [
-  { value: null, label: "Unclassified" },
+  { value: null, label: "Not set" },
   { value: "desirable", label: "Desirable" },
   { value: "neutral", label: "Neutral" },
   { value: "undesirable", label: "Undesirable" },

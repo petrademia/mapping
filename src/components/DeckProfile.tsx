@@ -226,7 +226,7 @@ export function DeckProfile({ doc, onHandSize }: Props) {
               <h3>Annotation Coverage</h3>
               <p className="explorer-notation">
                 Opening Quality slots classified per turn order (physical
-                copies). Unclassified is incomplete annotation, not a neutral
+                copies). Not set means not judged yet, not a neutral
                 verdict.
               </p>
               <dl>
@@ -280,7 +280,7 @@ export function DeckProfile({ doc, onHandSize }: Props) {
                   <dd>{formatChance(profile.undesirableGe2)}</dd>
                 </div>
                 <div>
-                  <dt>Contains &gt;= 1 unclassified card</dt>
+                  <dt>Contains &gt;= 1 not-set card</dt>
                   <dd>{formatChance(profile.unclassifiedGe1)}</dd>
                 </div>
               </dl>
