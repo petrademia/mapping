@@ -5,11 +5,7 @@ import {
   summarizeBatch,
   type BatchHand,
 } from "../lib/handBatch";
-import {
-  analysisContextLabel,
-  observedCards,
-  sampleSizeDescription,
-} from "../lib/analysisContext";
+import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { CardThumb } from "./CardThumb";
