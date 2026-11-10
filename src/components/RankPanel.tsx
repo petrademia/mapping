@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import { useState, type DragEvent, type KeyboardEvent } from "react";
 import { observedCards } from "../lib/analysisContext";
 import { computeCardImpact } from "../lib/cardImpact";
 import {
@@ -14,8 +14,7 @@ import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { sectionSize, type MappingDocument } from "../lib/document";
 import { groupsToMembership } from "../lib/handCondition";
-import { CardThumb } from "./CardThumb";
-import { Icon, IconButton } from "./IconButton";
+import { CardFrame } from "./HandImages";
 
 interface Props {
   /** The Pre-Side document: a rank orders the cards of the deck list. */
@@ -30,22 +29,71 @@ interface ListProps extends Props {
 }
 
 function RankList({ doc, catalog, onChange, context, label }: ListProps) {
+  const [grabbed, setGrabbed] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [announce, setAnnounce] = useState("");
 
   const order = rankFor(doc, context);
   const byId = new Map(doc.main.map((card) => [card.card_id, card]));
   const ranked = isRanked(doc, context);
-
-  const commit = (next: number[]) => onChange(setRank(doc, context, next));
-  const endDrag = () => {
-    setDragIndex(null);
-    setOverIndex(null);
+  const nameOf = (id: number) => {
+    const card = byId.get(id);
+    return card ? displayName(card.card_id, card.name, catalog) : String(id);
   };
 
-  function onDrop(event: DragEvent<HTMLLIElement>, to: number) {
+  function place(from: number, to: number) {
+    if (from === to) return;
+    const next = moveItem(order, from, to);
+    onChange(setRank(doc, context, next));
+    const id = order[from]!;
+    const position = next.indexOf(id) + 1;
+    setAnnounce(`Moved ${nameOf(id)} to position ${position} of ${next.length}`);
+  }
+
+  function endDrag() {
+    setDragIndex(null);
+    setOverIndex(null);
+  }
+
+  function onTileClick(id: number, index: number) {
+    if (grabbed === null) {
+      setGrabbed(id);
+      setAnnounce(`Picked up ${nameOf(id)}. Click where it should go, or use the arrow keys.`);
+    } else if (grabbed === id) {
+      setGrabbed(null);
+    } else {
+      place(order.indexOf(grabbed), index);
+      setGrabbed(null);
+    }
+  }
+
+  function onTileKey(event: KeyboardEvent<HTMLButtonElement>, id: number, index: number) {
+    if (grabbed !== id) return;
+    const last = order.length - 1;
+    const target =
+      event.key === "ArrowLeft" || event.key === "ArrowUp"
+        ? index - 1
+        : event.key === "ArrowRight" || event.key === "ArrowDown"
+          ? index + 1
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? last
+              : null;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setGrabbed(null);
+      return;
+    }
+    if (target === null) return;
     event.preventDefault();
-    if (dragIndex !== null && dragIndex !== to) commit(moveItem(order, dragIndex, to));
+    place(index, Math.max(0, Math.min(last, target)));
+  }
+
+  function onDrop(event: DragEvent<HTMLButtonElement>, to: number) {
+    event.preventDefault();
+    if (dragIndex !== null) place(dragIndex, to);
     endDrag();
   }
 
@@ -72,7 +120,7 @@ function RankList({ doc, catalog, onChange, context, label }: ListProps) {
         goal,
         groupsToMembership(doc.groups),
       );
-      commit(impact.rows.map((row) => row.card_id));
+      onChange(setRank(doc, context, impact.rows.map((row) => row.card_id)));
     } catch {
       /* hand larger than the deck: leave the order as it is */
     }
@@ -97,71 +145,71 @@ function RankList({ doc, catalog, onChange, context, label }: ListProps) {
           </button>
         </span>
       </header>
-      {ranked ? null : (
-        <p className="note">Not ranked yet: showing deck order. Drag a card to start.</p>
-      )}
-      <ol className="rank-list">
+      {ranked ? null : <p className="note">Not ranked yet: showing deck order.</p>}
+      <ol className="rank-grid">
         {order.map((id, index) => {
           const card = byId.get(id);
           if (!card) return null;
-          const name = displayName(card.card_id, card.name, catalog);
+          const name = nameOf(id);
           const classes = [
+            "rank-tile",
+            grabbed === id ? "grabbed" : "",
             dragIndex === index ? "dragging" : "",
             overIndex === index && dragIndex !== null && dragIndex !== index ? "drop-target" : "",
           ]
             .filter(Boolean)
             .join(" ");
           return (
-            <li
-              key={id}
-              className={classes || undefined}
-              draggable
-              onDragStart={(event) => {
-                setDragIndex(index);
-                event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("text/plain", String(id));
-              }}
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = "move";
-                if (overIndex !== index) setOverIndex(index);
-              }}
-              onDrop={(event) => onDrop(event, index)}
-              onDragEnd={endDrag}
-            >
-              <span className="rank-grip" aria-hidden="true">
-                <Icon name="grip" />
-              </span>
-              <span className="rank-pos">{index + 1}</span>
-              <CardThumb cardId={card.card_id} name={name} />
-              <span className="rank-name">
-                {name}
-                <span className="rank-copies">x{card.quantity}</span>
-              </span>
-              <IconButton
-                icon="up"
-                label={`Move ${name} up in ${label}`}
-                disabled={index === 0}
-                onClick={() => commit(moveItem(order, index, index - 1))}
-              />
-              <IconButton
-                icon="down"
-                label={`Move ${name} down in ${label}`}
-                disabled={index === order.length - 1}
-                onClick={() => commit(moveItem(order, index, index + 1))}
-              />
+            <li key={id}>
+              <button
+                type="button"
+                className={classes}
+                draggable
+                aria-pressed={grabbed === id}
+                aria-label={`${name}, rank ${index + 1} of ${order.length}`}
+                title={name}
+                onClick={() => onTileClick(id, index)}
+                onKeyDown={(event) => onTileKey(event, id, index)}
+                onDragStart={(event) => {
+                  setDragIndex(index);
+                  setGrabbed(null);
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", String(id));
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  if (overIndex !== index) setOverIndex(index);
+                }}
+                onDrop={(event) => onDrop(event, index)}
+                onDragEnd={endDrag}
+              >
+                <CardFrame cardId={card.card_id} name={name} />
+                <span className="rank-num" aria-hidden="true">
+                  {index + 1}
+                </span>
+                {card.quantity > 1 ? (
+                  <span className="rank-copies" aria-hidden="true">
+                    x{card.quantity}
+                  </span>
+                ) : null}
+              </button>
             </li>
           );
         })}
       </ol>
+      <p className="visually-hidden" role="status">
+        {announce}
+      </p>
     </section>
   );
 }
 
 /**
- * Two draggable lists, one per turn order, best card first. A preference order
- * you set by hand: it carries no weights and no probability reads it. Each
- * card also has up and down buttons, so reordering works from the keyboard.
+ * Two card grids in rank order, one per turn order, best card first. The big
+ * number on each card is its rank. Click a card, then click where it should go;
+ * or drag it; or press Space on a card and use the arrow keys. It is your
+ * preference order: no weights, and no probability reads it.
  */
 export function RankPanel({ doc, catalog, onChange }: Props) {
   return (
@@ -171,8 +219,9 @@ export function RankPanel({ doc, catalog, onChange }: Props) {
         <p>{sectionSize(doc.main)} cards</p>
       </header>
       <p className="note">
-        Put the cards you most want to draw first. Keep a separate order for
-        going first and going second. It is your preference order, not a score.
+        Order the cards you most want to draw, best first, for going first and
+        going second. Click a card, then click where it should go, or drag it.
+        With the keyboard, press Space on a card and use the arrow keys.
       </p>
       {doc.main.length === 0 ? (
         <p className="empty">Add Main Deck cards to rank them.</p>

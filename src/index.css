@@ -617,31 +617,60 @@ h1 {
 .qty svg { display: block; }
 button svg { flex: none; vertical-align: -0.15em; }
 
-.rank-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-@media (max-width: 1280px) { .rank-columns { grid-template-columns: minmax(0, 1fr); } }
+/* The two ranks stack: each is a full-width grid of card art in rank order. */
+.rank-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
 .rank-list-block > header { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
 .rank-actions { display: inline-flex; gap: 0.4rem; }
 .rank-actions button { padding: 0.2rem 0.5rem; font-size: 0.85rem; }
 .rank-actions button:disabled { opacity: 0.5; cursor: default; }
-.rank-list { list-style: none; margin: 0.4rem 0; padding: 0; display: grid; gap: 0.25rem; }
-.rank-list li {
+.rank-grid {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: 1rem 1.6rem 28px minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.4rem;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: #1c221e;
+  grid-template-columns: repeat(auto-fill, 64px);
+  gap: 0.45rem;
+}
+.rank-grid li { min-width: 0; }
+.rank-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: grab;
 }
-.rank-list li.dragging { opacity: 0.45; }
-.rank-list li.drop-target { border-color: var(--brass); box-shadow: 0 -2px 0 var(--brass); }
-.rank-grip { color: var(--muted); display: inline-flex; }
-.rank-pos { font-family: "Red Hat Mono", ui-monospace, monospace; color: var(--brass-text); text-align: right; }
-.rank-list .card-thumb { width: 28px; height: 41px; }
-.rank-name { display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
-.rank-copies { font-size: 0.8rem; color: var(--muted); }
+.rank-tile .hand-image-frame { transition: transform 120ms ease-out, box-shadow 120ms ease-out; }
+.rank-tile:hover .hand-image-frame { transform: translateY(-2px); }
+.rank-tile.grabbed .hand-image-frame { box-shadow: 0 0 0 3px var(--brass); transform: translateY(-4px); }
+.rank-tile.dragging { opacity: 0.4; }
+.rank-tile.drop-target .hand-image-frame { box-shadow: 0 0 0 3px var(--mist); }
+.rank-num {
+  position: absolute;
+  left: 0.2rem;
+  top: 0.2rem;
+  min-width: 1.5rem;
+  padding: 0.02rem 0.3rem;
+  border-radius: 3px;
+  background: #171b18;
+  border: 1px solid var(--brass);
+  color: var(--brass-text);
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+}
+.rank-copies {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.2rem;
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  background: #171b18;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
 
 /* Icon-only buttons: a square target with the tooltip as its label. */
 .icon-button {

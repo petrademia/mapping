@@ -271,57 +271,81 @@ test.describe("Card Rank", () => {
     await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
   });
 
-  const names = (page: Page, label: string) =>
-    page.getByRole("region", { name: `${label} ranking` }).locator(".rank-name");
+  const region = (page: Page, label: string) =>
+    page.getByRole("region", { name: `${label} ranking` });
+  // Card names in rank order, read from each tile's tooltip.
+  const order = (page: Page, label: string) =>
+    region(page, label).locator(".rank-tile").evaluateAll((tiles) =>
+      tiles.map((tile) => tile.getAttribute("title")),
+    );
 
-  test("shows a list for going first and one for going second", async ({ page }) => {
-    await expect(page.getByRole("region", { name: "Going First ranking" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Going Second ranking" })).toBeVisible();
+  test("shows card art in rank order for going first and going second", async ({ page }) => {
+    await expect(region(page, "Going First")).toBeVisible();
+    await expect(region(page, "Going Second")).toBeVisible();
     await expect(page.getByText("Not ranked yet").first()).toBeVisible();
+    // Every tile carries its rank number, 1 upward.
+    const nums = await region(page, "Going First").locator(".rank-num").allInnerTexts();
+    expect(nums.slice(0, 3)).toEqual(["1", "2", "3"]);
   });
 
-  test("move buttons reorder one list and leave the other alone", async ({ page }) => {
-    const first = names(page, "Going First");
-    const second = names(page, "Going Second");
-    const before = await first.allInnerTexts();
-    expect(before.length).toBeGreaterThan(2);
+  test("lays the cards out as a grid, not a column of wrapped text", async ({ page }) => {
+    // Regression: the lists once sat in a narrow column and names wrapped letter by letter.
+    const tiles = region(page, "Going First").locator(".rank-tile");
+    const a = (await tiles.nth(0).boundingBox())!;
+    const b = (await tiles.nth(1).boundingBox())!;
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2); // side by side on one row
+    expect(b.x).toBeGreaterThan(a.x);
+    expect(a.width).toBeLessThan(100);
+    await expect(region(page, "Going First").locator(".rank-name")).toHaveCount(0);
+  });
 
-    await page
-      .getByRole("region", { name: "Going First ranking" })
-      .getByRole("button", { name: /^Move .* down in Going First$/ })
-      .first()
-      .click();
-
-    const after = await first.allInnerTexts();
-    expect(after[0]).toBe(before[1]);
+  test("click a card, then click where it should go", async ({ page }) => {
+    const before = await order(page, "Going First");
+    const tiles = region(page, "Going First").locator(".rank-tile");
+    await tiles.nth(3).click(); // pick up the 4th card
+    await expect(tiles.nth(3)).toHaveAttribute("aria-pressed", "true");
+    await tiles.nth(0).click(); // drop it at position 1
+    const after = await order(page, "Going First");
+    expect(after[0]).toBe(before[3]);
     expect(after[1]).toBe(before[0]);
-    expect((await second.allInnerTexts())[0]).toBe(before[0]);
+    // The other turn order is untouched.
+    expect((await order(page, "Going Second"))[0]).toBe(before[0]);
     await expect(page.getByText("Not ranked yet")).toHaveCount(1);
   });
 
   test("dragging a card reorders the list", async ({ page }) => {
-    const list = page.getByRole("region", { name: "Going Second ranking" });
-    const before = await names(page, "Going Second").allInnerTexts();
-    await list.locator("li").nth(3).dragTo(list.locator("li").nth(0));
-    const after = await names(page, "Going Second").allInnerTexts();
+    const tiles = region(page, "Going Second").locator(".rank-tile");
+    const before = await order(page, "Going Second");
+    await tiles.nth(3).dragTo(tiles.nth(0));
+    const after = await order(page, "Going Second");
     expect(after[0]).toBe(before[3]);
     expect(after[1]).toBe(before[0]);
   });
 
+  test("the keyboard moves a picked-up card with the arrow keys", async ({ page }) => {
+    const before = await order(page, "Going First");
+    const first = region(page, "Going First").locator(".rank-tile").first();
+    await first.focus();
+    await page.keyboard.press("Space"); // pick up
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Space"); // put down
+    const after = await order(page, "Going First");
+    expect(after[2]).toBe(before[0]);
+    expect(after[0]).toBe(before[1]);
+  });
+
   test("the order survives a reload and Reset puts a list back", async ({ page }) => {
-    const first = names(page, "Going First");
-    const before = await first.allInnerTexts();
-    await page
-      .getByRole("region", { name: "Going First ranking" })
-      .getByRole("button", { name: /^Move .* down in Going First$/ })
-      .first()
-      .click();
+    const before = await order(page, "Going First");
+    const tiles = region(page, "Going First").locator(".rank-tile");
+    await tiles.nth(1).click();
+    await tiles.nth(0).click();
     await page.reload();
     await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
-    expect((await first.allInnerTexts())[0]).toBe(before[1]);
+    expect((await order(page, "Going First"))[0]).toBe(before[1]);
 
-    await page.getByRole("region", { name: "Going First ranking" }).getByRole("button", { name: "Reset" }).click();
-    expect(await first.allInnerTexts()).toEqual(before);
+    await region(page, "Going First").getByRole("button", { name: "Reset" }).click();
+    expect(await order(page, "Going First")).toEqual(before);
   });
 });
 
