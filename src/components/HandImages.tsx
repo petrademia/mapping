@@ -14,15 +14,18 @@ interface Props {
   showRoles?: boolean;
 }
 
-/** A card-shaped frame with the local image, or an empty "No image" frame. */
-export function CardFrame({ cardId }: { cardId: number }) {
+/**
+ * A card-shaped frame with the local image. A card with no image yet shows its
+ * name in the frame, so it can still be told apart without hovering.
+ */
+export function CardFrame({ cardId, name }: { cardId: number; name?: string }) {
   const available = useCardImageIds();
   return (
     <span className="hand-image-frame">
       {available.has(cardId) ? (
         <img src={cardImageUrl(cardId)} alt="" loading="lazy" decoding="async" />
       ) : (
-        <span className="hand-image-missing">No image</span>
+        <span className="hand-image-missing">{name ?? "No image"}</span>
       )}
     </span>
   );
@@ -45,8 +48,9 @@ export function HandImages({ deck, counts, catalog, size = "md", showRoles = fal
         const name = displayName(card.card_id, card.name, catalog);
         return (
           <li key={`${card.card_id}-${index}`} title={name}>
-            <CardFrame cardId={card.card_id} />
-            <span className="hand-image-name">{name}</span>
+            <CardFrame cardId={card.card_id} name={name} />
+            {/* The name shows on hover (title) and is read out; it is not printed under the art. */}
+            <span className="visually-hidden">{name}</span>
             {showRoles && card.taxonomy.roles.length > 0 ? (
               <span className="hand-image-roles">
                 {card.taxonomy.roles

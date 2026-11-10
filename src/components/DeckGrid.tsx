@@ -178,7 +178,7 @@ export function DeckGrid({ doc, catalog, onChange }: Props) {
                         title={name}
                         onClick={() => toggle(section, card.card_id)}
                       >
-                        <CardFrame cardId={card.card_id} />
+                        <CardFrame cardId={card.card_id} name={name} />
                         {section !== "extra" ? <RolePips card={card} /> : null}
                         <span className="tile-name">{name}</span>
                       </button>

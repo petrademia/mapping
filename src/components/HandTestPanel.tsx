@@ -506,12 +506,11 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                   title={canAdd ? `Add ${name}` : `${name}: no more copies or the hand is full`}
                   onClick={() => canAdd && setCount(card.card_id, count + 1)}
                 >
-                  <CardFrame cardId={card.card_id} />
+                  <CardFrame cardId={card.card_id} name={name} />
                   <span className="pick-badge">
                     {count} / {card.quantity}
                   </span>
                 </button>
-                <span className="hand-image-name">{name}</span>
                 <IconButton
                   icon="minus"
                   className="pick-remove"

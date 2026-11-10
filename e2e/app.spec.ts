@@ -29,6 +29,36 @@ async function addCardBySearch(page: Page, query: string): Promise<void> {
   await page.getByRole("button", { name: "Add card" }).click();
 }
 
+function defaultDeckCards(): Record<"main" | "extra" | "side", Record<string, number>> {
+  const sections = { main: {}, extra: {}, side: {} } as Record<
+    "main" | "extra" | "side",
+    Record<string, number>
+  >;
+  let section: "main" | "extra" | "side" = "main";
+  for (const raw of readFileSync("public/default.ydk", "utf8").split(/\r?\n/)) {
+    const line = raw.trim().toLowerCase();
+    if (line === "#main") section = "main";
+    else if (line === "#extra") section = "extra";
+    else if (line === "!side" || line === "#side") section = "side";
+    else if (/^\d+$/.test(line)) sections[section][line] = (sections[section][line] ?? 0) + 1;
+  }
+  return sections;
+}
+
+test("the deck on first run is exactly the cards in default.ydk", async ({ page }) => {
+  await openApp(page);
+  const expected = defaultDeckCards();
+  const saved = await page.evaluate(() => {
+    const doc = JSON.parse(localStorage.getItem("mapping.document.v1")!);
+    const toMap = (cards: { card_id: number; quantity: number }[]) =>
+      Object.fromEntries(cards.map((c) => [String(c.card_id), c.quantity]));
+    return { main: toMap(doc.main), extra: toMap(doc.extra), side: toMap(doc.side) };
+  });
+  expect(saved.main).toEqual(expected.main);
+  expect(saved.extra).toEqual(expected.extra);
+  expect(saved.side).toEqual(expected.side);
+});
+
 test("first run loads the default deck from default.ydk", async ({ page }) => {
   await openApp(page);
   const counts = page.locator(".counts");
