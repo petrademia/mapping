@@ -18,6 +18,8 @@ interface Props {
     value: OpeningQualityValue,
   ) => void;
   onRemove: () => void;
+  /** False for the Extra Deck: those cards are never in an opening hand. */
+  showTaxonomy?: boolean;
 }
 
 export function CardRow({
@@ -27,6 +29,7 @@ export function CardRow({
   onRoles,
   onOpeningQuality,
   onRemove,
+  showTaxonomy = true,
 }: Props) {
   return (
     <tr>
@@ -46,11 +49,19 @@ export function CardRow({
         <QuantityEditor value={card.quantity} onChange={onQuantity} />
       </td>
       <td className="taxonomy-cell">
-        <RoleEditor roles={card.taxonomy.roles} onChange={onRoles} />
-        <OpeningQualityEditor
-          value={card.taxonomy.opening_quality}
-          onChange={onOpeningQuality}
-        />
+        {showTaxonomy ? (
+          <>
+            <RoleEditor roles={card.taxonomy.roles} onChange={onRoles} />
+            <OpeningQualityEditor
+              value={card.taxonomy.opening_quality}
+              onChange={onOpeningQuality}
+            />
+          </>
+        ) : (
+          <p className="empty">
+            Not drawn in the opening hand, so no role or opening quality.
+          </p>
+        )}
       </td>
       <td>
         <IconButton

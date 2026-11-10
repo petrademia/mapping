@@ -49,7 +49,7 @@ export function DeckSection({ doc, section, catalog, onChange }: Props) {
             <tr>
               <th>Card</th>
               <th>Qty</th>
-              <th>Taxonomy</th>
+              <th>{section === "extra" ? "" : "Taxonomy"}</th>
               <th></th>
             </tr>
           </thead>
@@ -59,6 +59,7 @@ export function DeckSection({ doc, section, catalog, onChange }: Props) {
                 key={card.card_id}
                 card={card}
                 catalog={catalog}
+                showTaxonomy={section !== "extra"}
                 onQuantity={(quantity) =>
                   onChange(setQuantity(doc, section, card.card_id, quantity))
                 }

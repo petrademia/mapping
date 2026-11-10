@@ -368,7 +368,7 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 
 - select Analysis Context (going first/second × opening hand / first cards seen)
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
-- edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
+- edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality on Main and Side cards (Extra Deck cards are never in an opening hand, so they have no taxonomy controls)
 - add cards by catalog name search or passcode; Extra Deck monsters (Fusion, Synchro, Xyz, Link, from `public/extra-deck.json`) are routed to the Extra Deck when Main is selected, Side is never rerouted; paste-add appends without replacing
 - define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Hand Goals (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-goal union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Hand Goals, with per-predicate traces and population probabilities

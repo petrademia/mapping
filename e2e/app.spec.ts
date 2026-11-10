@@ -147,6 +147,21 @@ test.describe("Hand Test", () => {
   });
 });
 
+test("Extra Deck cards have no role or opening quality controls", async ({ page }) => {
+  await openApp(page);
+  const section = (title: string) =>
+    page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: title }) });
+
+  // Main and Side cards are drawn or sided in, so they keep the controls.
+  await expect(section("Main Deck").getByText("Going First").first()).toBeVisible();
+  await expect(section("Side Deck").getByText("Going First").first()).toBeVisible();
+
+  // Extra Deck cards are never in an opening hand.
+  await expect(section("Extra Deck").getByText("Going First")).toHaveCount(0);
+  await expect(section("Extra Deck").getByText("Starter")).toHaveCount(0);
+  await expect(section("Extra Deck").getByText("Not drawn in the opening hand").first()).toBeVisible();
+});
+
 test.describe("Card Rank", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);
