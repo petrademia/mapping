@@ -14,7 +14,11 @@ public/cards/ is gitignored: card art is not redistributed from this repo.
 The app shows a placeholder for any card without a local image.
 
 Usage:
-  fetch-card-images.py [--demo] [FILE ...] [ID ...]
+  fetch-card-images.py [--demo] [--all] [FILE ...] [ID ...]
+
+--all fetches every card in the catalog (about 15,000 images, roughly 450 MB,
+about an hour at the throttled rate). It is resumable: stop it and run it again
+and existing files are skipped.
 
 FILE may be a .ydk, a MAPPING .json, or any text file; every number that is a
 known catalog id is fetched. A bare number is fetched as that card id.
@@ -114,15 +118,20 @@ def fetch(card_id: str, aliases: dict[str, str]) -> str:
 
 def main(argv: list[str]) -> int:
     args = argv[1:]
+    everything = "--all" in args
     explicit = [arg for arg in args if arg.isdigit()]
-    paths = [Path(arg) for arg in args if arg != "--demo" and not arg.isdigit()]
+    paths = [
+        Path(arg)
+        for arg in args
+        if arg not in ("--demo", "--all") and not arg.isdigit()
+    ]
     if "--demo" in args:
         paths.extend(DEMOS)
-    if not paths and not explicit:
+    if not paths and not explicit and not everything:
         print(__doc__)
         return 2
     known = set(json.loads(CATALOG.read_text(encoding="utf-8")))
-    ids = collect_ids(paths, known)
+    ids = sorted(known, key=int) if everything else collect_ids(paths, known)
     for card_id in explicit:
         if card_id not in known:
             print(f"warning: {card_id} is not in the catalog, skipping")
@@ -131,17 +140,35 @@ def main(argv: list[str]) -> int:
     aliases = load_aliases()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     counts: dict[str, int] = {}
-    for index, card_id in enumerate(ids, start=1):
-        status = fetch(card_id, aliases)
-        counts[status] = counts.get(status, 0) + 1
-        if status.startswith("downloaded"):
-            time.sleep(DELAY_SECONDS)
-        print(f"[{index}/{len(ids)}] {card_id} {status}")
+
+    def write_manifest() -> int:
+        # Lets the app render only images that exist (no 404 noise).
+        available = sorted(
+            int(p.stem) for p in OUT_DIR.glob("*.jpg") if p.stem.isdigit()
+        )
+        (OUT_DIR / "index.json").write_text(json.dumps(available), encoding="utf-8")
+        return len(available)
+
+    quiet = everything and len(ids) > 200
+    try:
+        for index, card_id in enumerate(ids, start=1):
+            status = fetch(card_id, aliases)
+            counts[status] = counts.get(status, 0) + 1
+            if status != "cached":
+                # Pace every request actually made, hits and misses alike.
+                time.sleep(DELAY_SECONDS)
+            if not quiet:
+                print(f"[{index}/{len(ids)}] {card_id} {status}")
+            elif index % 250 == 0:
+                print(f"[{index}/{len(ids)}] " + ", ".join(
+                    f"{n} {s}" for s, n in sorted(counts.items())
+                ), flush=True)
+                write_manifest()
+    finally:
+        # Keep progress if the run is stopped: the next run skips existing files.
+        total = write_manifest()
     print(", ".join(f"{n} {s}" for s, n in sorted(counts.items())))
-    # Manifest lets the app render only images that exist (no 404 noise).
-    available = sorted(int(p.stem) for p in OUT_DIR.glob("*.jpg") if p.stem.isdigit())
-    (OUT_DIR / "index.json").write_text(json.dumps(available), encoding="utf-8")
-    print(f"wrote manifest with {len(available)} images")
+    print(f"wrote manifest with {total} images")
     return 0
 
 

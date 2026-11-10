@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearMenu } from "./components/ClearMenu";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
+import { loadDefaultDeck } from "./lib/defaultDeck";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
 import {
   CardImagesContext,
@@ -48,6 +49,8 @@ function formatDelta(value: number): string {
 }
 
 export function App() {
+  // First run only: with no saved draft the deck comes from /default.ydk.
+  const [hadDraft] = useState(() => loadStored() !== null);
   const [doc, setDoc] = useState<MappingDocument>(
     () => loadStored() ?? createDocument("untitled"),
   );
@@ -69,6 +72,24 @@ export function App() {
   useEffect(() => {
     saveStored(doc);
   }, [doc]);
+
+  useEffect(() => {
+    if (hadDraft) return;
+    let cancelled = false;
+    void loadDefaultDeck().then((deck) => {
+      if (!deck || cancelled) return;
+      // Never replace cards the user already added while this loaded.
+      setDoc((current) =>
+        current.main.length + current.extra.length + current.side.length === 0
+          ? deck
+          : current,
+      );
+      setStatus("Loaded the default deck from default.ydk.");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hadDraft]);
 
   useEffect(() => {
     void loadCatalog().then(setCatalog);
