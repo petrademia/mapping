@@ -139,15 +139,14 @@ function DetailRow({
 export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set() }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
   // Drag a tile to reorder inside a section, or onto another section to move one copy.
-  // The ref is the source of truth for the handlers (always current, even between
-  // renders); the state only drives the visuals.
+  // The ref is the source of truth for the handlers. No state changes when a drag
+  // starts: re-rendering the dragged tile mid-start makes the browser cancel the
+  // drag, so the source is dimmed with a data attribute instead.
   const dragRef = useRef<Selection | null>(null);
-  const [drag, setDrag] = useState<Selection | null>(null);
   const [over, setOver] = useState<{ section: DeckSection; cardId: number | null } | null>(null);
 
   const endDrag = () => {
     dragRef.current = null;
-    setDrag(null);
     setOver(null);
   };
   const accepts = (section: DeckSection) => {
@@ -190,7 +189,7 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
         return (
           <section
             className={
-              drag && over?.section === section && over.cardId === null
+              over?.section === section && over.cardId === null
                 ? "deck-section deck-grid-section drop-end"
                 : "deck-section deck-grid-section"
             }
@@ -234,7 +233,7 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
                     <li
                       key={`${card.card_id}-${copy}`}
                       className={
-                        drag && over?.section === section && over.cardId === card.card_id && copy === 0
+                        over?.section === section && over.cardId === card.card_id && copy === 0
                           ? "drop-before"
                           : undefined
                       }
@@ -243,27 +242,19 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
                       onDragStart={(event) => {
                         event.dataTransfer.effectAllowed = "move";
                         event.dataTransfer.setData("text/plain", name);
-                        // Change the DOM after the browser has captured the drag
-                        // image; changing it inside dragstart can cancel the drag.
-                        const picked = { section, cardId: card.card_id };
-                        dragRef.current = picked;
-                        window.setTimeout(() => {
-                          setSelected(null);
-                          setDrag(picked);
-                        }, 0);
+                        dragRef.current = { section, cardId: card.card_id };
+                        const source = event.currentTarget;
+                        window.setTimeout(() => source.setAttribute("data-dragging", "true"), 0);
                       }}
-                      onDragEnd={endDrag}
+                      onDragEnd={(event) => {
+                        event.currentTarget.removeAttribute("data-dragging");
+                        endDrag();
+                      }}
                       onDrop={(event) => dropOn(event, section, card.card_id)}
                     >
                       <button
                         type="button"
-                        className={
-                          drag?.section === section && drag.cardId === card.card_id
-                            ? "deck-tile dragging"
-                            : isSelected
-                              ? "deck-tile selected"
-                              : "deck-tile"
-                        }
+                        className={isSelected ? "deck-tile selected" : "deck-tile"}
                         aria-pressed={isSelected}
                         aria-label={
                           card.quantity === 1

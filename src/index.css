@@ -1228,12 +1228,12 @@ button svg { flex: none; vertical-align: -0.15em; }
 
 /* Dragging cards between and inside Main, Extra and Side. */
 .deck-tile { cursor: grab; }
-.deck-tile.dragging { opacity: 0.35; cursor: grabbing; }
+.deck-grid li[data-dragging] .deck-tile { opacity: 0.35; cursor: grabbing; }
 .deck-grid li.drop-before { box-shadow: -4px 0 0 var(--brass); }
 .deck-grid-section.drop-end { outline: 2px dashed var(--brass); outline-offset: 2px; }
 .hand-image-frame img { -webkit-user-drag: none; user-select: none; pointer-events: none; }
 .deck-tile { user-select: none; touch-action: none; }
-.deck-tile.dragging .hand-image-frame { transition: none; transform: none; }
+.deck-grid li[data-dragging] .hand-image-frame { transition: none; transform: none; }
 .deck-tile:active .hand-image-frame { transition: none; }
 
 /* Card-art pickers and strips for Groups, Hand Conditions and Hand Goals. */
