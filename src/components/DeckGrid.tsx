@@ -13,6 +13,8 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { canMoveTo, moveCopy, reorderCard } from "../lib/deckMove";
+import { isRanked, rankFor } from "../lib/cardRank";
+import { SORT_LABELS, sortCards, sortsFor, type DeckSort } from "../lib/deckSort";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { ClearButton } from "./ClearButton";
 import { HandGrid } from "./HandGrid";
@@ -44,6 +46,24 @@ interface Props {
   handTest?: HandTestView | null;
   /** Extra Deck monster ids; decides which sections a dragged card may enter. */
   extraIds?: ExtraDeckIds;
+}
+
+const SORT_KEY = "mapping.deckSort";
+
+function readSorts(): Record<DeckSection, DeckSort> {
+  const fresh: Record<DeckSection, DeckSort> = { main: "built", extra: "built", side: "built" };
+  try {
+    const saved = JSON.parse(localStorage.getItem(SORT_KEY) ?? "null") as Partial<
+      Record<DeckSection, DeckSort>
+    > | null;
+    for (const section of ["main", "extra", "side"] as const) {
+      const value = saved?.[section];
+      if (value && sortsFor(section).includes(value)) fresh[section] = value;
+    }
+  } catch {
+    /* use the built order */
+  }
+  return fresh;
 }
 
 interface Selection {
@@ -95,9 +115,14 @@ function DetailRow({
           <span className="deck-detail-actions">
             <QuantityEditor
               value={card.quantity}
-              onChange={(quantity) =>
-                onChange(setQuantity(doc, section, card.card_id, quantity))
-              }
+              onChange={(quantity) => {
+                if (quantity <= 0) {
+                  onChange(removeCard(doc, section, card.card_id));
+                  onClose();
+                } else {
+                  onChange(setQuantity(doc, section, card.card_id, quantity));
+                }
+              }}
             />
             <IconButton
               icon="trash"
@@ -139,6 +164,20 @@ function DetailRow({
  */
 export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set() }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
+  // A sort only changes how a section is shown; it never touches the deck itself.
+  const [sorts, setSorts] = useState<Record<DeckSection, DeckSort>>(readSorts);
+  const chooseSort = (section: DeckSection, sort: DeckSort) =>
+    setSorts((current) => {
+      const next = { ...current, [section]: sort };
+      try {
+        localStorage.setItem(SORT_KEY, JSON.stringify(next));
+      } catch {
+        /* the choice just will not persist */
+      }
+      return next;
+    });
+  const turn = doc.analysis.turn_order;
+  const rankOrder = isRanked(doc, turn) ? rankFor(doc, turn) : null;
   // Drag a tile to reorder inside a section, or onto another section to move one copy.
   // The ref is the source of truth for the handlers. No state changes when a drag
   // starts: re-rendering the dragged tile mid-start makes the browser cancel the
@@ -152,7 +191,10 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
   };
   const accepts = (section: DeckSection) => {
     const source = dragRef.current;
-    return source !== null && (source.section === section || canMoveTo(source.cardId, section, extraIds));
+    if (source === null) return false;
+    // Reordering inside a section only makes sense while it shows the built order.
+    if (source.section === section) return sorts[section] === "built";
+    return canMoveTo(source.cardId, section, extraIds);
   };
   const overTile = (event: DragEvent, section: DeckSection, cardId: number | null) => {
     if (!accepts(section)) return;
@@ -184,7 +226,14 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
   return (
     <>
       {(["main", "extra", "side"] as const).map((section) => {
-        const cards = doc[section];
+        const sort = sorts[section];
+        const cards =
+          sort === "built"
+            ? doc[section]
+            : sortCards(doc[section], sort === "rank" && !rankOrder ? "built" : sort, {
+                nameOf: (card) => displayName(card.card_id, card.name, catalog),
+                rankOrder,
+              });
         const chosenId =
           selected && selected.section === section ? selected.cardId : null;
         return (
@@ -201,6 +250,23 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
             <header>
               <h2>{TITLES[section]}</h2>
               <p>{sectionSize(cards)} cards</p>
+              {cards.length > 1 && !(section === "main" && handTest) ? (
+                <label className="deck-sort">
+                  Sort
+                  <select
+                    aria-label={`Sort ${TITLES[section]}`}
+                    value={sort}
+                    onChange={(event) => chooseSort(section, event.target.value as DeckSort)}
+                  >
+                    {sortsFor(section).map((option) => (
+                      <option key={option} value={option} disabled={option === "rank" && !rankOrder}>
+                        {SORT_LABELS[option]}
+                        {option === "rank" && !rankOrder ? " (rank cards first)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               {cards.length > 0 ? (
                 <ClearButton
                   label={`Clear ${TITLES[section]}`}

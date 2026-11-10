@@ -2,6 +2,7 @@ import { Icon } from "./IconButton";
 
 interface Props {
   value: number;
+  /** Called with 0 when the minus is pressed on the last copy: the card should go. */
   onChange: (quantity: number) => void;
 }
 
@@ -10,9 +11,9 @@ export function QuantityEditor({ value, onChange }: Props) {
     <div className="qty">
       <button
         type="button"
-        aria-label="Decrease quantity"
-        title="Decrease quantity"
-        onClick={() => onChange(Math.max(1, value - 1))}
+        aria-label={value <= 1 ? "Remove card" : "Decrease quantity"}
+        title={value <= 1 ? "Remove card" : "Decrease quantity"}
+        onClick={() => onChange(value - 1)}
       >
         <Icon name="minus" />
       </button>

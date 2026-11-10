@@ -594,6 +594,65 @@ test.describe("Models are card art", () => {
   });
 });
 
+test.describe("Sorting the deck sections", () => {
+  const main = (page: Page) =>
+    page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
+  const titles = (page: Page) => main(page).locator(".deck-tile").evaluateAll((els) => els.map((el) => el.getAttribute("title")));
+
+  test("sorting by name orders the section and leaves the deck alone", async ({ page }) => {
+    await openApp(page);
+    const built = await titles(page);
+    await page.getByLabel("Sort Main Deck").selectOption("name");
+    const sorted = await titles(page);
+    expect(sorted).toEqual([...built].sort((a, b) => a!.localeCompare(b!, undefined, { sensitivity: "base" })));
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.main} main`);
+    // As built brings the original order back; the sort was only a view.
+    await page.getByLabel("Sort Main Deck").selectOption("built");
+    expect(await titles(page)).toEqual(built);
+  });
+
+  test("the choice is remembered after a reload", async ({ page }) => {
+    await openApp(page);
+    await page.getByLabel("Sort Main Deck").selectOption("name");
+    await page.reload();
+    await expect(page.getByLabel("Sort Main Deck")).toHaveValue("name");
+  });
+
+  test("Card Rank sorting waits for a ranking, then follows it", async ({ page }) => {
+    await openApp(page);
+    await expect(page.getByLabel("Sort Main Deck").locator("option", { hasText: "Card Rank" })).toBeDisabled();
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    const tiles = page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile");
+    await tiles.nth(3).click();
+    await tiles.nth(0).click();
+    const top = await page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile").first().getAttribute("title");
+    await page.getByLabel("Sort Main Deck").selectOption("rank");
+    expect((await titles(page))[0]).toBe(top);
+  });
+
+  test("a sorted section does not accept reordering drops", async ({ page }) => {
+    await openApp(page);
+    await page.getByLabel("Sort Extra Deck").selectOption("name");
+    const extra = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Extra Deck" }) });
+    const before = await extra.locator(".deck-tile").evaluateAll((els) => els.map((el) => el.getAttribute("title")));
+    await extra.locator(".deck-tile").last().dragTo(extra.locator(".deck-tile").first());
+    const after = await extra.locator(".deck-tile").evaluateAll((els) => els.map((el) => el.getAttribute("title")));
+    expect(after).toEqual(before);
+  });
+});
+
+test("the minus on the last copy removes the card", async ({ page }) => {
+  await openApp(page);
+  const section = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
+  // The first card in the default deck has one copy.
+  await section.locator(".deck-tile").first().click();
+  const editor = section.getByRole("group", { name: /^Edit / });
+  await expect(editor.getByLabel("Quantity", { exact: true })).toHaveValue("1");
+  await editor.getByRole("button", { name: "Remove card" }).click();
+  await expect(page.locator(".counts")).toContainText(`${DEFAULT.main - 1} main`);
+  await expect(section.getByRole("group", { name: /^Edit / })).toHaveCount(0);
+});
+
 test.describe("Dragging cards in the deck", () => {
   const section = (page: Page, title: string) =>
     page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: title }) });
