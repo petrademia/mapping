@@ -79,7 +79,13 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
           search a card on the right.
         </p>
       ) : null}
-      <DeckGrid doc={doc} catalog={catalog} onChange={onChange} handTest={handTest} />
+      <DeckGrid
+        doc={doc}
+        catalog={catalog}
+        onChange={onChange}
+        handTest={handTest}
+        extraIds={extraIds}
+      />
     </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import {
@@ -12,6 +12,8 @@ import {
   type MappingCard,
   type MappingDocument,
 } from "../lib/document";
+import { canMoveTo, moveCopy, reorderCard } from "../lib/deckMove";
+import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { ClearButton } from "./ClearButton";
 import { HandGrid } from "./HandGrid";
 import { CardFrame } from "./HandImages";
@@ -39,6 +41,8 @@ interface Props {
   catalog: Catalog;
   onChange: (doc: MappingDocument) => void;
   handTest?: HandTestView | null;
+  /** Extra Deck monster ids; decides which sections a dragged card may enter. */
+  extraIds?: ExtraDeckIds;
 }
 
 interface Selection {
@@ -132,8 +136,43 @@ function DetailRow({
  * under that row (no scrolling to the end of the section). Extra Deck cards
  * are never drawn, so they have no roles or opening quality to edit.
  */
-export function DeckGrid({ doc, catalog, onChange, handTest }: Props) {
+export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set() }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
+  // Drag a tile to reorder inside a section, or onto another section to move one copy.
+  // The ref is the source of truth for the handlers (always current, even between
+  // renders); the state only drives the visuals.
+  const dragRef = useRef<Selection | null>(null);
+  const [drag, setDrag] = useState<Selection | null>(null);
+  const [over, setOver] = useState<{ section: DeckSection; cardId: number | null } | null>(null);
+
+  const endDrag = () => {
+    dragRef.current = null;
+    setDrag(null);
+    setOver(null);
+  };
+  const accepts = (section: DeckSection) => {
+    const source = dragRef.current;
+    return source !== null && (source.section === section || canMoveTo(source.cardId, section, extraIds));
+  };
+  const overTile = (event: DragEvent, section: DeckSection, cardId: number | null) => {
+    if (!accepts(section)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    if (over?.section !== section || over.cardId !== cardId) setOver({ section, cardId });
+  };
+  const dropOn = (event: DragEvent, section: DeckSection, cardId: number | null) => {
+    const source = dragRef.current;
+    if (!source || !accepts(section)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (source.section === section) {
+      onChange(reorderCard(doc, section, source.cardId, cardId));
+    } else {
+      onChange(moveCopy(doc, source.section, section, source.cardId, extraIds));
+    }
+    endDrag();
+  };
 
   const toggle = (section: DeckSection, cardId: number) =>
     setSelected((current) =>
@@ -149,7 +188,16 @@ export function DeckGrid({ doc, catalog, onChange, handTest }: Props) {
         const chosenId =
           selected && selected.section === section ? selected.cardId : null;
         return (
-          <section className="deck-section deck-grid-section" key={section}>
+          <section
+            className={
+              drag && over?.section === section && over.cardId === null
+                ? "deck-section deck-grid-section drop-end"
+                : "deck-section deck-grid-section"
+            }
+            key={section}
+            onDragOver={(event) => overTile(event, section, null)}
+            onDrop={(event) => dropOn(event, section, null)}
+          >
             <header>
               <h2>{TITLES[section]}</h2>
               <p>{sectionSize(cards)} cards</p>
@@ -183,10 +231,39 @@ export function DeckGrid({ doc, catalog, onChange, handTest }: Props) {
                   const name = displayName(card.card_id, card.name, catalog);
                   const isSelected = chosenId === card.card_id;
                   const tiles: ReactNode[] = Array.from({ length: card.quantity }, (_, copy) => (
-                    <li key={`${card.card_id}-${copy}`}>
+                    <li
+                      key={`${card.card_id}-${copy}`}
+                      className={
+                        drag && over?.section === section && over.cardId === card.card_id && copy === 0
+                          ? "drop-before"
+                          : undefined
+                      }
+                      onDragOver={(event) => overTile(event, section, card.card_id)}
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", name);
+                        // Change the DOM after the browser has captured the drag
+                        // image; changing it inside dragstart can cancel the drag.
+                        const picked = { section, cardId: card.card_id };
+                        dragRef.current = picked;
+                        window.setTimeout(() => {
+                          setSelected(null);
+                          setDrag(picked);
+                        }, 0);
+                      }}
+                      onDragEnd={endDrag}
+                      onDrop={(event) => dropOn(event, section, card.card_id)}
+                    >
                       <button
                         type="button"
-                        className={isSelected ? "deck-tile selected" : "deck-tile"}
+                        className={
+                          drag?.section === section && drag.cardId === card.card_id
+                            ? "deck-tile dragging"
+                            : isSelected
+                              ? "deck-tile selected"
+                              : "deck-tile"
+                        }
                         aria-pressed={isSelected}
                         aria-label={
                           card.quantity === 1

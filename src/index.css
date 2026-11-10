@@ -1224,3 +1224,13 @@ button svg { flex: none; vertical-align: -0.15em; }
 .card-search-panel .view-toggle { margin: 0; align-items: center; flex-wrap: wrap; }
 .card-search-panel select { margin-left: auto; }
 .deck-violations { border-color: #c0504d; background: color-mix(in srgb, #c0504d 14%, transparent); }
+
+/* Dragging cards between and inside Main, Extra and Side. */
+.deck-tile { cursor: grab; }
+.deck-tile.dragging { opacity: 0.35; cursor: grabbing; }
+.deck-grid li.drop-before { box-shadow: -4px 0 0 var(--brass); }
+.deck-grid-section.drop-end { outline: 2px dashed var(--brass); outline-offset: 2px; }
+.hand-image-frame img { -webkit-user-drag: none; user-select: none; pointer-events: none; }
+.deck-tile { user-select: none; touch-action: none; }
+.deck-tile.dragging .hand-image-frame { transition: none; transform: none; }
+.deck-tile:active .hand-image-frame { transition: none; }

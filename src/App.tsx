@@ -8,7 +8,7 @@ import { HandBatchPanel } from "./components/HandBatchPanel";
 import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
 import { download, slug } from "./lib/download";
 import { serializeYdk } from "./lib/ydk";
-import { loadDefaultDeck } from "./lib/defaultDeck";
+import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
 import type { TestedHand } from "./lib/handTest";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
 import {
@@ -68,6 +68,7 @@ export function App() {
   const [catalog, setCatalog] = useState<Catalog>(new Map());
   const [imageIds, setImageIds] = useState<CardImageIds>(new Set());
   const [extraIds, setExtraIds] = useState<ExtraDeckIds>(new Set());
+  const [hasUserDefault, setHasUserDefault] = useState(() => loadUserDefault() !== null);
   const [banlist, setBanlist] = useState<Banlist>({});
   const [format, setFormat] = useState<Format>(() => {
     try {
@@ -207,6 +208,35 @@ export function App() {
               onConfirm={loadDefault}
             />
             <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
+            <ClearButton
+              label={hasUserDefault ? "Update default" : "Set as default"}
+              confirmLabel="Save"
+              message={
+                hasUserDefault
+                  ? "Replace your saved default with this deck?"
+                  : "Make this deck, with its groups and Hand Goals, the one Default deck loads?"
+              }
+              onConfirm={() => {
+                if (saveUserDefault(doc)) {
+                  setHasUserDefault(true);
+                  setStatus("Saved as your default deck.");
+                } else {
+                  setStatus("Could not save the default deck in this browser.");
+                }
+              }}
+            />
+            {hasUserDefault ? (
+              <ClearButton
+                label="Reset default"
+                confirmLabel="Reset"
+                message="Forget your saved default and use default.ydk again?"
+                onConfirm={() => {
+                  clearUserDefault();
+                  setHasUserDefault(false);
+                  setStatus("Default deck is default.ydk again.");
+                }}
+              />
+            ) : null}
             <button
               type="button"
               className="primary"

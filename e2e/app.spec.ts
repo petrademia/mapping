@@ -287,6 +287,59 @@ test.describe("Deck view", () => {
   });
 });
 
+test.describe("Dragging cards in the deck", () => {
+  const section = (page: Page, title: string) =>
+    page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: title }) });
+
+  // Extra and Side sit next to each other, so both stay on screen for the drag.
+  test("dragging an Extra card onto the Side Deck moves one copy", async ({ page }) => {
+    await openApp(page);
+    await section(page, "Extra Deck").locator(".deck-tile").first().dragTo(section(page, "Side Deck"));
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra - 1} extra`);
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.side + 1} side`);
+  });
+
+  test("a Main card cannot be dragged into Extra", async ({ page }) => {
+    await openApp(page);
+    await section(page, "Side Deck").locator(".deck-tile").first().scrollIntoViewIfNeeded();
+    const extra = section(page, "Extra Deck");
+    const main = section(page, "Main Deck").locator(".deck-tile").last();
+    await main.dragTo(extra);
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.main} main`);
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra} extra`);
+  });
+
+  test("dropping a card before another reorders the section", async ({ page }) => {
+    await openApp(page);
+    const tiles = section(page, "Extra Deck").locator(".deck-tile");
+    const lastTitle = await tiles.last().getAttribute("title");
+    await tiles.last().dragTo(tiles.first());
+    await expect(section(page, "Extra Deck").locator(".deck-tile").first()).toHaveAttribute("title", lastTitle!);
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra} extra`);
+  });
+});
+
+test("Set as default makes the current deck what Default deck loads", async ({ page }) => {
+  await openApp(page);
+  const side = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Side Deck" }) });
+  await page
+    .locator(".deck-section")
+    .filter({ has: page.getByRole("heading", { name: "Extra Deck" }) })
+    .locator(".deck-tile")
+    .first()
+    .dragTo(side);
+  await page.getByRole("button", { name: "Set as default" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved as your default" })).toBeVisible();
+
+  await page.getByRole("button", { name: "New deck" }).click();
+  await expect(page.locator(".counts")).toContainText("0 main");
+  await page.getByRole("button", { name: "Default deck" }).click();
+  await page.getByRole("button", { name: "Replace", exact: true }).click();
+  await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra - 1} extra`);
+  await expect(page.locator(".counts")).toContainText(`${DEFAULT.side + 1} side`);
+});
+
 test.describe("Card Rank", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);

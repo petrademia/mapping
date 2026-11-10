@@ -23,7 +23,7 @@ export function CardFrame({ cardId, name }: { cardId: number; name?: string }) {
   return (
     <span className="hand-image-frame">
       {available.has(cardId) ? (
-        <img src={cardImageUrl(cardId)} alt="" loading="lazy" decoding="async" />
+        <img src={cardImageUrl(cardId)} alt="" loading="lazy" decoding="async" draggable={false} />
       ) : (
         <span className="hand-image-missing">{name ?? "No image"}</span>
       )}
