@@ -575,6 +575,37 @@ h1 {
 .models-steps { margin: 0 0 0.6rem; padding-left: 1.2rem; color: var(--muted); display: grid; gap: 0.2rem; }
 .models-steps strong { color: var(--mist); font-weight: 600; }
 
+.hand-picker-grid {
+  list-style: none;
+  margin: 0.6rem 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.8rem 0.6rem;
+}
+.hand-picker-grid li { display: grid; gap: 0.25rem; align-content: start; }
+.pick-tile { position: relative; display: block; padding: 0; border: 0; background: none; cursor: pointer; }
+.pick-tile .hand-image-frame { transition: border-color 120ms ease-out, transform 120ms ease-out; }
+.pick-tile:hover .hand-image-frame { border-color: var(--brass); transform: translateY(-2px); }
+.pick-tile[aria-disabled="true"] { cursor: default; opacity: 0.55; }
+.pick-tile[aria-disabled="true"]:hover .hand-image-frame { border-color: var(--line); transform: none; }
+.hand-picker-grid .picked .hand-image-frame { border-color: var(--brass); box-shadow: 0 0 0 2px var(--brass); }
+.pick-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: #171b18;
+  border: 1px solid var(--line);
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--mist);
+}
+.hand-picker-grid .picked .pick-badge { border-color: var(--brass); color: var(--brass-text); }
+.pick-remove { padding: 0.15rem 0.3rem; font-size: 0.8rem; }
+.pick-remove:disabled { opacity: 0.4; cursor: default; }
+
 .hand-batch-controls { align-items: end; flex-wrap: wrap; }
 .hand-batch-controls label { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); }
 .hand-batch-controls input { width: 5.5rem; }

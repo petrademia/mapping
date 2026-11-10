@@ -12,13 +12,26 @@ interface Props {
   size?: "md" | "sm";
 }
 
+/** A card-shaped frame with the local image, or an empty "No image" frame. */
+export function CardFrame({ cardId }: { cardId: number }) {
+  const available = useCardImageIds();
+  return (
+    <span className="hand-image-frame">
+      {available.has(cardId) ? (
+        <img src={cardImageUrl(cardId)} alt="" loading="lazy" decoding="async" />
+      ) : (
+        <span className="hand-image-missing">No image</span>
+      )}
+    </span>
+  );
+}
+
 /**
  * One image per physical card in the hand, in deck order, with the card name
  * underneath. A card without a local image shows an empty frame, so the hand
  * still reads from the names.
  */
 export function HandImages({ deck, counts, catalog, size = "md" }: Props) {
-  const available = useCardImageIds();
   const cards: MappingCard[] = [];
   for (const card of deck) {
     const copies = counts[card.card_id] ?? 0;
@@ -30,18 +43,7 @@ export function HandImages({ deck, counts, catalog, size = "md" }: Props) {
         const name = displayName(card.card_id, card.name, catalog);
         return (
           <li key={`${card.card_id}-${index}`} title={name}>
-            <span className="hand-image-frame">
-              {available.has(card.card_id) ? (
-                <img
-                  src={cardImageUrl(card.card_id)}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <span className="hand-image-missing">No image</span>
-              )}
-            </span>
+            <CardFrame cardId={card.card_id} />
             <span className="hand-image-name">{name}</span>
           </li>
         );
