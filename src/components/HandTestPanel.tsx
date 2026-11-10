@@ -13,6 +13,7 @@ import {
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { CardThumb } from "./CardThumb";
+import { HandImages } from "./HandImages";
 import {
   analysisContextOf,
   sectionSize,
@@ -215,11 +216,10 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         </label>
       </header>
       <p className="note">
-        Evaluate one exact hand against the modeled Hand Conditions and
-        Condition Sets under {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. A PASS means the
-        human-authored model matches the hand, not that the line is verified to
-        play through interruptions. Not a simulator; YAPPING owns strategy.
+        Check hands against your Hand Conditions and Modeled Outcomes for{" "}
+        {analysisContextLabel(context, opening)} (
+        {sampleSizeDescription(context, opening)}). A check mark means your
+        model matches the hand. It does not test that the line plays out.
       </p>
 
       <div className="row-actions">
@@ -228,6 +228,9 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         </button>
         <button type="button" onClick={drawRandom} disabled={!hand}>
           Draw Again
+        </button>
+        <button type="button" onClick={() => setHand(null)} disabled={!hand}>
+          Clear hand
         </button>
       </div>
 
@@ -259,6 +262,16 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         ))}
         <button type="button" className="primary" onClick={generateBatch} disabled={deck === 0}>
           Generate hands
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setBatch(null);
+            setBatchError(null);
+          }}
+          disabled={!batch && !batchError}
+        >
+          Clear hands
         </button>
       </div>
       {batchError ? <p className="error">{batchError}</p> : null}
@@ -301,15 +314,12 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                     Open in tester
                   </button>
                 </div>
-                <p className="explorer-notation">
-                  {doc.main
-                    .filter((card) => (entry.hand.card_counts[card.card_id] ?? 0) > 0)
-                    .map(
-                      (card) =>
-                        `${displayName(card.card_id, card.name, catalog)} ×${entry.hand.card_counts[card.card_id]}`,
-                    )
-                    .join(", ")}
-                </p>
+                <HandImages
+                  deck={doc.main}
+                  counts={entry.hand.card_counts}
+                  catalog={catalog}
+                  size="sm"
+                />
               </li>
             ))}
           </ol>
@@ -384,6 +394,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
       {hand && result && totalSelected === sample && issues.length === 0 ? (
         <>
           <h3 className="panel-subhead">Tested Hand</h3>
+          <HandImages deck={doc.main} counts={hand.card_counts} catalog={catalog} />
           <ul className="hand-cards">
             {doc.main.map((card) => {
               const count = hand.card_counts[card.card_id] ?? 0;
@@ -432,9 +443,9 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
             </p>
           ) : null}
 
-          <h3 className="panel-subhead">Condition Sets</h3>
+          <h3 className="panel-subhead">Modeled Outcomes</h3>
           {result.sets.length === 0 ? (
-            <p className="empty">No condition sets defined.</p>
+            <p className="empty">No modeled outcomes yet. Create them in Models.</p>
           ) : (
             <dl className="explorer-results">
               {result.sets.map((set) => (
@@ -448,12 +459,9 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                       {set.passed ? "✓" : "✗"} {set.name}
                     </span>
                     <span className="explorer-notation">
-                      {set.passed
-                        ? "Modeled condition satisfied"
-                        : "Modeled condition not satisfied"}{" "}
-                      · {set.satisfiedCount} / {set.memberCount} member{" "}
-                      {set.memberCount === 1 ? "condition" : "conditions"}{" "}
-                      satisfied
+                      {set.passed ? "Matched" : "Not matched"} ·{" "}
+                      {set.satisfiedCount} of {set.memberCount} Hand{" "}
+                      {set.memberCount === 1 ? "Condition" : "Conditions"}
                     </span>
                   </dt>
                   <dd>{formatPercent(

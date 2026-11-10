@@ -273,12 +273,22 @@ export function ModelsPanel({
           />
         </label>
       </header>
+      <ol className="models-steps">
+        <li>
+          <strong>Groups</strong> name sets of cards, like "Handtraps".
+        </li>
+        <li>
+          <strong>Hand Conditions</strong> are rules about what a hand holds,
+          like "Nervedo and a valid S/T".
+        </li>
+        <li>
+          <strong>Modeled Outcomes</strong> are what you want from a hand. A
+          hand matches an outcome when it matches any of its Hand Conditions.
+        </li>
+      </ol>
       <p className="note">
-        Define Groups, then reusable Hand Conditions, then combine conditions
-        into Modeled Outcomes. Everything is evaluated under{" "}
-        {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. Not combo routes,
-        resilience, or YAPPING utility.
+        Chances are for {analysisContextLabel(context, opening)} (
+        {sampleSizeDescription(context, opening)}).
       </p>
 
       <nav className="context-presets models-nav" aria-label="Models">
@@ -328,12 +338,10 @@ export function ModelsPanel({
         <>
           <h3 className="panel-subhead">Hand Conditions</h3>
           <p className="note">
-            Define card patterns that make an opening hand satisfy something you
-            care about. MAPPING evaluates each pattern across all possible
-            opening hands to calculate its exact probability. A condition's
-            name can document a strategic assertion (for example "through 1
-            Ash") while the Requires/Excludes predicate is the actual Boolean
-            rule.
+            A rule about what a hand holds. It matches when every Requires line
+            holds and no Excludes line does. MAPPING works out the exact chance
+            across all possible hands. The name is only a label ("through 1
+            Ash"); the Requires and Excludes lines are the rule.
           </p>
           {doc.hand_conditions.length === 0 ? (
             <p className="empty">No hand conditions yet.</p>
@@ -360,9 +368,8 @@ export function ModelsPanel({
         <>
           <h3 className="panel-subhead">Modeled Outcomes</h3>
           <p className="note">
-            Combine Hand Conditions into outcomes you care about. An outcome is
-            satisfied when ANY selected Hand Condition matches the opening
-            hand. Overlapping matching conditions are counted once.
+            Group Hand Conditions into an outcome you care about. A hand matches
+            the outcome when it matches any of them.
           </p>
           {doc.hand_condition_sets.length === 0 ? (
             <p className="empty">No modeled outcomes yet.</p>
