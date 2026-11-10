@@ -17,7 +17,7 @@ import {
   setConfigurationNotes,
 } from "../lib/configuration";
 import { sectionSize, type MappingDocument } from "../lib/document";
-import { CardThumb } from "./CardThumb";
+import { CardFrame } from "./HandImages";
 import { Icon } from "./IconButton";
 
 export const CONFIGURATION_PANEL_ID = "deck-configuration";
@@ -116,72 +116,82 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
     radios[next]?.focus();
   };
 
-  const [onlyChanged, setOnlyChanged] = useState(false);
-  // The swap table starts collapsed on narrow screens to keep the panel short.
+  // The swap grids start collapsed on narrow screens to keep the panel short.
   const [swapsOpen, setSwapsOpen] = useState(
     () => !window.matchMedia("(max-width: 960px)").matches,
   );
 
-  // Stable Pre-Side order: rows never move under the pointer. Changes are
-  // shown by the tint, the badge and the diff chips; "changed only" is opt-in.
-  const allRows = active
-    ? pool.map((card) => {
-        const main = mainQuantity(doc, active.id, card.card_id);
-        const pre = doc.main.find((c) => c.card_id === card.card_id)?.quantity ?? 0;
-        return { card, main, pre, changed: main !== pre };
-      })
-    : [];
-  const rows = onlyChanged ? allRows.filter((row) => row.changed) : allRows;
+  // One tile per physical copy. Tiles keep a stable Pre-Side order so nothing
+  // jumps under the pointer; a tint marks copies that differ from Pre-Side.
+  interface SwapTile {
+    key: string;
+    cardId: number;
+    name: string;
+    zone: "main" | "side";
+    /** Brought into Main (main zone) or sent out of Main (side zone) vs Pre-Side. */
+    changed: boolean;
+    main: number;
+    quantity: number;
+  }
+  const mainTiles: SwapTile[] = [];
+  const sideTiles: SwapTile[] = [];
+  if (active) {
+    for (const card of pool) {
+      const name = displayName(card.card_id, card.name, catalog);
+      const main = mainQuantity(doc, active.id, card.card_id);
+      const pre = doc.main.find((c) => c.card_id === card.card_id)?.quantity ?? 0;
+      const out = Math.max(0, pre - main);
+      for (let copy = 0; copy < main; copy += 1) {
+        mainTiles.push({
+          key: `m-${card.card_id}-${copy}`,
+          cardId: card.card_id,
+          name,
+          zone: "main",
+          changed: copy >= pre,
+          main,
+          quantity: card.quantity,
+        });
+      }
+      for (let copy = 0; copy < card.quantity - main; copy += 1) {
+        sideTiles.push({
+          key: `s-${card.card_id}-${copy}`,
+          cardId: card.card_id,
+          name,
+          zone: "side",
+          changed: copy < out,
+          main,
+          quantity: card.quantity,
+        });
+      }
+    }
+  }
+  const sideOnlyCount = pool.filter(
+    (card) => !doc.main.some((c) => c.card_id === card.card_id),
+  ).length;
 
-  // Cards that are only in the Side Deck are the ones you can bring in, so they
-  // get their own group at the top instead of hiding after every main card.
-  type Row = (typeof allRows)[number];
-  const sideRows = rows.filter((row) => row.pre === 0);
-  const mainRows = rows.filter((row) => row.pre > 0);
-  const sideOnlyCount = allRows.filter((row) => row.pre === 0).length;
-
-  function renderRow({ card, main, pre, changed }: Row) {
-    const name = displayName(card.card_id, card.name, catalog);
-    const set = (value: number) =>
-      onChange(setConfigurationMainQuantity(doc, active!.id, card.card_id, value));
+  function renderTile(tile: SwapTile) {
+    const toSide = tile.zone === "main";
+    const move = () =>
+      onChange(
+        setConfigurationMainQuantity(
+          doc,
+          active!.id,
+          tile.cardId,
+          toSide ? tile.main - 1 : tile.main + 1,
+        ),
+      );
     return (
-      <tr key={card.card_id} className={changed ? "changed" : undefined}>
-        <td className="config-card">
-          <span className="config-card-id">
-            <CardThumb cardId={card.card_id} name={name} />
-            <strong>{name}</strong>
-          </span>
-        </td>
-        <td>{pre}</td>
-        <td>
-          <div className="qty">
-            <button
-              type="button"
-              aria-label={`Move one ${name} to Side`}
-              aria-disabled={main <= 0}
-              onClick={() => main > 0 && set(main - 1)}
-            >
-              <Icon name="minus" />
-            </button>
-            <span className="qty-value">{main}</span>
-            <button
-              type="button"
-              aria-label={`Move one ${name} to Main`}
-              aria-disabled={main >= card.quantity}
-              onClick={() => main < card.quantity && set(main + 1)}
-            >
-              <Icon name="plus" />
-            </button>
-            {changed ? (
-              <span className="change-badge" title="Changed from Pre-Side">
-                <span className="visually-hidden">changed from Pre-Side by </span>
-                {signed(main - pre)}
-              </span>
-            ) : null}
-          </div>
-        </td>
-        <td>{card.quantity - main}</td>
-      </tr>
+      <li key={tile.key}>
+        <button
+          type="button"
+          className={tile.changed ? "swap-tile changed" : "swap-tile"}
+          aria-label={`Move one ${tile.name} to ${toSide ? "Side" : "Main"}`}
+          title={`${tile.name}: click to move to ${toSide ? "Side" : "Main"}`}
+          onClick={move}
+        >
+          <CardFrame cardId={tile.cardId} name={tile.name} />
+        </button>
+      </li>
     );
   }
 
@@ -298,17 +308,9 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
             Swap cards
             {diff.length > 0 ? ` (${diff.length} changed)` : ""}
           </summary>
-          <label className="configuration-filter">
-            <input
-              type="checkbox"
-              checked={onlyChanged}
-              onChange={(event) => setOnlyChanged(event.target.checked)}
-            />
-            Changed cards only
-          </label>
           <p className="note configuration-howto">
-            To swap, take a card out of Main with the minus button, then bring
-            one in from your Side Deck with the plus button.
+            Click a card in Main to send it to the Side, then click a Side card
+            to bring it in. Highlighted cards differ from Pre-Side.
           </p>
           {sideOnlyCount === 0 ? (
             <p className="note configuration-warn-note" role="note">
@@ -316,39 +318,14 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
               cards to the Side Deck in the deck list, then swap them here.
             </p>
           ) : null}
-          {rows.length === 0 ? (
-            <p className="note">No changes yet.</p>
-          ) : null}
-          <div className="configuration-table-wrap">
-            <table className="configuration-table">
-              <thead>
-                <tr>
-                  <th>Card</th>
-                  <th title="Copies in Main under Pre-Side">Pre</th>
-                  <th>Main</th>
-                  <th title="Copies not in Main (Side pool)">Not in Main</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sideRows.length > 0 ? (
-                  <tr className="group-row">
-                    <th colSpan={4} scope="colgroup">
-                      Side Deck: bring these in with plus
-                    </th>
-                  </tr>
-                ) : null}
-                {sideRows.map(renderRow)}
-                {mainRows.length > 0 ? (
-                  <tr className="group-row">
-                    <th colSpan={4} scope="colgroup">
-                      Main Deck: send these out with minus
-                    </th>
-                  </tr>
-                ) : null}
-                {mainRows.map(renderRow)}
-              </tbody>
-            </table>
-          </div>
+          <h3 className="swap-heading">Main ({mainTiles.length})</h3>
+          <ul className="swap-grid" aria-label="Main in this configuration">
+            {mainTiles.map(renderTile)}
+          </ul>
+          <h3 className="swap-heading">Not in Main ({sideTiles.length})</h3>
+          <ul className="swap-grid" aria-label="Not in Main in this configuration">
+            {sideTiles.map(renderTile)}
+          </ul>
           </details>
 
           <details className="configuration-details">

@@ -28,6 +28,7 @@ import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
+  analysisContextOf,
   createDocument,
   sectionSize,
   setAnalysisContext,
@@ -35,6 +36,7 @@ import {
   setOpeningHandSize,
   type MappingDocument,
 } from "./lib/document";
+import { observedCards } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
 type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank";
@@ -67,6 +69,8 @@ export function App() {
   const [resetKey, setResetKey] = useState(0);
   // The hand being tested; lives here so the Many hands tab can open one in Hand Test.
   const [testedHand, setTestedHand] = useState<TestedHand | null>(null);
+  // The shuffled deck order behind the drawn hand, kept so it survives tab switches.
+  const [handOrder, setHandOrder] = useState<number[] | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
   const [status, setStatus] = useState(
     "Local draft. Taxonomy annotations are deck-specific hypotheses.",
@@ -89,6 +93,26 @@ export function App() {
       setStatus("Loaded the default deck from default.ydk.");
     });
   };
+
+  const handSample = observedCards(analysisContextOf(view), view.analysis.opening_hand_size);
+  const handTestView =
+    workspace === "hand-test"
+      ? {
+          counts: testedHand?.card_counts ?? {},
+          sample: handSample,
+          order: testedHand ? handOrder : null,
+          onCount: (cardId: number, next: number) => {
+            const counts = { ...(testedHand?.card_counts ?? {}) };
+            if (next <= 0) delete counts[cardId];
+            else counts[cardId] = next;
+            setTestedHand(
+              Object.keys(counts).length === 0
+                ? null
+                : { card_counts: counts, observed_cards: handSample },
+            );
+          },
+        }
+      : null;
 
   useEffect(() => {
     saveStored(doc);
@@ -199,6 +223,7 @@ export function App() {
           extraIds={extraIds}
           onChange={setDoc}
           onStatus={setStatus}
+          handTest={handTestView}
         />
         <aside id={WORKSPACE_ID}>
           <nav className="context-presets workspace-nav" aria-label="Workspace">
@@ -272,6 +297,7 @@ export function App() {
               catalog={catalog}
               hand={testedHand}
               onHandChange={setTestedHand}
+              onOrderChange={setHandOrder}
               onHandSize={(size) => {
                 if (!Number.isInteger(size) || size < 0) return;
                 setDoc(setOpeningHandSize(doc, size));
@@ -286,6 +312,7 @@ export function App() {
               catalog={catalog}
               onOpenInTester={(hand) => {
                 setTestedHand(hand);
+                setHandOrder(null);
                 setWorkspace("hand-test");
                 requestAnimationFrame(() =>
                   document.getElementById("hand-test-top")?.scrollIntoView({ block: "start" }),

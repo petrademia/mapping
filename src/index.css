@@ -1200,3 +1200,21 @@ button svg { flex: none; vertical-align: -0.15em; }
 }
 .search-result:hover, .search-result:focus-visible { border-color: var(--brass); }
 .search-result-name { font-size: 0.7rem; line-height: 1.2; color: var(--muted); }
+
+/* Deck Configuration swap grids: one tile per copy, click to move. */
+.swap-heading { margin: 0.8rem 0 0.35rem; font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+.swap-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 52px);
+  gap: 0.3rem;
+}
+.swap-tile { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.swap-tile .hand-image-frame { transition: transform 120ms ease-out, box-shadow 120ms ease-out; }
+.swap-tile:hover .hand-image-frame, .swap-tile:focus-visible .hand-image-frame { transform: translateY(-2px); }
+.swap-tile.changed .hand-image-frame { border-color: var(--brass); box-shadow: 0 0 0 2px var(--brass); }
+
+.deck-grid-section .hand-deck { margin: 0.5rem 0; }
+.deck-grid-section .hand-deck-grid { grid-template-columns: repeat(auto-fill, 76px); gap: 0.4rem; }

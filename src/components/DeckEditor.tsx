@@ -7,7 +7,7 @@ import {
 } from "../lib/configuration";
 import type { MappingDocument } from "../lib/document";
 import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
-import { DeckGrid } from "./DeckGrid";
+import { DeckGrid, type HandTestView } from "./DeckGrid";
 import { DeckSection } from "./DeckSection";
 import { CardSearch } from "./CardSearch";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
@@ -18,6 +18,8 @@ interface Props {
   extraIds: ExtraDeckIds;
   onChange: (doc: MappingDocument) => void;
   onStatus: (message: string) => void;
+  /** Set while Hand Test is open: the Main Deck shows the shuffled hand. */
+  handTest?: HandTestView | null;
 }
 
 type View = "cards" | "list";
@@ -31,7 +33,7 @@ function readView(): View {
   }
 }
 
-export function DeckEditor({ doc, catalog, extraIds, onChange, onStatus }: Props) {
+export function DeckEditor({ doc, catalog, extraIds, onChange, onStatus, handTest }: Props) {
   const active = findConfiguration(doc, doc.active_configuration_id);
   const [view, setView] = useState<View>(readView);
 
@@ -91,8 +93,8 @@ export function DeckEditor({ doc, catalog, extraIds, onChange, onStatus }: Props
           search a card on the right.
         </p>
       ) : null}
-      {view === "cards" ? (
-        <DeckGrid doc={doc} catalog={catalog} onChange={onChange} />
+      {view === "cards" || handTest ? (
+        <DeckGrid doc={doc} catalog={catalog} onChange={onChange} handTest={handTest} />
       ) : (
         <>
           <DeckSection doc={doc} section="main" catalog={catalog} onChange={onChange} />

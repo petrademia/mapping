@@ -121,10 +121,9 @@ test.describe("Hand Test", () => {
     );
     expect(classes.slice(0, 5).every((name) => name.includes("in-hand"))).toBe(true);
 
-    // The grid sits above the results, so a draw is visible without scrolling.
-    const gridY = (await grid.boundingBox())!.y;
-    const testedY = (await page.getByRole("heading", { name: "Tested Hand" }).boundingBox())!.y;
-    expect(gridY).toBeLessThan(testedY);
+    // The Main Deck in the middle is the grid; it is not a second copy in the panel.
+    await expect(page.locator(".hand-deck-grid")).toHaveCount(1);
+    await expect(page.locator(".deck-grid-section .hand-deck-grid")).toHaveCount(1);
   });
 
   test("clicking tiles adds and removes cards from the hand", async ({ page }) => {
@@ -452,7 +451,7 @@ test.describe("Deck Configuration", () => {
 
     // A card that is in Main (a Side-only card's minus is a no-op).
     await page
-      .locator('button[aria-label^="Move one"][aria-label$="to Side"][aria-disabled="false"]')
+      .locator('button[aria-label^="Move one"][aria-label$="to Side"]')
       .first()
       .click();
     await expect(page.locator(".analyzing-strip")).toContainText(`${DEFAULT.main - 1} main`);
@@ -470,21 +469,15 @@ test.describe("Deck Configuration", () => {
     await page.getByRole("button", { name: "Post-Side", exact: true }).click();
 
     // The default deck has side cards: they come first, under their own heading.
-    const groups = page.locator(".configuration-table .group-row");
-    await expect(groups.first()).toContainText("Side Deck");
-    await expect(groups.nth(1)).toContainText("Main Deck");
-    await expect(page.getByText("To swap, take a card out of Main")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Main \(/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Not in Main \(/ })).toBeVisible();
+    await expect(page.getByText("Click a card in Main to send it to the Side")).toBeVisible();
+    await expect(page.getByRole("list", { name: "Main in this configuration", exact: true }).locator("li")).toHaveCount(DEFAULT.main);
+    await expect(page.getByRole("list", { name: "Not in Main in this configuration", exact: true }).locator("li")).toHaveCount(DEFAULT.side);
 
-    // Bring one Side card in, send one Main card out: same size, two changes.
-    await page
-      .locator('button[aria-label^="Move one"][aria-label$="to Main"][aria-disabled="false"]')
-      .first()
-      .click();
-    // The last enabled minus belongs to a Main card (Side cards are listed first).
-    await page
-      .locator('button[aria-label^="Move one"][aria-label$="to Side"][aria-disabled="false"]')
-      .last()
-      .click();
+    // Send the first Main card out, bring the last Side card in: same size, two changes.
+    await page.locator('button[aria-label^="Move one"][aria-label$="to Side"]').first().click();
+    await page.locator('button[aria-label^="Move one"][aria-label$="to Main"]').last().click();
     await expect(page.locator(".analyzing-strip")).toContainText(`${DEFAULT.main} main`);
     await expect(page.locator(".diff-chips li")).toHaveCount(2);
     await expect(page.locator(".configuration-summary")).toContainText("2 swapped, same size as Pre-Side");

@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
-import { HandGrid } from "./HandGrid";
 import { PassMark } from "./IconButton";
 import {
   analysisContextOf,
@@ -51,9 +50,11 @@ interface Props {
   /** The tested hand lives in the app so the Many hands tab can open hands here. */
   hand: TestedHand | null;
   onHandChange: (hand: TestedHand | null) => void;
+  /** The shuffled order behind the drawn hand lives in the app. */
+  onOrderChange: (order: number[] | null) => void;
 }
 
-export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange }: Props) {
+export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, onOrderChange: setOrder }: Props) {
   const setHand = onHandChange;
 
   const deck = sectionSize(doc.main);
@@ -110,25 +111,10 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange }: 
   }, [hand]);
 
   // Drawing shuffles the whole deck on screen and boxes the top cards.
-  const [order, setOrder] = useState<number[] | null>(null);
   function drawRandom(): void {
     const shuffled = shuffleDeck(doc.main);
     setOrder(shuffled);
     setHand(handFromOrder(shuffled, Math.min(sample, shuffled.length)));
-  }
-
-  function setCount(cardId: number, next: number): void {
-    const counts = { ...(hand?.card_counts ?? {}) };
-    if (next <= 0) {
-      delete counts[cardId];
-    } else {
-      counts[cardId] = next;
-    }
-    setHand(
-      Object.keys(counts).length === 0
-        ? null
-        : { card_counts: counts, observed_cards: sample },
-    );
   }
 
   const roleCounts = useMemo(() => {
@@ -199,14 +185,10 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange }: 
       {doc.main.length === 0 ? (
         <p className="empty">Add main-deck cards first.</p>
       ) : (
-        <HandGrid
-          deck={doc.main}
-          counts={hand?.card_counts ?? {}}
-          sample={sample}
-          catalog={catalog}
-          order={hand ? order : null}
-          onCount={setCount}
-        />
+        <p className="note">
+          Your Main Deck on the left is shuffled and the hand is boxed. Click a
+          card there to add it to the hand or take it out.
+        </p>
       )}
 
       {issues.some((issue) => issue.kind === "over_copy_limit" || issue.kind === "not_in_main") ? (
