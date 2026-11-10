@@ -5,6 +5,8 @@ interface Props {
   label: string;
   /** What will be lost, shown in the confirm step. */
   message: string;
+  /** Optional count shown at the right of the label, e.g. cards in the deck. */
+  detail?: number;
   disabled?: boolean;
   className?: string;
   onConfirm: () => void;
@@ -14,7 +16,14 @@ interface Props {
  * A destructive action in two steps, inline: click, read what is lost, then
  * Clear or Cancel (focus starts on Cancel). Never a browser dialog.
  */
-export function ClearButton({ label, message, disabled, className, onConfirm }: Props) {
+export function ClearButton({
+  label,
+  message,
+  detail,
+  disabled,
+  className,
+  onConfirm,
+}: Props) {
   const [confirming, setConfirming] = useState(false);
 
   if (!confirming) {
@@ -25,7 +34,8 @@ export function ClearButton({ label, message, disabled, className, onConfirm }: 
         disabled={disabled}
         onClick={() => setConfirming(true)}
       >
-        {label}
+        <span>{label}</span>
+        {detail === undefined ? null : <span className="clear-detail">{detail}</span>}
       </button>
     );
   }

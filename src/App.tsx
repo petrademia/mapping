@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearMenu } from "./components/ClearMenu";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
@@ -191,6 +192,7 @@ export function App() {
                   setDoc(setOpeningHandSize(doc, size));
                 }}
               />
+              <CardImpactPanel doc={view} catalog={catalog} />
               <RoleSummary doc={view} />
             </>
           ) : null}

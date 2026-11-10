@@ -518,27 +518,56 @@ h1 {
 }
 .deck-empty-state strong { color: var(--mist); font-weight: 600; }
 
-.clear-menu { position: relative; }
-.clear-menu > summary {
-  list-style: none;
-  cursor: pointer;
-  border: 1px solid var(--line);
-  padding: 0.4rem 0.7rem;
-}
-.clear-menu > summary::-webkit-details-marker { display: none; }
-.clear-menu[open] > summary { border-color: var(--brass); }
-.clear-menu ul {
-  list-style: none;
-  margin: 0.3rem 0 0;
-  padding: 0.5rem;
+.impact-select { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); margin: 0.4rem 0; }
+.impact-select select { background: #171b18; border: 1px solid var(--line); padding: 0.4rem 0.5rem; }
+.impact-baseline { margin: 0.4rem 0; color: var(--muted); }
+.impact-baseline strong { color: var(--mist); font-family: "Red Hat Mono", ui-monospace, monospace; font-weight: 500; }
+.impact-list { list-style: none; margin: 0.4rem 0; padding: 0; display: grid; gap: 0.35rem; }
+.impact-list li {
   display: grid;
-  gap: 0.3rem;
+  grid-template-columns: 28px minmax(0, 1fr) 5rem 5.2rem;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.35rem;
+}
+.impact-list .card-thumb { width: 28px; height: 41px; }
+.impact-name { display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
+.impact-sub { font-size: 0.8rem; color: var(--muted); }
+.impact-bar { display: block; height: 0.5rem; background: #171b18; border-radius: 2px; overflow: hidden; }
+.impact-fill { display: block; height: 100%; background: var(--brass); }
+.impact-fill.negative { background: #c45c4a; }
+.impact-value { text-align: right; font-family: "Red Hat Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+
+/* A popover: it floats over the page and never moves the toolbar. */
+.clear-menu { position: relative; display: inline-block; }
+.clear-menu > button[aria-expanded="true"] { border-color: var(--brass); }
+.clear-popover {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 20;
+  min-width: 17rem;
+  padding: 0.4rem;
   background: #171b18;
   border: 1px solid var(--line);
-  min-width: 15rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
 }
-.clear-menu li button { width: 100%; text-align: left; }
-.clear-menu li button:disabled { opacity: 0.5; cursor: default; }
+.clear-popover ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.clear-popover .empty { margin: 0.2rem 0.4rem 0.4rem; }
+.clear-popover li > button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-color: transparent;
+  text-align: left;
+}
+.clear-popover li > button:hover:not(:disabled) { border-color: var(--line); background: #222822; }
+.clear-popover li > button:disabled { color: var(--muted); opacity: 0.6; cursor: default; }
+.clear-popover .delete-confirm { padding: 0.3rem; }
+.clear-detail { font-family: "Red Hat Mono", ui-monospace, monospace; color: var(--muted); }
+.deck-meta .row-actions { align-items: flex-start; }
 .deck-section .delete-confirm { color: var(--ink); }
 .deck-section .delete-confirm button { color: var(--ink); border-color: #b7bfb0; }
 .deck-section .delete-confirm button.danger { color: #8a2f21; border-color: #8a2f21; }
