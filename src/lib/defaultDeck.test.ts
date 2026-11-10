@@ -3,27 +3,52 @@ import ydkText from "../../public/default.ydk?raw";
 import { deckFromYdkText } from "./defaultDeck";
 import { sectionSize } from "./document";
 
+// These tests describe any valid default deck, so replacing public/default.ydk
+// does not break them.
 describe("default deck", () => {
   const doc = deckFromYdkText(ydkText);
 
-  it("parses the bundled public/default.ydk into main, extra and side", () => {
+  it("parses the bundled public/default.ydk into legal-sized sections", () => {
     expect(sectionSize(doc.main)).toBeGreaterThanOrEqual(40);
     expect(sectionSize(doc.main)).toBeLessThanOrEqual(60);
-    expect(sectionSize(doc.extra)).toBeGreaterThan(0);
     expect(sectionSize(doc.extra)).toBeLessThanOrEqual(15);
-    expect(sectionSize(doc.side)).toBe(0);
+    expect(sectionSize(doc.side)).toBeLessThanOrEqual(15);
   });
 
-  it("merges copies and keeps annotations empty", () => {
-    const ash = doc.main.find((card) => card.card_id === 14558127);
-    expect(ash?.quantity).toBe(2);
-    for (const card of doc.main) {
-      expect(card.taxonomy.roles).toEqual([]);
+  it("loads the Extra and Side sections as well as Main", () => {
+    expect(sectionSize(doc.extra)).toBeGreaterThan(0);
+    expect(sectionSize(doc.side)).toBeGreaterThan(0);
+  });
+
+  it("matches the file's own section counts", () => {
+    const counts = { main: 0, extra: 0, side: 0 };
+    let section: keyof typeof counts = "main";
+    for (const raw of ydkText.split(/\r?\n/)) {
+      const line = raw.trim().toLowerCase();
+      if (line === "#main") section = "main";
+      else if (line === "#extra") section = "extra";
+      else if (line === "!side" || line === "#side") section = "side";
+      else if (/^\d+$/.test(line)) counts[section] += 1;
+    }
+    expect(sectionSize(doc.main)).toBe(counts.main);
+    expect(sectionSize(doc.extra)).toBe(counts.extra);
+    expect(sectionSize(doc.side)).toBe(counts.side);
+  });
+
+  it("merges repeated ids into one row with a quantity", () => {
+    const ids = [...doc.main, ...doc.extra, ...doc.side].map((card) => card.card_id);
+    expect(new Set(ids.filter((id, i) => ids.indexOf(id) === i)).size).toBe(
+      new Set(ids).size,
+    );
+    expect(doc.main.some((card) => card.quantity > 1)).toBe(true);
+    for (const section of [doc.main, doc.extra, doc.side]) {
+      expect(new Set(section.map((c) => c.card_id)).size).toBe(section.length);
     }
   });
 
-  it("stores no card names, so names follow the catalog", () => {
-    for (const card of [...doc.main, ...doc.extra]) {
+  it("keeps annotations empty and stores no card names", () => {
+    for (const card of [...doc.main, ...doc.extra, ...doc.side]) {
+      expect(card.taxonomy.roles).toEqual([]);
       expect(card.name).toBeUndefined();
     }
   });
@@ -34,12 +59,11 @@ describe("default deck", () => {
     expect(doc.configurations).toEqual([]);
   });
 
-  it("keeps Extra and Side cards when a ydk has them, like the bundled file's layout", () => {
-    // The bundled file has an empty !side section; a deck with side cards must keep them.
-    const withSide = deckFromYdkText(`${ydkText.trimEnd()}\n24224830\n24224830\n`);
-    expect(sectionSize(withSide.side)).toBe(2);
-    expect(sectionSize(withSide.extra)).toBe(sectionSize(doc.extra));
-    expect(sectionSize(withSide.main)).toBe(sectionSize(doc.main));
+  it("adds side cards to the side section", () => {
+    const withMore = deckFromYdkText(`${ydkText.trimEnd()}\n24224830\n24224830\n`);
+    expect(sectionSize(withMore.side)).toBe(sectionSize(doc.side) + 2);
+    expect(sectionSize(withMore.extra)).toBe(sectionSize(doc.extra));
+    expect(sectionSize(withMore.main)).toBe(sectionSize(doc.main));
   });
 
   it("reads explicit sections from ydk text", () => {

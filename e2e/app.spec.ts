@@ -1,7 +1,22 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 // Every test gets a fresh browser context, so there is no saved draft and the
-// app loads public/default.ydk (42 main, 15 extra) as a real first run does.
+// app loads public/default.ydk as a real first run does. Expected counts come
+// from that file, so replacing the default deck does not break these tests.
+function defaultDeckCounts(): { main: number; extra: number; side: number } {
+  const counts = { main: 0, extra: 0, side: 0 };
+  let section: keyof typeof counts = "main";
+  for (const raw of readFileSync("public/default.ydk", "utf8").split(/\r?\n/)) {
+    const line = raw.trim().toLowerCase();
+    if (line === "#main") section = "main";
+    else if (line === "#extra") section = "extra";
+    else if (line === "!side" || line === "#side") section = "side";
+    else if (/^\d+$/.test(line)) counts[section] += 1;
+  }
+  return counts;
+}
+const DEFAULT = defaultDeckCounts();
 
 async function openApp(page: Page): Promise<void> {
   await page.goto("/");
@@ -17,9 +32,9 @@ async function addCardBySearch(page: Page, query: string): Promise<void> {
 test("first run loads the default deck from default.ydk", async ({ page }) => {
   await openApp(page);
   const counts = page.locator(".counts");
-  await expect(counts).toContainText("42 main");
-  await expect(counts).toContainText("15 extra");
-  await expect(counts).toContainText("0 side");
+  await expect(counts).toContainText(`${DEFAULT.main} main`);
+  await expect(counts).toContainText(`${DEFAULT.extra} extra`);
+  await expect(counts).toContainText(`${DEFAULT.side} side`);
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue("default deck");
 });
 
@@ -137,18 +152,20 @@ test.describe("Clear menu", () => {
     await openApp(page);
     await page.getByRole("button", { name: "Clear", exact: true }).first().click();
     const menu = page.getByRole("group", { name: "Clear", exact: true });
-    await expect(menu.getByRole("button", { name: /Side Deck/ })).toBeDisabled();
+    // The default deck has side cards, so Side Deck is clearable; Groups has nothing.
+    await expect(menu.getByRole("button", { name: /Side Deck/ })).toBeEnabled();
+    await expect(menu.getByRole("button", { name: /Groups/ })).toBeDisabled();
 
     // Cancel keeps the cards (the menu stays open).
     await menu.getByRole("button", { name: /Extra Deck/ }).click();
     await menu.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.locator(".counts")).toContainText("15 extra");
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra} extra`);
 
     // Confirm clears only that section and closes the menu.
     await menu.getByRole("button", { name: /Extra Deck/ }).click();
     await menu.getByRole("button", { name: "Clear", exact: true }).click();
     await expect(page.locator(".counts")).toContainText("0 extra");
-    await expect(page.locator(".counts")).toContainText("42 main");
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.main} main`);
     await expect(menu).toHaveCount(0);
   });
 
@@ -170,14 +187,14 @@ test.describe("Deck Configuration", () => {
     await expect(page.locator(".analyzing-strip")).toContainText("Post-Side 1");
 
     await page.getByRole("button", { name: /^Move one .* to Side$/ }).first().click();
-    await expect(page.locator(".analyzing-strip")).toContainText("41 main");
+    await expect(page.locator(".analyzing-strip")).toContainText(`${DEFAULT.main - 1} main`);
     await expect(page.locator(".diff-chips li")).toHaveCount(1);
 
     // The deck list on the left stays Pre-Side.
     await expect(page.locator(".deck-editor-banner")).toContainText("Pre-Side");
 
     await page.getByRole("radio", { name: "Pre-Side" }).click();
-    await expect(page.locator(".analyzing-strip")).toContainText("42 main");
+    await expect(page.locator(".analyzing-strip")).toContainText(`${DEFAULT.main} main`);
   });
 
   test("the configuration chips support arrow keys", async ({ page }) => {
