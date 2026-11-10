@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ClearMenu } from "./components/ClearMenu";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
 import {
@@ -52,6 +53,8 @@ export function App() {
   const [catalog, setCatalog] = useState<Catalog>(new Map());
   const [imageIds, setImageIds] = useState<CardImageIds>(new Set());
   const [extraIds, setExtraIds] = useState<ExtraDeckIds>(new Set());
+  // Bumped by Clear everything so workspace panels drop their local state.
+  const [resetKey, setResetKey] = useState(0);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
   const [status, setStatus] = useState(
     "Local draft. Taxonomy annotations are deck-specific hypotheses.",
@@ -102,11 +105,13 @@ export function App() {
               type="button"
               onClick={() => {
                 setDoc(createDocument("untitled"));
+                setResetKey((key) => key + 1);
                 setStatus("Started an empty deck.");
               }}
             >
               New deck
             </button>
+            <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
           </div>
         </div>
       </header>
@@ -192,6 +197,7 @@ export function App() {
 
           {workspace === "models" ? (
             <ModelsPanel
+              key={resetKey}
               doc={view}
               catalog={catalog}
               onChange={changeView}
@@ -204,6 +210,7 @@ export function App() {
 
           {workspace === "hand-test" ? (
             <HandTestPanel
+              key={resetKey}
               doc={view}
               catalog={catalog}
               onHandSize={(size) => {

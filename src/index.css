@@ -510,6 +510,39 @@ h1 {
 }
 .hand-images.sm .hand-image-name { -webkit-line-clamp: 4; }
 
+.deck-empty-state {
+  margin: 0 0 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+}
+.deck-empty-state strong { color: var(--mist); font-weight: 600; }
+
+.clear-menu { position: relative; }
+.clear-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.7rem;
+}
+.clear-menu > summary::-webkit-details-marker { display: none; }
+.clear-menu[open] > summary { border-color: var(--brass); }
+.clear-menu ul {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.3rem;
+  background: #171b18;
+  border: 1px solid var(--line);
+  min-width: 15rem;
+}
+.clear-menu li button { width: 100%; text-align: left; }
+.clear-menu li button:disabled { opacity: 0.5; cursor: default; }
+.deck-section .delete-confirm { color: var(--ink); }
+.deck-section .delete-confirm button { color: var(--ink); border-color: #b7bfb0; }
+.deck-section .delete-confirm button.danger { color: #8a2f21; border-color: #8a2f21; }
+
 .models-steps { margin: 0 0 0.6rem; padding-left: 1.2rem; color: var(--muted); display: grid; gap: 0.2rem; }
 .models-steps strong { color: var(--mist); font-weight: 600; }
 

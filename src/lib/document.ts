@@ -255,6 +255,67 @@ export function setQuantity(
   return replaceSection(doc, section, cards);
 }
 
+/** Remove every card from one deck section. Other sections and models stay. */
+export function clearSection(
+  doc: MappingDocument,
+  section: DeckSection,
+): MappingDocument {
+  return replaceSection(doc, section, []);
+}
+
+/** Reset Roles and Opening Quality on every card; quantities stay. */
+export function clearTags(doc: MappingDocument): MappingDocument {
+  const reset = (cards: MappingCard[]): MappingCard[] =>
+    cards.map((card) => ({ ...card, taxonomy: { ...EMPTY_TAXONOMY } }));
+  return {
+    ...doc,
+    main: reset(doc.main),
+    extra: reset(doc.extra),
+    side: reset(doc.side),
+  };
+}
+
+/** Remove all Groups, and the group lines inside Hand Conditions. */
+export function clearGroups(doc: MappingDocument): MappingDocument {
+  return doc.groups.reduce((next, group) => removeGroup(next, group.id), doc);
+}
+
+/** Remove all Hand Conditions; they also leave every Modeled Outcome. */
+export function clearHandConditions(doc: MappingDocument): MappingDocument {
+  return doc.hand_conditions.reduce(
+    (next, condition) => removeHandCondition(next, condition.id),
+    doc,
+  );
+}
+
+/**
+ * Empty every Modeled Outcome. The built-in Engine Access outcome stays, so
+ * the Profile still has one to fill; user-made outcomes are removed.
+ */
+export function clearModeledOutcomes(doc: MappingDocument): MappingDocument {
+  const engine = doc.hand_condition_sets.find(
+    (set) => set.id === ENGINE_ACCESS_SET_ID,
+  );
+  return {
+    ...doc,
+    hand_condition_sets: [
+      {
+        id: ENGINE_ACCESS_SET_ID,
+        name: engine?.name ?? ENGINE_ACCESS_SET_NAME,
+        ...(engine?.notes ? { notes: engine.notes } : {}),
+        condition_ids: [],
+        aggregation: "any",
+      },
+    ],
+    engine_access_set_id: ENGINE_ACCESS_SET_ID,
+  };
+}
+
+/** Remove all Post-Side lists and return to Pre-Side. */
+export function clearConfigurations(doc: MappingDocument): MappingDocument {
+  return { ...doc, configurations: [], active_configuration_id: null };
+}
+
 export function setCardTaxonomy(
   doc: MappingDocument,
   section: DeckSection,

@@ -1,5 +1,6 @@
 import type { Catalog } from "../lib/catalog";
 import {
+  clearSection,
   removeCard,
   sectionSize,
   setCardContextualOpeningQuality,
@@ -9,6 +10,7 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { CardRow } from "./CardRow";
+import { ClearButton } from "./ClearButton";
 
 const TITLES: Record<DeckSection, string> = {
   main: "Main Deck",
@@ -30,6 +32,14 @@ export function DeckSection({ doc, section, catalog, onChange }: Props) {
       <header>
         <h2>{TITLES[section]}</h2>
         <p>{sectionSize(cards)} cards</p>
+        {cards.length > 0 ? (
+          <ClearButton
+            label="Clear"
+            className="ghost"
+            message={`Remove all ${sectionSize(cards)} cards from the ${TITLES[section]}?`}
+            onConfirm={() => onChange(clearSection(doc, section))}
+          />
+        ) : null}
       </header>
       {cards.length === 0 ? (
         <p className="empty">No cards in this section.</p>
