@@ -403,6 +403,58 @@ test.describe("Compare decks", () => {
   });
 });
 
+test.describe("Rank scores hands", () => {
+  const nav = (page: Page, name: string) =>
+    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
+
+  async function rankFirstCardTop(page: Page): Promise<void> {
+    await nav(page, "Rank").click();
+    const tiles = page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile");
+    await tiles.nth(3).click();
+    await tiles.nth(0).click();
+  }
+
+  test("Hand Test asks for a ranking until there is one", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Hand Test").click();
+    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await expect(page.getByText("Rank your cards in the Rank tab to score hands.")).toBeVisible();
+  });
+
+  test("a ranked deck scores the hand and badges each card with its rank", async ({ page }) => {
+    await openApp(page);
+    await rankFirstCardTop(page);
+    await nav(page, "Hand Test").click();
+    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await expect(page.getByText(/^Rank score: \d+% \(a random hand averages \d+%\)/)).toBeVisible();
+    await expect(page.locator(".hand-tile.in-hand .rank-badge")).toHaveCount(5);
+  });
+
+  test("Many hands shows each hand's score and the exact average", async ({ page }) => {
+    await openApp(page);
+    await rankFirstCardTop(page);
+    await nav(page, "Many hands").click();
+    await page.getByRole("button", { name: "Generate hands" }).click();
+    await expect(page.getByText(/Average rank score .* the exact average is/)).toBeVisible();
+    await expect(page.locator(".hand-rank-score")).toHaveCount(10);
+  });
+
+  test("Compare judges both decks by this deck's ranking", async ({ page }) => {
+    await openApp(page);
+    await rankFirstCardTop(page);
+    await nav(page, "Compare").click();
+    const lines = readFileSync("public/default.ydk", "utf8").split(/\r?\n/);
+    await page.locator('.compare-panel input[type="file"]').setInputFiles({
+      name: "same.ydk",
+      mimeType: "text/plain",
+      buffer: Buffer.from(lines.join("\n")),
+    });
+    const table = page.getByRole("table", { name: "Rank" });
+    await expect(table).toBeVisible();
+    await expect(table.getByRole("row", { name: /Average hand rank score/ })).toContainText("same");
+  });
+});
+
 test.describe("Models are card art", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);

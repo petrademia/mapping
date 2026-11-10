@@ -33,6 +33,7 @@ export interface HandTestView {
   counts: Readonly<Record<number, number>>;
   sample: number;
   order: readonly number[] | null;
+  rankOf?: (cardId: number) => number | null;
   onCount: (cardId: number, next: number) => void;
 }
 
@@ -221,6 +222,7 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
                 sample={handTest.sample}
                 catalog={catalog}
                 order={handTest.order}
+                rankOf={handTest.rankOf}
                 onCount={handTest.onCount}
               />
             ) : (

@@ -13,6 +13,7 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { parseDeckText } from "../lib/ydk";
+import { isRanked, rankFor } from "../lib/cardRank";
 import { ClearButton } from "./ClearButton";
 import { CardStrip } from "./ModelArt";
 
@@ -159,7 +160,20 @@ function rowsFor(a: DeckScore, b: DeckScore) {
     count("Undesirable copies", a.quality.undesirable, b.quality.undesirable, false),
     count("Main Deck size", a.mainSize, b.mainSize, false, true),
   ];
-  return { goalRows, consistency, mix };
+  const rank: Row[] =
+    a.rankScore !== null && b.rankScore !== null
+      ? [
+          {
+            label: "Average hand rank score",
+            a: percent(a.rankScore),
+            b: percent(b.rankScore),
+            delta: b.rankScore - a.rankScore,
+            text: points(b.rankScore - a.rankScore),
+            higherIsBetter: true,
+          },
+        ]
+      : [];
+  return { goalRows, consistency, mix, rank };
 }
 
 /**
@@ -172,9 +186,17 @@ export function ComparePanel({ doc, catalog, onUse }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const compared = useMemo(() => (other ? inheritModels(doc, other) : null), [doc, other]);
-  const scores = useMemo<{ a: DeckScoreResult; b: DeckScoreResult | null}>(
-    () => ({ a: scoreDeck(doc), b: compared ? scoreDeck(compared) : null }),
-    [doc, compared],
+  // Both decks are judged by this deck's ranking for the compared turn order.
+  const ranking = useMemo(() => {
+    const turn = doc.analysis.turn_order;
+    return isRanked(doc, turn) ? rankFor(doc, turn) : null;
+  }, [doc]);
+  const scores = useMemo<{ a: DeckScoreResult; b: DeckScoreResult | null }>(
+    () => ({
+      a: scoreDeck(doc, ranking),
+      b: compared ? scoreDeck(compared, ranking) : null,
+    }),
+    [doc, compared, ranking],
   );
   const diff = useMemo(() => (compared ? mainDifferences(doc, compared) : []), [doc, compared]);
   const added = diff.filter((row) => row.delta > 0).map((row) => row.card_id);
@@ -258,6 +280,13 @@ export function ComparePanel({ doc, catalog, onUse }: Props) {
                 <CompareTable caption="Hand Goal odds" rows={rows.goalRows} />
                 {rows.goalRows.length > 0 ? (
                   <CompareTable caption="Consistency" rows={rows.consistency} />
+                ) : null}
+                <CompareTable caption="Rank" rows={rows.rank} />
+                {rows.rank.length === 0 ? (
+                  <p className="note">
+                    Rank your cards in the Rank tab to compare how good each deck's
+                    average hand is by your own ranking.
+                  </p>
                 ) : null}
                 <CompareTable caption="Slots" rows={rows.mix} />
               </>

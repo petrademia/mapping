@@ -7,6 +7,7 @@ import {
 } from "./document";
 import { groupsToMembership } from "./handCondition";
 import { analyzeHandConditions } from "./handExplorer";
+import { scorerFor } from "./rankScore";
 import { openingQualityForTurn, ROLES, type Role } from "./taxonomy";
 
 const ANY_GOAL = "__any_condition";
@@ -35,6 +36,8 @@ export interface DeckScore {
   roles: Record<Role, number>;
   /** Copies in Main by Opening Quality for the compared turn order. */
   quality: { desirable: number; neutral: number; undesirable: number; unset: number };
+  /** Average rank score of a random hand under the shared ranking; null without a ranking. */
+  rankScore: number | null;
 }
 
 export type DeckScoreResult = DeckScore | { error: string };
@@ -43,7 +46,11 @@ export type DeckScoreResult = DeckScore | { error: string };
  * Measure a deck against the Hand Goals it carries. Everything is exact: one
  * pass over the hand space, no sampling.
  */
-export function scoreDeck(doc: MappingDocument): DeckScoreResult {
+export function scoreDeck(
+  doc: MappingDocument,
+  /** A ranking (best first) to judge the deck by; this deck's own order when omitted. */
+  ranking?: readonly number[] | null,
+): DeckScoreResult {
   const mainSize = sectionSize(doc.main);
   const context = analysisContextOf(doc);
   const sample = observedCards(context, doc.analysis.opening_hand_size);
@@ -100,6 +107,9 @@ export function scoreDeck(doc: MappingDocument): DeckScoreResult {
     overlap: ratio(atLeastTwo),
     roles,
     quality,
+    rankScore: ranking && ranking.length > 0
+      ? scorerFor(doc.main, ranking, context.turn_order).expected(sample)
+      : null,
   };
 }
 

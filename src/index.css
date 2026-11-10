@@ -1411,3 +1411,17 @@ input::placeholder, textarea::placeholder { color: #6f6657; opacity: 1; }
 .compare-table .delta.gain { color: var(--pass); }
 .compare-table .delta.loss { color: var(--fail); }
 
+/* Rank score extras. */
+.hand-tile { position: relative; }
+.rank-badge {
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  background: var(--rail);
+  color: var(--rail-ink);
+  font: 0.65rem "Red Hat Mono", ui-monospace, monospace;
+}
+.hand-rank-score { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.8rem; color: var(--accent-text); }
+

@@ -12,6 +12,8 @@ interface Props {
   catalog: Catalog;
   /** A shuffled order of every copy (card ids); the grid follows it when it still matches the deck. */
   order?: readonly number[] | null;
+  /** Rank position (1 = best) of a card, shown on the cards in the hand. */
+  rankOf?: (cardId: number) => number | null;
   onCount: (cardId: number, next: number) => void;
 }
 
@@ -20,7 +22,7 @@ interface Props {
  * boxed. Click a card to put a copy in the hand and click a boxed card to take
  * it out, so one grid draws, shows and edits the hand.
  */
-export function HandGrid({ deck, counts, sample, catalog, order, onCount }: Props) {
+export function HandGrid({ deck, counts, sample, catalog, order, rankOf, onCount }: Props) {
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
   const hasHand = total > 0;
   const names = new Map(deck.map((card) => [card.card_id, card.name] as const));
@@ -66,6 +68,11 @@ export function HandGrid({ deck, counts, sample, catalog, order, onCount }: Prop
                 }}
               >
                 <CardFrame cardId={cardId} name={name} />
+                {boxed && rankOf && rankOf(cardId) !== null ? (
+                  <span className="rank-badge" title={`Ranked #${rankOf(cardId)}`}>
+                    #{rankOf(cardId)}
+                  </span>
+                ) : null}
               </button>
             </li>
           );

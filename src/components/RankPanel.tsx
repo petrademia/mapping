@@ -209,7 +209,8 @@ function RankList({ doc, catalog, onChange, context, label }: ListProps) {
  * Two card grids in rank order, one per turn order, best card first. The big
  * number on each card is its rank. Click a card, then click where it should go;
  * or drag it; or press Space on a card and use the arrow keys. It is your
- * preference order: no weights, and no probability reads it.
+ * preference order. It stores only the order; the rank score (see rankScore.ts)
+ * turns it into weights for scoring hands, and no probability reads it.
  */
 export function RankPanel({ doc, catalog, onChange }: Props) {
   return (

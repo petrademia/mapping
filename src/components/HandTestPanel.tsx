@@ -3,6 +3,7 @@ import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { PassMark } from "./IconButton";
+import { scorerForDoc } from "../lib/rankScore";
 import {
   analysisContextOf,
   sectionSize,
@@ -117,6 +118,11 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
     setHand(handFromOrder(shuffled, Math.min(sample, shuffled.length)));
   }
 
+  const rankScorer = useMemo(
+    () => scorerForDoc(doc, context.turn_order),
+    [doc, context.turn_order],
+  );
+
   const roleCounts = useMemo(() => {
     if (!hand) return { starter: 0, extender: 0, interaction: 0 };
     const counts = { starter: 0, extender: 0, interaction: 0 };
@@ -206,6 +212,11 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
       {hand && result && totalSelected === sample && issues.length === 0 ? (
         <>
           <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
+          <p className="explorer-notation">
+            {rankScorer
+              ? `Rank score: ${(rankScorer.score(hand.card_counts) * 100).toFixed(0)}% (a random hand averages ${(rankScorer.expected(sample) * 100).toFixed(0)}%)`
+              : "Rank your cards in the Rank tab to score hands."}
+          </p>
           <p className="explorer-notation">
             Exact composition probability:{" "}
             {exactProbability !== null ? formatPercent(exactProbability) : "—"}

@@ -1,0 +1,63 @@
+import { describe, expect, it } from "vitest";
+import { scorerFor } from "./rankScore";
+import type { MappingCard } from "./document";
+
+const card = (card_id: number, quantity: number): MappingCard => ({
+  card_id,
+  quantity,
+  taxonomy: { roles: [], opening_quality: { going_first: null, going_second: null } },
+});
+
+const deck = [card(1, 3), card(2, 2), card(3, 1), card(4, 4)];
+const order = [1, 2, 3, 4];
+
+describe("rank score", () => {
+  const scorer = scorerFor(deck, order, "going_first");
+
+  it("weights a card by 1 over its rank", () => {
+    expect(scorer.weightOf(1)).toBe(1);
+    expect(scorer.weightOf(2)).toBeCloseTo(0.5);
+    expect(scorer.weightOf(4)).toBeCloseTo(0.25);
+    expect(scorer.weightOf(99)).toBe(0);
+    expect(scorer.positionOf(3)).toBe(3);
+  });
+
+  it("scores the best possible hand 100%", () => {
+    expect(scorer.score({ 1: 3, 2: 2 })).toBeCloseTo(1);
+  });
+
+  it("scores a weaker hand lower, and lower still the further down the ranking", () => {
+    const strong = scorer.score({ 1: 2, 2: 2, 3: 1 });
+    const weak = scorer.score({ 4: 4, 3: 1 });
+    expect(strong).toBeLessThan(1);
+    expect(weak).toBeLessThan(strong);
+    expect(scorer.score({})).toBe(0);
+  });
+
+  it("reaches its exact expected value over every five-card hand", () => {
+    // Average the score of every distinct 5-card hand weighted by how often it occurs.
+    const copies: number[] = [];
+    for (const c of deck) for (let i = 0; i < c.quantity; i += 1) copies.push(c.card_id);
+    let sum = 0;
+    let count = 0;
+    const n = copies.length;
+    const pick = (start: number, chosen: number[]): void => {
+      if (chosen.length === 5) {
+        const counts: Record<number, number> = {};
+        for (const id of chosen) counts[id] = (counts[id] ?? 0) + 1;
+        sum += scorer.score(counts);
+        count += 1;
+        return;
+      }
+      for (let i = start; i < n; i += 1) pick(i + 1, [...chosen, copies[i]!]);
+    };
+    pick(0, []);
+    expect(scorer.expected(5)).toBeCloseTo(sum / count, 10);
+  });
+
+  it("judges another deck by this ranking, giving unknown cards no weight", () => {
+    const other = scorerFor([card(1, 1), card(900, 4)], order, "going_first");
+    expect(other.weightOf(900)).toBe(0);
+    expect(other.score({ 1: 1 })).toBeCloseTo(1);
+  });
+});

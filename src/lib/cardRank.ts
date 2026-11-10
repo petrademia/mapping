@@ -2,8 +2,9 @@ import type { MappingCard, MappingDocument } from "./document";
 
 /**
  * A manual preference order of Main Deck cards, best first, kept separately
- * for each turn order. It is an ordering, not a score: no weights are
- * assigned, and nothing in the probability math reads it. Cards missing from a
+ * for each turn order. It is an ordering, not a score: it stores no weights,
+ * and nothing in the probability math reads it. The rank score (rankScore.ts)
+ * derives weights from it to score hands. Cards missing from a
  * stored order are shown after the ranked ones, in deck order, so a list is
  * always complete.
  */

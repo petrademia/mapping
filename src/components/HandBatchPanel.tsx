@@ -14,6 +14,7 @@ import type { TestedHand } from "../lib/handTest";
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { HandImages } from "./HandImages";
 import { PassMark } from "./IconButton";
+import { scorerForDoc } from "../lib/rankScore";
 
 const LIST_LIMIT = 100;
 
@@ -95,6 +96,15 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
   }
 
   const summary = useMemo(() => (batch ? summarizeBatch(batch) : null), [batch]);
+  const scorer = useMemo(
+    () => scorerForDoc(doc, context.turn_order),
+    [doc, context.turn_order],
+  );
+  const averageRank = useMemo(() => {
+    if (!batch || !scorer || batch.length === 0) return null;
+    const total = batch.reduce((sum, entry) => sum + scorer.score(entry.hand.card_counts), 0);
+    return total / batch.length;
+  }, [batch, scorer]);
 
   return (
     <section className="panel">
@@ -159,11 +169,24 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
               ))
             )}
           </dl>
+          {scorer ? (
+            <p className="explorer-notation">
+              Average rank score {averageRank !== null ? `${(averageRank * 100).toFixed(1)}%` : "-"} over{" "}
+              {batch.length} hands; the exact average is {(scorer.expected(sample) * 100).toFixed(1)}%.
+            </p>
+          ) : (
+            <p className="explorer-notation">Rank your cards in the Rank tab to score these hands.</p>
+          )}
           <ol className="hand-batch-list">
             {batch.slice(0, LIST_LIMIT).map((entry) => (
               <li key={entry.index} className="hand-batch-item">
                 <div className="hand-batch-head">
                   <strong>Hand {entry.index}</strong>
+                  {scorer ? (
+                    <span className="hand-rank-score">
+                      Rank {(scorer.score(entry.hand.card_counts) * 100).toFixed(0)}%
+                    </span>
+                  ) : null}
                   <span className="hand-batch-sets">
                     {entry.result.sets.map((set) => (
                       <span

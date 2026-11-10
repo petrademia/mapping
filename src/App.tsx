@@ -8,6 +8,7 @@ import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
 import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
 import { download, slug } from "./lib/download";
+import { scorerForDoc } from "./lib/rankScore";
 import { serializeYdk } from "./lib/ydk";
 import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
 import type { TestedHand } from "./lib/handTest";
@@ -127,6 +128,8 @@ export function App() {
           counts: testedHand?.card_counts ?? {},
           sample: handSample,
           order: testedHand ? handOrder : null,
+          rankOf: (cardId: number) =>
+            scorerForDoc(view, view.analysis.turn_order)?.positionOf(cardId) ?? null,
           onCount: (cardId: number, next: number) => {
             const counts = { ...(testedHand?.card_counts ?? {}) };
             if (next <= 0) delete counts[cardId];
