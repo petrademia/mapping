@@ -1013,7 +1013,11 @@ button svg { flex: none; vertical-align: -0.15em; }
   display: grid;
   grid-template-columns: repeat(auto-fill, 76px);
   gap: 0.4rem;
+  /* Later tiles fill the gap left by the full-width editor row, so the editor
+     sits right under the row of the card you clicked. */
+  grid-auto-flow: row dense;
 }
+.deck-grid .deck-detail-row { grid-column: 1 / -1; min-width: 0; }
 .deck-grid li { min-width: 0; }
 .deck-tile {
   position: relative;

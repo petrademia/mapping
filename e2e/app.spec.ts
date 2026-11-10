@@ -187,6 +187,25 @@ test.describe("Deck view", () => {
     await expect(main.getByRole("group", { name: /^Edit / })).toHaveCount(0);
   });
 
+  test("the editor opens right under the clicked card, not at the end of the section", async ({ page }) => {
+    await openApp(page);
+    const main = section(page, "Main Deck");
+    const tile = main.locator(".deck-tile").nth(3);
+    const tileBox = (await tile.boundingBox())!;
+    await tile.click();
+
+    const detail = main.getByRole("group", { name: /^Edit / });
+    await expect(detail).toBeInViewport();
+    const detailBox = (await detail.boundingBox())!;
+    // Directly below the clicked row: within about one tile row, not a section away.
+    expect(detailBox.y).toBeGreaterThan(tileBox.y);
+    expect(detailBox.y - tileBox.y).toBeLessThan(200);
+    // And the Role controls are usable without scrolling away from the card.
+    await expect(detail.getByRole("button", { name: "Starter" })).toBeInViewport();
+    await detail.getByRole("button", { name: "Starter" }).click();
+    await expect(detail.getByRole("button", { name: "Starter" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("Extra Deck cards have no role or opening quality controls", async ({ page }) => {
     await openApp(page);
     // Extra Deck cards are never in an opening hand.

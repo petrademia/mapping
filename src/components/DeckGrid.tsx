@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import {
@@ -47,11 +47,81 @@ function RolePips({ card }: { card: MappingCard }) {
   );
 }
 
+/** The card editor. It sits inside the grid, right under the row you clicked. */
+function DetailRow({
+  section,
+  card,
+  doc,
+  catalog,
+  onChange,
+  onClose,
+}: {
+  section: DeckSection;
+  card: MappingCard;
+  doc: MappingDocument;
+  catalog: Catalog;
+  onChange: (doc: MappingDocument) => void;
+  onClose: () => void;
+}): ReactNode {
+  const ref = useRef<HTMLLIElement>(null);
+  const name = displayName(card.card_id, card.name, catalog);
+
+  // Opening the editor must never leave it off screen.
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: "nearest" });
+  }, [card.card_id]);
+
+  return (
+    <li className="deck-detail-row" ref={ref}>
+      <div className="deck-detail" role="group" aria-label={`Edit ${name}`}>
+        <div className="deck-detail-head">
+          <strong>{name}</strong>
+          <span className="card-id">{card.card_id}</span>
+          <span className="deck-detail-actions">
+            <QuantityEditor
+              value={card.quantity}
+              onChange={(quantity) =>
+                onChange(setQuantity(doc, section, card.card_id, quantity))
+              }
+            />
+            <IconButton
+              icon="trash"
+              label={`Remove ${name}`}
+              onClick={() => {
+                onChange(removeCard(doc, section, card.card_id));
+                onClose();
+              }}
+            />
+            <IconButton icon="x" label="Close" onClick={onClose} />
+          </span>
+        </div>
+        {section !== "extra" ? (
+          <div className="taxonomy-cell">
+            <RoleEditor
+              roles={card.taxonomy.roles}
+              onChange={(roles) => onChange(setCardRoles(doc, section, card.card_id, roles))}
+            />
+            <OpeningQualityEditor
+              value={card.taxonomy.opening_quality}
+              onChange={(turnOrder, value) =>
+                onChange(
+                  setCardContextualOpeningQuality(doc, section, card.card_id, turnOrder, value),
+                )
+              }
+            />
+          </div>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
 /**
  * The deck as card art, like a deck-builder: one tile per physical copy, so
- * copies of a card sit side by side. Click any copy to edit the card's
- * quantity and tags underneath; the List view keeps the detailed table. Extra Deck cards are never drawn, so they have
- * no roles or opening quality to edit.
+ * copies of a card sit side by side. Click any copy and its editor opens right
+ * under that row (no scrolling to the end of the section). The List view keeps
+ * the detailed table. Extra Deck cards are never drawn, so they have no roles
+ * or opening quality to edit.
  */
 export function DeckGrid({ doc, catalog, onChange }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
@@ -67,10 +137,8 @@ export function DeckGrid({ doc, catalog, onChange }: Props) {
     <>
       {(["main", "extra", "side"] as const).map((section) => {
         const cards = doc[section];
-        const chosen =
-          selected && selected.section === section
-            ? cards.find((card) => card.card_id === selected.cardId)
-            : undefined;
+        const chosenId =
+          selected && selected.section === section ? selected.cardId : null;
         return (
           <section className="deck-section deck-grid-section" key={section}>
             <header>
@@ -95,8 +163,8 @@ export function DeckGrid({ doc, catalog, onChange }: Props) {
                 {/* One tile per physical copy, copies of a card side by side. */}
                 {cards.flatMap((card) => {
                   const name = displayName(card.card_id, card.name, catalog);
-                  const isSelected = chosen?.card_id === card.card_id;
-                  return Array.from({ length: card.quantity }, (_, copy) => (
+                  const isSelected = chosenId === card.card_id;
+                  const tiles: ReactNode[] = Array.from({ length: card.quantity }, (_, copy) => (
                     <li key={`${card.card_id}-${copy}`}>
                       <button
                         type="button"
@@ -116,58 +184,23 @@ export function DeckGrid({ doc, catalog, onChange }: Props) {
                       </button>
                     </li>
                   ));
+                  if (isSelected) {
+                    tiles.push(
+                      <DetailRow
+                        key={`${card.card_id}-detail`}
+                        section={section}
+                        card={card}
+                        doc={doc}
+                        catalog={catalog}
+                        onChange={onChange}
+                        onClose={() => setSelected(null)}
+                      />,
+                    );
+                  }
+                  return tiles;
                 })}
               </ul>
             )}
-            {chosen ? (
-              <div className="deck-detail" role="group" aria-label={`Edit ${displayName(chosen.card_id, chosen.name, catalog)}`}>
-                <div className="deck-detail-head">
-                  <strong>{displayName(chosen.card_id, chosen.name, catalog)}</strong>
-                  <span className="card-id">{chosen.card_id}</span>
-                  <span className="deck-detail-actions">
-                    <QuantityEditor
-                      value={chosen.quantity}
-                      onChange={(quantity) =>
-                        onChange(setQuantity(doc, section, chosen.card_id, quantity))
-                      }
-                    />
-                    <IconButton
-                      icon="trash"
-                      label={`Remove ${displayName(chosen.card_id, chosen.name, catalog)}`}
-                      onClick={() => {
-                        onChange(removeCard(doc, section, chosen.card_id));
-                        setSelected(null);
-                      }}
-                    />
-                    <IconButton icon="x" label="Close" onClick={() => setSelected(null)} />
-                  </span>
-                </div>
-                {section !== "extra" ? (
-                  <div className="taxonomy-cell">
-                    <RoleEditor
-                      roles={chosen.taxonomy.roles}
-                      onChange={(roles) =>
-                        onChange(setCardRoles(doc, section, chosen.card_id, roles))
-                      }
-                    />
-                    <OpeningQualityEditor
-                      value={chosen.taxonomy.opening_quality}
-                      onChange={(turnOrder, value) =>
-                        onChange(
-                          setCardContextualOpeningQuality(
-                            doc,
-                            section,
-                            chosen.card_id,
-                            turnOrder,
-                            value,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
           </section>
         );
       })}
