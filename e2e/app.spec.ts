@@ -296,6 +296,42 @@ test.describe("Deck view", () => {
   });
 });
 
+test.describe("Binder Pages shell", () => {
+  test("the deck sits ten cards to a row", async ({ page }) => {
+    await openApp(page);
+    await page.waitForLoadState("networkidle");
+    const tiles = page.locator(".deck-grid-section").first().locator(".deck-tile");
+    const ys = await tiles.evaluateAll((els) => els.slice(0, 20).map((el) => Math.round(el.getBoundingClientRect().y)));
+    const firstRow = ys.filter((y) => y === ys[0]).length;
+    expect(firstRow).toBe(10);
+    // The second row starts at the eleventh card.
+    expect(ys[10]).toBeGreaterThan(ys[0]!);
+    expect(ys.slice(10).filter((y) => y === ys[10]).length).toBe(10);
+  });
+
+  test("the next step sends you to Hand Goals", async ({ page }) => {
+    await openApp(page);
+    await expect(page.getByRole("heading", { name: "Define a Hand Goal" })).toBeVisible();
+    await page.getByRole("button", { name: "Define a Hand Goal" }).click();
+    await expect(page.getByRole("heading", { name: "Hand Goals" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "+ Add Hand Goal" })).toBeVisible();
+  });
+
+  test("a Hand Goal shows its odds with the exact hand count", async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("button", { name: "Define a Hand Goal" }).click();
+    await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
+    await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
+    await page.locator('.engine-member input[type="checkbox"]').last().check();
+    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Profile" }).click();
+    const odds = page.getByRole("region", { name: "Hand Goal odds" });
+    await expect(odds).toBeVisible();
+    await expect(odds.locator(".odds-fraction").first()).toContainText(/\d[\d,]* \/ [\d,]+/);
+    // With a goal defined the prompt moves on to testing a hand.
+    await expect(page.getByRole("heading", { name: "Test a hand" })).toBeVisible();
+  });
+});
+
 test.describe("Models are card art", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);
