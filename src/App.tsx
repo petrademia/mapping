@@ -42,7 +42,7 @@ import {
   setOpeningHandSize,
   type MappingDocument,
 } from "./lib/document";
-import { observedCards } from "./lib/analysisContext";
+import { observedCards, type AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
 type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare";
@@ -51,7 +51,7 @@ const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "profile", label: "Profile" },
   { key: "models", label: "Models" },
   { key: "hand-test", label: "Hand Test" },
-  { key: "batch", label: "Many hands" },
+  { key: "batch", label: "Batch Test" },
   { key: "rank", label: "Rank" },
   { key: "compare", label: "Compare" },
 ];
@@ -92,7 +92,7 @@ export function App() {
   };
   // Bumped by Clear everything so workspace panels drop their local state.
   const [resetKey, setResetKey] = useState(0);
-  // The hand being tested; lives here so the Many hands tab can open one in Hand Test.
+  // The hand being tested; lives here so the Batch Test tab can open one in Hand Test.
   const [testedHand, setTestedHand] = useState<TestedHand | null>(null);
   // The shuffled deck order behind the drawn hand, kept so it survives tab switches.
   const [handOrder, setHandOrder] = useState<number[] | null>(null);
@@ -105,6 +105,12 @@ export function App() {
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
   const view = useMemo(() => applyConfiguration(doc), [doc]);
   const activeConfig = findConfiguration(doc, doc.active_configuration_id);
+  // A new turn order changes how many cards a hand holds, so a drawn hand no longer fits.
+  const changeContext = (context: AnalysisContext) => {
+    setDoc(setAnalysisContext(doc, context));
+    setTestedHand(null);
+    setHandOrder(null);
+  };
   const changeView = (next: MappingDocument) =>
     setDoc(mergeAnalysisEdit(doc, next));
 
@@ -388,6 +394,7 @@ export function App() {
               hand={testedHand}
               onHandChange={setTestedHand}
               onOrderChange={setHandOrder}
+              onContext={changeContext}
               onHandSize={(size) => {
                 if (!Number.isInteger(size) || size < 0) return;
                 setDoc(setOpeningHandSize(doc, size));
@@ -398,6 +405,7 @@ export function App() {
           {workspace === "batch" ? (
             <HandBatchPanel
               key={resetKey}
+              onContext={changeContext}
               doc={view}
               catalog={catalog}
               onOpenInTester={(hand) => {

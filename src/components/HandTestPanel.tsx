@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
+import { ContextChips } from "./AnalysisContextSelector";
 import { PassMark } from "./IconButton";
-import { scorerForDoc } from "../lib/rankScore";
+import { scorerWithSource } from "../lib/rankScore";
 import {
   analysisContextOf,
   sectionSize,
@@ -48,14 +49,16 @@ interface Props {
   doc: MappingDocument;
   catalog: Catalog;
   onHandSize: (size: number) => void;
-  /** The tested hand lives in the app so the Many hands tab can open hands here. */
+  /** The tested hand lives in the app so the Batch Test tab can open hands here. */
   hand: TestedHand | null;
   onHandChange: (hand: TestedHand | null) => void;
   /** The shuffled order behind the drawn hand lives in the app. */
   onOrderChange: (order: number[] | null) => void;
+  /** Choose going first or second (and the observation point) without leaving the tab. */
+  onContext: (context: import("../lib/analysisContext").AnalysisContext) => void;
 }
 
-export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, onOrderChange: setOrder }: Props) {
+export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, onOrderChange: setOrder, onContext }: Props) {
   const setHand = onHandChange;
 
   const deck = sectionSize(doc.main);
@@ -118,10 +121,16 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
     setHand(handFromOrder(shuffled, Math.min(sample, shuffled.length)));
   }
 
-  const rankScorer = useMemo(
-    () => scorerForDoc(doc, context.turn_order),
+  // A goal with no conditions can match nothing, so it is left out of the results.
+  const emptyGoals = useMemo(
+    () => new Set(doc.hand_condition_sets.filter((set) => set.condition_ids.length === 0).map((set) => set.id)),
+    [doc.hand_condition_sets],
+  );
+  const ranked = useMemo(
+    () => scorerWithSource(doc, context.turn_order),
     [doc, context.turn_order],
   );
+  const rankScorer = ranked?.scorer ?? null;
 
   const roleCounts = useMemo(() => {
     if (!hand) return { starter: 0, extender: 0, interaction: 0 };
@@ -171,6 +180,8 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
         your model matches the hand; it does not test that the line plays out.
       </p>
 
+      <ContextChips context={context} openingHandSize={opening} onChange={onContext} />
+
       <div className="row-actions">
         <button type="button" onClick={drawRandom} disabled={deck === 0}>
           Draw Random Hand
@@ -215,7 +226,8 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
           <p className="explorer-notation">
             {rankScorer
               ? `Rank score: ${(rankScorer.score(hand.card_counts) * 100).toFixed(0)}% (a random hand averages ${(rankScorer.expected(sample) * 100).toFixed(0)}%)`
-              : "Rank your cards in the Rank tab to score hands."}
+              : "Define a Hand Goal or rank your cards in the Rank tab to score hands."}
+            {ranked?.source === "impact" ? " Using Card Impact order until you rank your cards." : ""}
           </p>
           <p className="explorer-notation">
             Exact composition probability:{" "}
@@ -244,11 +256,11 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
           ) : null}
 
           <h3 className="panel-subhead">Hand Goals</h3>
-          {result.sets.length === 0 ? (
+          {result.sets.filter((set) => emptyGoals.has(set.setId) === false).length === 0 ? (
             <p className="empty">No hand goals yet. Create them in Models.</p>
           ) : (
             <dl className="explorer-results">
-              {result.sets.map((set) => (
+              {result.sets.filter((set) => emptyGoals.has(set.setId) === false).map((set) => (
                 <div key={set.setId} className="explorer-row">
                   <dt>
                     <span

@@ -13,8 +13,9 @@ import {
 import type { TestedHand } from "../lib/handTest";
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { HandImages } from "./HandImages";
+import { ContextChips } from "./AnalysisContextSelector";
 import { PassMark } from "./IconButton";
-import { scorerForDoc } from "../lib/rankScore";
+import { scorerWithSource } from "../lib/rankScore";
 
 const LIST_LIMIT = 100;
 
@@ -27,6 +28,8 @@ interface Props {
   catalog: Catalog;
   /** Load a generated hand into the single-hand tester and switch to it. */
   onOpenInTester: (hand: TestedHand) => void;
+  /** Choose going first or second (and the observation point) without leaving the tab. */
+  onContext: (context: import("../lib/analysisContext").AnalysisContext) => void;
 }
 
 /**
@@ -34,10 +37,12 @@ interface Props {
  * matches next to its exact probability, and a card-art row per hand. One hand
  * at a time lives on the Hand Test tab, where the whole Main Deck is shown.
  */
-export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
+export function HandBatchPanel({ doc, catalog, onOpenInTester, onContext }: Props) {
   const [count, setCount] = useState("10");
   const [batch, setBatch] = useState<BatchHand[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Sort the list by rank score to check the score against your own sense of good hands.
+  const [sortBy, setSortBy] = useState<"generated" | "high" | "low">("generated");
 
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
@@ -95,21 +100,35 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
     }
   }
 
+  // A goal with no conditions can match nothing, so it is left out of the results.
+  const withConditions = useMemo(
+    () => new Set(doc.hand_condition_sets.filter((set) => set.condition_ids.length > 0).map((set) => set.id)),
+    [doc.hand_condition_sets],
+  );
   const summary = useMemo(() => (batch ? summarizeBatch(batch) : null), [batch]);
-  const scorer = useMemo(
-    () => scorerForDoc(doc, context.turn_order),
+  const ranked = useMemo(
+    () => scorerWithSource(doc, context.turn_order),
     [doc, context.turn_order],
   );
+  const scorer = ranked?.scorer ?? null;
   const averageRank = useMemo(() => {
     if (!batch || !scorer || batch.length === 0) return null;
     const total = batch.reduce((sum, entry) => sum + scorer.score(entry.hand.card_counts), 0);
     return total / batch.length;
   }, [batch, scorer]);
 
+  const shown = useMemo(() => {
+    if (!batch) return [];
+    if (!scorer || sortBy === "generated") return batch;
+    const scored = batch.map((entry) => ({ entry, value: scorer.score(entry.hand.card_counts) }));
+    scored.sort((a, b) => (sortBy === "high" ? b.value - a.value : a.value - b.value) || a.entry.index - b.entry.index);
+    return scored.map((item) => item.entry);
+  }, [batch, scorer, sortBy]);
+
   return (
     <section className="panel">
       <header>
-        <h2>Many hands</h2>
+        <h2>Batch Test</h2>
         <p>{analysisContextLabel(context, opening)}</p>
       </header>
       <p className="note">
@@ -117,6 +136,7 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
         Goal. The exact probability is shown for comparison; a small batch will
         not match it exactly. Open any hand in Hand Test to look at it closely.
       </p>
+      <ContextChips context={context} openingHandSize={opening} onChange={onContext} />
       <div className="row-actions hand-batch-controls">
         <label>
           Number of hands
@@ -152,10 +172,10 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
       {batch && summary ? (
         <>
           <dl className="explorer-results" aria-label="Batch results">
-            {summary.sets.length === 0 ? (
+            {summary.sets.filter((set) => withConditions.has(set.id)).length === 0 ? (
               <p className="empty">Define a Hand Goal to see pass rates.</p>
             ) : (
-              summary.sets.map((set) => (
+              summary.sets.filter((set) => withConditions.has(set.id)).map((set) => (
                 <div key={set.id} className="explorer-row">
                   <dt>
                     {set.name}
@@ -173,12 +193,23 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
             <p className="explorer-notation">
               Average rank score {averageRank !== null ? `${(averageRank * 100).toFixed(1)}%` : "-"} over{" "}
               {batch.length} hands; the exact average is {(scorer.expected(sample) * 100).toFixed(1)}%.
+              {ranked?.source === "impact" ? " Scored by Card Impact order until you rank your cards." : ""}
             </p>
           ) : (
-            <p className="explorer-notation">Rank your cards in the Rank tab to score these hands.</p>
+            <p className="explorer-notation">Define a Hand Goal or rank your cards in the Rank tab to score these hands.</p>
           )}
+          {scorer ? (
+            <label className="hand-batch-sort">
+              Order
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
+                <option value="generated">As generated</option>
+                <option value="high">Highest rank score first</option>
+                <option value="low">Lowest rank score first</option>
+              </select>
+            </label>
+          ) : null}
           <ol className="hand-batch-list">
-            {batch.slice(0, LIST_LIMIT).map((entry) => (
+            {shown.slice(0, LIST_LIMIT).map((entry) => (
               <li key={entry.index} className="hand-batch-item">
                 <div className="hand-batch-head">
                   <strong>Hand {entry.index}</strong>
@@ -188,7 +219,7 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester }: Props) {
                     </span>
                   ) : null}
                   <span className="hand-batch-sets">
-                    {entry.result.sets.map((set) => (
+                    {entry.result.sets.filter((set) => withConditions.has(set.setId)).map((set) => (
                       <span
                         key={set.setId}
                         className={set.passed ? "hand-pass-title" : "hand-fail-title"}

@@ -1,5 +1,6 @@
-import { isRanked, rankFor, type RankContext } from "./cardRank";
+import type { RankContext } from "./cardRank";
 import type { MappingCard, MappingDocument } from "./document";
+import { effectiveRank } from "./effectiveRank";
 import { combinations } from "./probability";
 
 /**
@@ -106,8 +107,19 @@ export function scorerFor(
   };
 }
 
-/** The scorer for this deck's own ranking, or null until the user has ranked cards. */
+/**
+ * The scorer for this deck, from your ranking or, until you rank, from the Card
+ * Impact order of your Hand Goal. Null when there is neither.
+ */
+export function scorerWithSource(
+  doc: MappingDocument,
+  context: RankContext,
+): { scorer: RankScorer; source: "rank" | "impact" } | null {
+  const effective = effectiveRank(doc, context);
+  if (!effective) return null;
+  return { scorer: scorerFor(doc.main, effective.order, context), source: effective.source };
+}
+
 export function scorerForDoc(doc: MappingDocument, context: RankContext): RankScorer | null {
-  if (!isRanked(doc, context)) return null;
-  return scorerFor(doc.main, rankFor(doc, context), context);
+  return scorerWithSource(doc, context)?.scorer ?? null;
 }

@@ -39,7 +39,9 @@ export const SCHEMA_VERSION = 9;
  * analysis. The user explicitly selects which Hand Conditions are members.
  */
 export const ENGINE_ACCESS_SET_ID = "modeled-engine-access";
-export const ENGINE_ACCESS_SET_NAME = "Modeled Engine Access";
+/** The built-in goal every deck starts with; saved decks call it "Modeled Engine Access". */
+export const ENGINE_ACCESS_SET_NAME = "Main Hand Goal";
+const LEGACY_ENGINE_ACCESS_SET_NAME = "Modeled Engine Access";
 
 export type DeckSection = "main" | "extra" | "side";
 
@@ -740,7 +742,11 @@ export function parseMappingJson(text: string): MappingDocument {
     ? rawConditions.map(parseHandCondition)
     : [];
   const hand_condition_sets = Array.isArray(data.hand_condition_sets)
-    ? data.hand_condition_sets.map(parseHandConditionSet)
+    ? data.hand_condition_sets.map(parseHandConditionSet).map((set) =>
+        set.id === ENGINE_ACCESS_SET_ID && set.name === LEGACY_ENGINE_ACCESS_SET_NAME
+          ? { ...set, name: ENGINE_ACCESS_SET_NAME }
+          : set,
+      )
     : [];
 
   let engineAccessId: string | null = null;

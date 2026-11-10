@@ -13,7 +13,7 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { parseDeckText } from "../lib/ydk";
-import { isRanked, rankFor } from "../lib/cardRank";
+import { effectiveRank } from "../lib/effectiveRank";
 import { ClearButton } from "./ClearButton";
 import { CardStrip } from "./ModelArt";
 
@@ -188,8 +188,7 @@ export function ComparePanel({ doc, catalog, onUse }: Props) {
   const compared = useMemo(() => (other ? inheritModels(doc, other) : null), [doc, other]);
   // Both decks are judged by this deck's ranking for the compared turn order.
   const ranking = useMemo(() => {
-    const turn = doc.analysis.turn_order;
-    return isRanked(doc, turn) ? rankFor(doc, turn) : null;
+    return effectiveRank(doc, doc.analysis.turn_order)?.order ?? null;
   }, [doc]);
   const scores = useMemo<{ a: DeckScoreResult; b: DeckScoreResult | null }>(
     () => ({
@@ -284,8 +283,8 @@ export function ComparePanel({ doc, catalog, onUse }: Props) {
                 <CompareTable caption="Rank" rows={rows.rank} />
                 {rows.rank.length === 0 ? (
                   <p className="note">
-                    Rank your cards in the Rank tab to compare how good each deck's
-                    average hand is by your own ranking.
+                    Define a Hand Goal or rank your cards in the Rank tab to compare how
+                    good each deck's average hand is.
                   </p>
                 ) : null}
                 <CompareTable caption="Slots" rows={rows.mix} />

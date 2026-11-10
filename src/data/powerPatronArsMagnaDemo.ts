@@ -98,7 +98,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
   hand_condition_sets: [
     {
       id: "modeled-engine-access",
-      name: "Modeled Engine Access",
+      name: "Main Hand Goal",
       condition_ids: [
         "vidolium-access",
         "pendulum-treasure-access",

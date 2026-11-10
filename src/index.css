@@ -1424,4 +1424,62 @@ input::placeholder, textarea::placeholder { color: #6f6657; opacity: 1; }
   font: 0.65rem "Red Hat Mono", ui-monospace, monospace;
 }
 .hand-rank-score { font-family: "Red Hat Mono", ui-monospace, monospace; font-size: 0.8rem; color: var(--accent-text); }
+.hand-batch-sort { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--muted); margin: 0.4rem 0; }
 
+/* ---- One control family -------------------------------------------------
+   Buttons, chips, inputs and selects share one height, radius and border, so
+   a row of mixed controls reads as one set. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent);
+  border-radius: 3px;
+  background-color: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+textarea { min-height: 0; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--ink); }
+select {
+  appearance: none;
+  padding-right: 2rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%2325221d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 1.5l4.5 4.5 4.5-4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+}
+.masthead input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  background-color: color-mix(in srgb, var(--rail-ink) 10%, transparent);
+  border-color: color-mix(in srgb, var(--rail-ink) 40%, transparent);
+  color: var(--rail-ink);
+}
+
+/* Chips are buttons: same box, a tinted fill when chosen. */
+.context-chip, .chip {
+  min-height: 2.25rem;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent);
+  background: var(--paper);
+  color: var(--ink);
+}
+.context-chip.on, .chip.on {
+  background: color-mix(in srgb, var(--brass) 16%, var(--paper));
+  border-color: var(--brass);
+  font-weight: 600;
+}
+
+/* Binder tabs fit one row. */
+.workspace-nav { flex-wrap: wrap; }
+.workspace-nav .context-chip {
+  min-height: 0;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  border-color: var(--line);
+}
+.workspace-nav .context-chip.on { border-color: var(--line); border-bottom-color: var(--panel); background: var(--panel); }
+.card-search-panel .view-toggle { gap: 0.4rem; }

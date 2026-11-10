@@ -187,9 +187,9 @@ test.describe("Hand Test", () => {
     expect(b.x).toBeGreaterThanOrEqual(a.x + a.width - 1);
   });
 
-  test.describe("Many hands tab", () => {
+  test.describe("Batch Test tab", () => {
     test.beforeEach(async ({ page }) => {
-      await nav(page, "Many hands").click();
+      await nav(page, "Batch Test").click();
     });
 
     test("generates the requested number of hands", async ({ page }) => {
@@ -418,7 +418,7 @@ test.describe("Rank scores hands", () => {
     await openApp(page);
     await nav(page, "Hand Test").click();
     await page.getByRole("button", { name: "Draw Random Hand" }).click();
-    await expect(page.getByText("Rank your cards in the Rank tab to score hands.")).toBeVisible();
+    await expect(page.getByText("Define a Hand Goal or rank your cards in the Rank tab to score hands.")).toBeVisible();
   });
 
   test("a ranked deck scores the hand and badges each card with its rank", async ({ page }) => {
@@ -430,10 +430,23 @@ test.describe("Rank scores hands", () => {
     await expect(page.locator(".hand-tile.in-hand .rank-badge")).toHaveCount(5);
   });
 
-  test("Many hands shows each hand's score and the exact average", async ({ page }) => {
+  test("with a Hand Goal but no ranking, hands are scored by Card Impact order", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Models").click();
+    await page.getByRole("navigation", { name: "Models" }).getByRole("button", { name: "Hand Goals" }).click();
+    await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
+    await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
+    await page.locator('.engine-member input[type="checkbox"]').last().check();
+    await nav(page, "Batch Test").click();
+    await page.getByRole("button", { name: "Generate hands" }).click();
+    await expect(page.getByText(/Scored by Card Impact order until you rank your cards/)).toBeVisible();
+    await expect(page.locator(".hand-rank-score")).toHaveCount(10);
+  });
+
+  test("Batch Test shows each hand's score and the exact average", async ({ page }) => {
     await openApp(page);
     await rankFirstCardTop(page);
-    await nav(page, "Many hands").click();
+    await nav(page, "Batch Test").click();
     await page.getByRole("button", { name: "Generate hands" }).click();
     await expect(page.getByText(/Average rank score .* the exact average is/)).toBeVisible();
     await expect(page.locator(".hand-rank-score")).toHaveCount(10);
@@ -452,6 +465,34 @@ test.describe("Rank scores hands", () => {
     const table = page.getByRole("table", { name: "Rank" });
     await expect(table).toBeVisible();
     await expect(table.getByRole("row", { name: /Average hand rank score/ })).toContainText("same");
+  });
+});
+
+test.describe("Choosing the turn order where you test", () => {
+  const nav = (page: Page, name: string) =>
+    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
+
+  test("Hand Test draws six cards going second on the first turn", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Hand Test").click();
+    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
+    await page.getByRole("radio", { name: /Going Second . First 6/ }).click();
+    // The old hand no longer fits, so it is cleared; a new draw takes six cards.
+    await expect(page.locator(".hand-tile.in-hand")).toHaveCount(0);
+    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await expect(page.locator(".hand-tile.in-hand")).toHaveCount(6);
+  });
+
+  test("Batch Test follows the turn order chosen on its own tab", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Batch Test").click();
+    await expect(page.getByRole("radio", { name: /Going First/ })).toBeChecked();
+    await page.getByRole("radio", { name: /Going Second . Opening 5/ }).click();
+    await expect(page.getByRole("radio", { name: /Going Second . Opening 5/ })).toBeChecked();
+    // The choice is shared: Hand Test shows the same one.
+    await nav(page, "Hand Test").click();
+    await expect(page.getByRole("radio", { name: /Going Second . Opening 5/ })).toBeChecked();
   });
 });
 

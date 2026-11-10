@@ -20,12 +20,40 @@ interface Props {
   onChange: (context: AnalysisContext) => void;
 }
 
-export function AnalysisContextSelector({
+/** The three analysis contexts as a radio group, for any panel that needs to choose one. */
+export function ContextChips({
   context,
   openingHandSize,
   onChange,
 }: Props) {
   const selected = analysisContextPreset(context);
+  return (
+    <div className="context-presets" role="radiogroup" aria-label="Analysis context">
+      {PRESETS.map((preset) => {
+        const next = analysisContextFromPreset(preset);
+        const active = selected === preset;
+        return (
+          <button
+            key={preset}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            className={active ? "chip on context-chip" : "chip context-chip"}
+            onClick={() => onChange(next)}
+          >
+            {analysisContextLabel(next, openingHandSize)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function AnalysisContextSelector({
+  context,
+  openingHandSize,
+  onChange,
+}: Props) {
   const sample = observedCards(context, openingHandSize);
 
   return (
@@ -40,28 +68,7 @@ export function AnalysisContextSelector({
         counts the normal draw ({openingHandSize + 1} cards seen). This is not a
         card taxonomy label.
       </p>
-      <div
-        className="context-presets"
-        role="radiogroup"
-        aria-label="Analysis context"
-      >
-        {PRESETS.map((preset) => {
-          const next = analysisContextFromPreset(preset);
-          const active = selected === preset;
-          return (
-            <button
-              key={preset}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              className={active ? "chip on context-chip" : "chip context-chip"}
-              onClick={() => onChange(next)}
-            >
-              {analysisContextLabel(next, openingHandSize)}
-            </button>
-          );
-        })}
-      </div>
+      <ContextChips context={context} openingHandSize={openingHandSize} onChange={onChange} />
       <p className="note context-sample">
         Evaluating against {sampleSizeDescription(context, openingHandSize)}.
       </p>
