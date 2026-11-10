@@ -23,6 +23,16 @@ interface Props {
 }
 
 const RESULT_LIMIT = 24;
+
+/** Alternate-art passcodes of one card share a name; show the card once. */
+function dedupeByName<T extends { name: string }>(hits: readonly T[]): T[] {
+  const seen = new Set<string>();
+  return hits.filter((hit) => {
+    if (seen.has(hit.name)) return false;
+    seen.add(hit.name);
+    return true;
+  });
+}
 const SECTIONS: { key: DeckSection; label: string }[] = [
   { key: "main", label: "Main" },
   { key: "extra", label: "Extra" },
@@ -60,9 +70,10 @@ export function CardSearch({
   const hits =
     trimmed === ""
       ? []
-      : searchCatalog(catalog, trimmed, 200)
-          .filter((hit) => belongs(hit.card_id))
-          .slice(0, RESULT_LIMIT);
+      : dedupeByName(searchCatalog(catalog, trimmed, 200).filter((hit) => belongs(hit.card_id))).slice(
+          0,
+          RESULT_LIMIT,
+        );
   // A passcode missing from the catalog can still be added by its number.
   const numeric = /^\d+$/.test(trimmed) && Number(trimmed) > 0 ? Number(trimmed) : null;
   const unknownId = numeric !== null && !catalog.has(numeric) ? numeric : null;

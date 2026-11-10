@@ -105,17 +105,34 @@ def fetch_ae() -> dict:
     return {"name": f"{latest['effective_date_name']} AE", "limits": limits}
 
 
+def expand_by_name(limits: dict, catalog: dict) -> dict:
+    """Alternate-art passcodes share a name with the listed one; they share its limit."""
+    by_name: dict[str, list[str]] = {}
+    for card_id, name in catalog.items():
+        by_name.setdefault(norm(name), []).append(card_id)
+    out = dict(limits)
+    for card_id, limit in limits.items():
+        name = catalog.get(card_id)
+        if name is None:
+            continue
+        for sibling in by_name.get(norm(name), []):
+            out.setdefault(sibling, limit)
+    return out
+
+
 def main() -> None:
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     result = {}
     for key, filename in LISTS.items():
         with urllib.request.urlopen(BASE + filename, timeout=30) as response:
             result[key] = parse(response.read().decode("utf-8"))
         print(key, result[key]["name"], len(result[key]["limits"]), "cards")
-    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     result["tcg"] = fetch_tcg(catalog)
     print("tcg", result["tcg"]["name"], len(result["tcg"]["limits"]), "passcodes")
     result["ae"] = fetch_ae()
     print("ae", result["ae"]["name"], len(result["ae"]["limits"]), "passcodes")
+    for key in result:
+        result[key]["limits"] = expand_by_name(result[key]["limits"], catalog)
     OUT.write_text(json.dumps(result, separators=(",", ":")), encoding="utf-8")
 
 

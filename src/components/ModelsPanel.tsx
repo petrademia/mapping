@@ -12,10 +12,8 @@ import {
   type HandConditionSet,
 } from "../lib/handCondition";
 import {
-  analysisContextLabel,
   isOpeningHandObservation,
   observedCards,
-  sampleSizeDescription,
 } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
@@ -286,11 +284,6 @@ export function ModelsPanel({
           hand matches a goal when it matches any of its Hand Conditions.
         </li>
       </ol>
-      <p className="note">
-        Chances are for {analysisContextLabel(context, opening)} (
-        {sampleSizeDescription(context, opening)}).
-      </p>
-
       <nav className="context-presets models-nav" aria-label="Models">
         {VIEWS.map((entry) => (
           <button
