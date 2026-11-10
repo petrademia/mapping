@@ -4,16 +4,17 @@ import type { MappingCard, MappingDocument } from "./document";
 /**
  * Rank score: how close a hand is to the best hand your ranking could draw.
  *
- * Each card gets a weight from its rank position r (1 = best): weight = 1 / r,
- * so the second card is worth half the first and the tenth a tenth. A hand's
+ * Each card gets a weight from its rank position r (1 = best): weight = 1 / sqrt(r),
+ * so the fourth card is worth half the first and the hundredth a tenth. A hand's
  * score is the sum of its copies' weights divided by the sum for the best
  * possible hand of the same size (the heaviest copies in the deck), so it reads
  * 0 to 100%: 100% means you drew your top cards.
  *
- * Why 1/r: it is top-heavy, which matches how a few key cards decide a hand, it
- * needs no tuning number, and a random hand scores low (about a fifth), so the
- * score separates good hands from average ones. It is a model of your ranking,
- * not a claim about strategy; the weights are only as good as the order you set.
+ * Why 1/sqrt(r): it still favours the top cards but, unlike 1/r, it does not let
+ * one great card carry a hand of dead ones, so the score reflects the whole hand
+ * (a hand of five good cards beats one great card plus four dead ones by a wide
+ * margin). It needs no tuning number. It is a model of your ranking, not a claim
+ * about strategy; the weights are only as good as the order you set.
  */
 export interface RankScorer {
   context: RankContext;
@@ -27,7 +28,7 @@ export interface RankScorer {
   positionOf(cardId: number): number | null;
 }
 
-export const rankWeight = (position: number): number => 1 / position;
+export const rankWeight = (position: number): number => 1 / Math.sqrt(position);
 
 /**
  * Build a scorer for a deck from a ranking order (best first). Cards missing

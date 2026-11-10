@@ -29,7 +29,7 @@ Two halves of equal weight: exact odds for hands the player defines, and visual 
 
 - Vocabulary that must stay: **Group** (a named set of cards), **Hand Condition** (a rule about the opening hand: Requires and Excludes), **Hand Goal** (a match on the opening hand through any of its Hand Conditions; stored as a condition set). A Hand Goal is not a board state.
 - Taxonomy: Role (starter, extender, interaction) and Opening Quality per turn order (desirable, neutral, undesirable, Not set). Extra Deck cards are never drawn, so they have no taxonomy controls. Annotations are the player's hypotheses for one deck.
-- Analysis: exact hypergeometric probabilities over opening hands for a chosen analysis context; Card Impact; generated and manual test hands; Card Rank (a manual preference order per turn order) and the rank score it feeds: each hand, batch and compared deck is scored 0-100% by how close it is to the best hand that ranking could draw, with weight 1 / rank.
+- Analysis: exact hypergeometric probabilities over opening hands for a chosen analysis context; Card Impact; generated and manual test hands; Card Rank (a manual preference order per turn order) and the rank score it feeds: each hand, batch and compared deck is scored 0-100% by how close it is to the best hand that ranking could draw, with weight 1 / sqrt(rank).
 - Deck configurations: Pre-Side plus Post-Side lists built from the Main/Side pool.
 - Local only: no server, accounts or cloud sync. Drafts save in the browser.
 - Explicit non-goals: combo routes, strategic hand scoring, a single deck quality percentage, arbitrary quality weights, automatic siding.

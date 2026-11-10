@@ -14,10 +14,10 @@ const order = [1, 2, 3, 4];
 describe("rank score", () => {
   const scorer = scorerFor(deck, order, "going_first");
 
-  it("weights a card by 1 over its rank", () => {
+  it("weights a card by 1 over the square root of its rank", () => {
     expect(scorer.weightOf(1)).toBe(1);
-    expect(scorer.weightOf(2)).toBeCloseTo(0.5);
-    expect(scorer.weightOf(4)).toBeCloseTo(0.25);
+    expect(scorer.weightOf(2)).toBeCloseTo(1 / Math.SQRT2);
+    expect(scorer.weightOf(4)).toBeCloseTo(0.5);
     expect(scorer.weightOf(99)).toBe(0);
     expect(scorer.positionOf(3)).toBe(3);
   });
@@ -53,6 +53,16 @@ describe("rank score", () => {
     };
     pick(0, []);
     expect(scorer.expected(5)).toBeCloseTo(sum / count, 10);
+  });
+
+  it("lets five good cards beat one great card with four dead ones by a wide margin", () => {
+    const big = Array.from({ length: 42 }, (_, i) => card(i + 1, 1));
+    const wide = scorerFor(big, big.map((c) => c.card_id), "going_first");
+    const oneGreat = wide.score({ 1: 1, 30: 1, 31: 1, 32: 1, 33: 1 });
+    const fiveGood = wide.score({ 2: 1, 3: 1, 4: 1, 5: 1, 6: 1 });
+    expect(oneGreat).toBeCloseTo(0.53, 1);
+    expect(fiveGood).toBeCloseTo(0.82, 1);
+    expect(fiveGood - oneGreat).toBeGreaterThan(0.25);
   });
 
   it("judges another deck by this ranking, giving unknown cards no weight", () => {
