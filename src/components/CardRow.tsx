@@ -57,11 +57,7 @@ export function CardRow({
               onChange={onOpeningQuality}
             />
           </>
-        ) : (
-          <p className="empty">
-            Not drawn in the opening hand, so no role or opening quality.
-          </p>
-        )}
+        ) : null}
       </td>
       <td>
         <IconButton

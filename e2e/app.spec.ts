@@ -147,19 +147,73 @@ test.describe("Hand Test", () => {
   });
 });
 
-test("Extra Deck cards have no role or opening quality controls", async ({ page }) => {
-  await openApp(page);
-  const section = (title: string) =>
+test.describe("Deck view", () => {
+  const section = (page: Page, title: string) =>
     page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: title }) });
 
-  // Main and Side cards are drawn or sided in, so they keep the controls.
-  await expect(section("Main Deck").getByText("Going First").first()).toBeVisible();
-  await expect(section("Side Deck").getByText("Going First").first()).toBeVisible();
+  test("shows the deck as card art, one tile per copy", async ({ page }) => {
+    await openApp(page);
+    await expect(section(page, "Main Deck").locator(".deck-tile")).toHaveCount(DEFAULT.main);
+    await expect(section(page, "Extra Deck").locator(".deck-tile")).toHaveCount(DEFAULT.extra);
+    await expect(section(page, "Side Deck").locator(".deck-tile")).toHaveCount(DEFAULT.side);
+    await expect(page.locator(".deck-section table")).toHaveCount(0);
+  });
 
-  // Extra Deck cards are never in an opening hand.
-  await expect(section("Extra Deck").getByText("Going First")).toHaveCount(0);
-  await expect(section("Extra Deck").getByText("Starter")).toHaveCount(0);
-  await expect(section("Extra Deck").getByText("Not drawn in the opening hand").first()).toBeVisible();
+  test("copies of a card sit side by side", async ({ page }) => {
+    await openApp(page);
+    const copies = section(page, "Main Deck").getByRole("button", { name: /^Edit .*, copy \d of \d$/ });
+    const a = (await copies.nth(0).boundingBox())!;
+    const b = (await copies.nth(1).boundingBox())!;
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2);
+    expect(b.x).toBeGreaterThan(a.x);
+    await expect(copies.nth(0)).toHaveAttribute("aria-label", /copy 1 of/);
+    await expect(copies.nth(1)).toHaveAttribute("aria-label", /copy 2 of/);
+  });
+
+  test("clicking a card edits its quantity and tags underneath", async ({ page }) => {
+    await openApp(page);
+    const main = section(page, "Main Deck");
+    await main.locator(".deck-tile").first().click();
+    const detail = main.getByRole("group", { name: /^Edit / });
+    await expect(detail).toBeVisible();
+    await expect(detail.getByText("Going First")).toBeVisible();
+
+    await detail.getByRole("button", { name: "Increase quantity" }).click();
+    await expect(page.locator(".counts")).toContainText(`${DEFAULT.main + 1} main`);
+    // The new copy gets its own tile next to the others.
+    await expect(main.locator(".deck-tile")).toHaveCount(DEFAULT.main + 1);
+
+    await detail.getByRole("button", { name: "Close" }).click();
+    await expect(main.getByRole("group", { name: /^Edit / })).toHaveCount(0);
+  });
+
+  test("Extra Deck cards have no role or opening quality controls", async ({ page }) => {
+    await openApp(page);
+    // Extra Deck cards are never in an opening hand.
+    const extra = section(page, "Extra Deck");
+    await extra.locator(".deck-tile").first().click();
+    await expect(extra.getByRole("group", { name: /^Edit / })).toBeVisible();
+    await expect(extra.getByText("Going First")).toHaveCount(0);
+    await expect(extra.getByText("Starter")).toHaveCount(0);
+
+    // Side cards can be sided in, so they keep the controls.
+    const side = section(page, "Side Deck");
+    await side.locator(".deck-tile").first().click();
+    await expect(side.getByText("Going First").first()).toBeVisible();
+  });
+
+  test("the List view keeps the detailed table, and the choice is remembered", async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("button", { name: "List", exact: true }).click();
+    await expect(page.locator(".deck-section table").first()).toBeVisible();
+    await expect(section(page, "Extra Deck").getByText("Going First")).toHaveCount(0);
+    await expect(section(page, "Main Deck").getByText("Going First").first()).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator(".deck-section table").first()).toBeVisible();
+    await page.getByRole("button", { name: "Cards", exact: true }).click();
+    await expect(page.locator(".deck-tile").first()).toBeVisible();
+  });
 });
 
 test.describe("Card Rank", () => {
