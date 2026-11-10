@@ -103,7 +103,10 @@ export function App() {
     "Local draft. Taxonomy annotations are deck-specific hypotheses.",
   );
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
-  const view = useMemo(() => applyConfiguration(doc), [doc]);
+  const view = useMemo(
+    () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
+    [doc, extraIds],
+  );
   const activeConfig = findConfiguration(doc, doc.active_configuration_id);
   // A new turn order changes how many cards a hand holds, so a drawn hand no longer fits.
   const changeContext = (context: AnalysisContext) => {
@@ -348,7 +351,7 @@ export function App() {
             </>
           ) : null}
 
-          <ConfigurationPanel doc={doc} catalog={catalog} onChange={setDoc} />
+          <ConfigurationPanel doc={doc} catalog={catalog} extraIds={extraIds} onChange={setDoc} />
 
           {workspace === "profile" ? (
             <>

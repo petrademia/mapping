@@ -879,6 +879,14 @@ export function serializeMapping(doc: MappingDocument): string {
         card_id: o.card_id,
         main_quantity: o.main_quantity,
       })),
+      ...(config.extra_overrides && config.extra_overrides.length > 0
+        ? {
+            extra_overrides: config.extra_overrides.map((o) => ({
+              card_id: o.card_id,
+              extra_quantity: o.extra_quantity,
+            })),
+          }
+        : {}),
     })),
     active_configuration_id:
       findConfiguration(doc, doc.active_configuration_id)?.id ?? null,

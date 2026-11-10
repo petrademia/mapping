@@ -304,9 +304,13 @@ changes deck composition, not the semantic meaning of `undesirable`. Preserved
 attributes: `undesirable to draw != undesirable to include != should side out`.
 
 - A post-side configuration only stores overrides ("N copies of this card in
-  Main"). Cards without an override follow Pre-Side.
-- Copies move between Main and Side only: the pool (`main + side`) per card is
-  fixed, and the Extra Deck is unchanged.
+  Main", and for Extra Deck cards "N copies in Extra"). Cards without an
+  override follow Pre-Side.
+- Main cards move between Main and Side: the pool (`main + side`) per card is
+  fixed. Extra Deck monsters move between Extra and Side the same way
+  (`extra + side`), and the Extra Deck never passes 15 cards. Siding the Extra
+  Deck does not change any odds, but the exported `.ydk` and YAPPING JSON
+  follow the Post-Side list.
 - Annotations stay on the card by `card_id`; they are edited in the deck list
   and shared by every configuration.
 - The selected configuration drives Profile, Models, Hand Test, the header

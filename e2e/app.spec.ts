@@ -403,6 +403,39 @@ test.describe("Compare decks", () => {
   });
 });
 
+test("an Extra Deck card can be sided between Extra and Side in a Post-Side list", async ({ page }) => {
+  await openApp(page);
+  // One Extra Deck monster in Extra and a second copy waiting in Side.
+  await page.getByText("Paste a deck list").click();
+  await page.getByLabel("Deck list to paste").fill("#main\n70488851\n70488851\n#extra\n90917401\n!side\n24224830\n90917401");
+  await page.getByRole("button", { name: "Replace deck" }).click();
+  await expect(page.locator(".counts")).toContainText("1 extra");
+  await expect(page.locator(".counts")).toContainText("2 side");
+
+  await page.getByRole("button", { name: "Post-Side", exact: true }).click();
+  const inExtra = page.getByRole("list", { name: "Extra in this configuration" });
+  const sideExtras = page.getByRole("list", { name: "Extra Deck cards in Side in this configuration" });
+  await expect(page.getByRole("heading", { name: "Extra (1 / 15)" })).toBeVisible();
+  await expect(inExtra.locator("li")).toHaveCount(1);
+  await expect(sideExtras.locator("li")).toHaveCount(1);
+
+  // Bring the Side copy in: two in Extra, none left in Side.
+  await sideExtras.getByRole("button").first().click();
+  await expect(page.getByRole("heading", { name: "Extra (2 / 15)" })).toBeVisible();
+  await expect(page.locator(".counts")).toContainText("2 extra");
+  await expect(page.locator(".counts")).toContainText("1 side");
+  await expect(page.locator(".diff-chips")).toContainText("(Extra)");
+
+  // Send both out: the Extra Deck is empty and the exported lists follow.
+  await inExtra.getByRole("button").first().click();
+  await page.getByRole("list", { name: "Extra in this configuration" }).getByRole("button").first().click();
+  await expect(page.locator(".counts")).toContainText("0 extra");
+
+  // The Pre-Side list is untouched.
+  await page.getByRole("radio", { name: "Pre-Side" }).click();
+  await expect(page.locator(".counts")).toContainText("1 extra");
+});
+
 test("Card Rank follows the cards in the analyzed Post-Side list", async ({ page }) => {
   await openApp(page);
   await page.getByRole("button", { name: "Post-Side", exact: true }).click();

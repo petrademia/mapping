@@ -7,16 +7,23 @@ import {
   configurationLabel,
   DECK_LIST_ID,
   duplicateConfiguration,
+  EXTRA_DECK_LIMIT,
+  extraDeckSize,
+  extraDiff,
+  extraPoolCards,
+  extraQuantity,
   findConfiguration,
   mainQuantity,
   poolCards,
   removeConfiguration,
   renameConfiguration,
   setActiveConfiguration,
+  setConfigurationExtraQuantity,
   setConfigurationMainQuantity,
   setConfigurationNotes,
 } from "../lib/configuration";
 import { sectionSize, type MappingDocument } from "../lib/document";
+import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { CardFrame } from "./HandImages";
 import { Icon } from "./IconButton";
 
@@ -25,6 +32,8 @@ export const CONFIGURATION_PANEL_ID = "deck-configuration";
 interface Props {
   doc: MappingDocument;
   catalog: Catalog;
+  /** Extra Deck monster ids, so Extra Deck cards side with Extra and not Main. */
+  extraIds?: ExtraDeckIds;
   onChange: (doc: MappingDocument) => void;
 }
 
@@ -69,12 +78,19 @@ function DeleteControl({ name, hasSwaps, onDelete }: DeleteControlProps) {
  * swaps. Edits here only change which copies are in Main; annotations stay on
  * the cards and are edited in the deck list (which is Pre-Side).
  */
-export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
+const NO_EXTRA_IDS: ExtraDeckIds = new Set();
+
+export function ConfigurationPanel({ doc, catalog, extraIds = NO_EXTRA_IDS, onChange }: Props) {
   const activeId = doc.active_configuration_id;
   const active = findConfiguration(doc, activeId);
   const preMain = sectionSize(doc.main);
-  const pool = poolCards(doc);
+  const pool = poolCards(doc, extraIds);
+  const extraPool = extraPoolCards(doc, extraIds);
   const diff = active ? configurationDiff(doc, active.id) : [];
+  const extraChanges = active ? extraDiff(doc, active.id, extraIds) : [];
+  const changeCount = diff.length + extraChanges.length;
+  const extraSize = active ? extraDeckSize(doc, active.id, extraIds) : sectionSize(doc.extra);
+  const extraFull = extraSize >= EXTRA_DECK_LIMIT;
   const mainSize = active
     ? pool.reduce((sum, c) => sum + mainQuantity(doc, active.id, c.card_id), 0)
     : preMain;
@@ -127,14 +143,18 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
     key: string;
     cardId: number;
     name: string;
-    zone: "main" | "side";
-    /** Brought into Main (main zone) or sent out of Main (side zone) vs Pre-Side. */
+    /** Main and Not in Main swap Main cards; Extra and Extra in Side swap Extra Deck cards. */
+    zone: "main" | "side" | "extra" | "extra-side";
+    /** Brought in or sent out compared with Pre-Side. */
     changed: boolean;
+    /** Copies in the zone being edited (Main or Extra) right now. */
     main: number;
     quantity: number;
   }
   const mainTiles: SwapTile[] = [];
   const sideTiles: SwapTile[] = [];
+  const extraTiles: SwapTile[] = [];
+  const extraSideTiles: SwapTile[] = [];
   if (active) {
     for (const card of pool) {
       const name = displayName(card.card_id, card.name, catalog);
@@ -165,28 +185,66 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
       }
     }
   }
+  if (active) {
+    for (const card of extraPool) {
+      const name = displayName(card.card_id, card.name, catalog);
+      const inExtra = extraQuantity(doc, active.id, card.card_id);
+      const pre = doc.extra.find((c) => c.card_id === card.card_id)?.quantity ?? 0;
+      const out = Math.max(0, pre - inExtra);
+      for (let copy = 0; copy < inExtra; copy += 1) {
+        extraTiles.push({
+          key: `e-${card.card_id}-${copy}`,
+          cardId: card.card_id,
+          name,
+          zone: "extra",
+          changed: copy >= pre,
+          main: inExtra,
+          quantity: card.quantity,
+        });
+      }
+      for (let copy = 0; copy < card.quantity - inExtra; copy += 1) {
+        extraSideTiles.push({
+          key: `es-${card.card_id}-${copy}`,
+          cardId: card.card_id,
+          name,
+          zone: "extra-side",
+          changed: copy < out,
+          main: inExtra,
+          quantity: card.quantity,
+        });
+      }
+    }
+  }
   const sideOnlyCount = pool.filter(
     (card) => !doc.main.some((c) => c.card_id === card.card_id),
   ).length;
 
   function renderTile(tile: SwapTile) {
-    const toSide = tile.zone === "main";
-    const move = () =>
+    const isExtra = tile.zone === "extra" || tile.zone === "extra-side";
+    const leaving = tile.zone === "main" || tile.zone === "extra";
+    const target = leaving ? "Side" : isExtra ? "Extra" : "Main";
+    const blocked = tile.zone === "extra-side" && extraFull;
+    const move = () => {
+      if (blocked) return;
+      const next = leaving ? tile.main - 1 : tile.main + 1;
       onChange(
-        setConfigurationMainQuantity(
-          doc,
-          active!.id,
-          tile.cardId,
-          toSide ? tile.main - 1 : tile.main + 1,
-        ),
+        isExtra
+          ? setConfigurationExtraQuantity(doc, active!.id, tile.cardId, next, extraIds)
+          : setConfigurationMainQuantity(doc, active!.id, tile.cardId, next),
       );
+    };
     return (
       <li key={tile.key}>
         <button
           type="button"
           className={tile.changed ? "swap-tile changed" : "swap-tile"}
-          aria-label={`Move one ${tile.name} to ${toSide ? "Side" : "Main"}`}
-          title={`${tile.name}: click to move to ${toSide ? "Side" : "Main"}`}
+          aria-label={`Move one ${tile.name} to ${target}`}
+          aria-disabled={blocked}
+          title={
+            blocked
+              ? `${tile.name}: the Extra Deck is full (${EXTRA_DECK_LIMIT}). Send a card out first.`
+              : `${tile.name}: click to move to ${target}`
+          }
           onClick={move}
         >
           <CardFrame cardId={tile.cardId} name={tile.name} />
@@ -275,11 +333,16 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
             <strong>
               {mainSize} main / {sideSize} not in Main
             </strong>
+            {extraPool.length > 0 ? (
+              <span>
+                {extraSize} / {EXTRA_DECK_LIMIT} extra
+              </span>
+            ) : null}
             <span>
-              {diff.length === 0
+              {changeCount === 0
                 ? "same as Pre-Side"
                 : delta === 0
-                  ? `${diff.length} swapped, same size as Pre-Side`
+                  ? `${changeCount} swapped, same size as Pre-Side`
                   : `${signed(delta)} ${Math.abs(delta) === 1 ? "card" : "cards"} vs Pre-Side`}
             </span>
             {mainSize !== preMain ? (
@@ -288,12 +351,18 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
               </span>
             ) : null}
           </p>
-          {diff.length > 0 ? (
+          {changeCount > 0 ? (
             <ul className="diff-chips" aria-label="Changes from Pre-Side">
               {diff.map((row) => (
                 <li key={row.card_id} className={row.delta < 0 ? "out" : "in"}>
                   <b>{signed(row.delta)}</b>{" "}
                   {displayName(row.card_id, row.name, catalog)}
+                </li>
+              ))}
+              {extraChanges.map((row) => (
+                <li key={`extra-${row.card_id}`} className={row.delta < 0 ? "out" : "in"}>
+                  <b>{signed(row.delta)}</b>{" "}
+                  {displayName(row.card_id, row.name, catalog)} (Extra)
                 </li>
               ))}
             </ul>
@@ -306,13 +375,14 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
           >
           <summary>
             Swap cards
-            {diff.length > 0 ? ` (${diff.length} changed)` : ""}
+            {changeCount > 0 ? ` (${changeCount} changed)` : ""}
           </summary>
           <p className="note configuration-howto">
             Click a card in Main to send it to the Side, then click a Side card
-            to bring it in. Highlighted cards differ from Pre-Side.
+            to bring it in. Extra Deck cards swap the same way between Extra
+            and Side. Highlighted cards differ from Pre-Side.
           </p>
-          {sideOnlyCount === 0 ? (
+          {sideOnlyCount === 0 && extraSideTiles.length === 0 ? (
             <p className="note configuration-warn-note" role="note">
               Your Side Deck is empty, so there is nothing to bring in. Add
               cards to the Side Deck in the deck list, then swap them here.
@@ -326,6 +396,23 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
           <ul className="swap-grid" aria-label="Not in Main in this configuration">
             {sideTiles.map(renderTile)}
           </ul>
+          {extraPool.length > 0 ? (
+            <>
+              <h3 className="swap-heading">
+                Extra ({extraSize} / {EXTRA_DECK_LIMIT})
+              </h3>
+              <ul className="swap-grid" aria-label="Extra in this configuration">
+                {extraTiles.map(renderTile)}
+              </ul>
+              <h3 className="swap-heading">Extra Deck cards in Side ({extraSideTiles.length})</h3>
+              <ul className="swap-grid" aria-label="Extra Deck cards in Side in this configuration">
+                {extraSideTiles.map(renderTile)}
+              </ul>
+              {extraFull && extraSideTiles.length > 0 ? (
+                <p className="note">The Extra Deck is full. Send a card out to bring another in.</p>
+              ) : null}
+            </>
+          ) : null}
           </details>
 
           <details className="configuration-details">
@@ -347,7 +434,7 @@ export function ConfigurationPanel({ doc, catalog, onChange }: Props) {
                 <DeleteControl
                   key={active.id}
                   name={configurationLabel(active)}
-                  hasSwaps={active.overrides.length > 0}
+                  hasSwaps={active.overrides.length > 0 || (active.extra_overrides?.length ?? 0) > 0}
                   onDelete={() => {
                     onChange(removeConfiguration(doc, active.id));
                     focusSelectedChip();
