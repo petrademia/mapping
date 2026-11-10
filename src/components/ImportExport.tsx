@@ -1,19 +1,15 @@
 import { useState } from "react";
 import type { Catalog } from "../lib/catalog";
-import { displayName, searchCatalog } from "../lib/catalog";
 import {
-  addCard,
   addFromParsed,
   parseMappingJson,
   replaceDeck,
   serializeMapping,
-  type DeckSection,
   type MappingDocument,
 } from "../lib/document";
 import { serializeYapping } from "../lib/exportYapping";
 import {
   routeParsed,
-  routeSection,
   type ExtraDeckIds,
 } from "../lib/sectionRouting";
 import { parseDeckText, serializeYdk } from "../lib/ydk";
@@ -53,10 +49,6 @@ export function ImportExport({
   onStatus,
 }: Props) {
   const [paste, setPaste] = useState("");
-  const [addSection, setAddSection] = useState<DeckSection>("main");
-  const [addQuery, setAddQuery] = useState("");
-  const [addCardId, setAddCardId] = useState<number | null>(null);
-  const [addQty, setAddQty] = useState("1");
 
   function importText(text: string, filename: string): void {
     try {
@@ -81,20 +73,6 @@ export function ImportExport({
       const message = caught instanceof Error ? caught.message : "Import failed";
       onStatus(message);
     }
-  }
-
-  const hits =
-    addQuery.trim() === ""
-      ? []
-      : searchCatalog(catalog, addQuery, 10);
-
-  function resolveAddCardId(): number | null {
-    if (addCardId !== null) return addCardId;
-    const numeric = Number(addQuery);
-    if (/^\d+$/.test(addQuery) && Number.isInteger(numeric) && numeric > 0) {
-      return numeric;
-    }
-    return null;
   }
 
   return (
@@ -142,98 +120,6 @@ export function ImportExport({
       >
         Export for YAPPING
       </button>
-      <form
-        className="add-card"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const cardId = resolveAddCardId();
-          const quantity = Number(addQty);
-          if (cardId === null) {
-            onStatus("Pick a catalog hit or enter a numeric card ID");
-            return;
-          }
-          if (!Number.isInteger(quantity) || quantity < 1) {
-            onStatus("Quantity must be a positive integer");
-            return;
-          }
-          // Extra Deck monsters belong in Extra even if Main is selected.
-          const section = routeSection(addSection, cardId, extraIds, (id) =>
-            catalog.has(id),
-          );
-          onChange(
-            addCard(doc, section, {
-              card_id: cardId,
-              quantity,
-              taxonomy: {
-                roles: [],
-                opening_quality: { going_first: null, going_second: null },
-              },
-              name: catalog.get(cardId),
-            }),
-          );
-          setAddQuery("");
-          setAddCardId(null);
-          const label = displayName(cardId, catalog.get(cardId), catalog);
-          onStatus(
-            section === addSection
-              ? `Added ${label}`
-              : `Added ${label} to the ${section === "extra" ? "Extra" : "Main"} Deck`,
-          );
-        }}
-      >
-        <select
-          value={addSection}
-          onChange={(event) => setAddSection(event.target.value as DeckSection)}
-          aria-label="Deck section"
-        >
-          <option value="main">Main</option>
-          <option value="extra">Extra</option>
-          <option value="side">Side</option>
-        </select>
-        <span className="card-search">
-          <input
-            type="search"
-            value={addQuery}
-            onChange={(event) => {
-              const value = event.target.value;
-              setAddQuery(value);
-              if (/^\d+$/.test(value) && Number(value) > 0) {
-                setAddCardId(Number(value));
-              } else {
-                setAddCardId(null);
-              }
-            }}
-            placeholder="Search name or passcode"
-            aria-label="Card name or passcode"
-            autoComplete="off"
-          />
-          {hits.length > 0 && (
-            <ul className="catalog-hits">
-              {hits.map((hit) => (
-                <li key={hit.card_id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddQuery(hit.name);
-                      setAddCardId(hit.card_id);
-                    }}
-                  >
-                    <span className="catalog-hit-name">{hit.name}</span>
-                    <span className="catalog-hit-id">{hit.card_id}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </span>
-        <input
-          value={addQty}
-          onChange={(event) => setAddQty(event.target.value)}
-          inputMode="numeric"
-          aria-label="Quantity"
-        />
-        <button type="submit">Add card</button>
-      </form>
       <details className="paste">
         <summary>Paste a deck list</summary>
         <textarea
@@ -262,14 +148,14 @@ export function ImportExport({
           onClick={() => {
             try {
               const { sections, moved } = routeParsed(
-                parseDeckText(paste, addSection),
+                parseDeckText(paste, "main"),
                 extraIds,
                 (id) => catalog.has(id),
               );
               onChange(addFromParsed(doc, sections));
               setPaste("");
               onStatus(
-                `Added the pasted cards (cards without a #section go to ${addSection})${
+                `Added the pasted cards (cards without a #section go to main)${
                   moved > 0 ? `; moved ${moved} to the right section` : ""
                 }`,
               );

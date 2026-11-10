@@ -672,6 +672,30 @@ button svg { flex: none; vertical-align: -0.15em; }
   font-size: 0.8rem;
 }
 
+/* Hand Test: the Main Deck as card art with the hand boxed. */
+.hand-deck { margin: 0.6rem 0; }
+.hand-deck .hand-total { margin: 0 0 0.4rem; color: var(--muted); font-family: "Red Hat Mono", ui-monospace, monospace; }
+.hand-deck-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 52px);
+  gap: 0.3rem;
+}
+.hand-tile { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.hand-tile .hand-image-frame { transition: opacity 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out; }
+.hand-tile:hover .hand-image-frame { transform: translateY(-2px); }
+.hand-tile.out .hand-image-frame { opacity: 0.4; }
+.hand-tile.in-hand .hand-image-frame {
+  opacity: 1;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px var(--brass);
+  transform: translateY(-3px);
+}
+.hand-tile[aria-disabled="true"] { cursor: default; }
+.hand-tile[aria-disabled="true"]:hover .hand-image-frame { transform: none; }
+
 /* Icon-only buttons: a square target with the tooltip as its label. */
 .icon-button {
   display: inline-flex;
@@ -1131,3 +1155,48 @@ button svg { flex: none; vertical-align: -0.15em; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+.deck-editor-layout { display: grid; gap: 0.75rem; }
+.card-search-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.card-search-panel h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.card-search-panel input[type="search"] { width: 100%; box-sizing: border-box; }
+.card-search-panel .note,
+.card-search-panel .empty,
+.search-results { grid-column: 1 / -1; margin: 0; }
+.search-results {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.5rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.search-results:empty { display: none; }
+.search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.25rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+.search-result:hover, .search-result:focus-visible { border-color: var(--brass); }
+.search-result-name { font-size: 0.7rem; line-height: 1.2; color: var(--muted); }

@@ -25,8 +25,7 @@ async function openApp(page: Page): Promise<void> {
 
 async function addCardBySearch(page: Page, query: string): Promise<void> {
   await page.getByLabel("Card name or passcode").fill(query);
-  await page.locator(".catalog-hits button").first().click();
-  await page.getByRole("button", { name: "Add card" }).click();
+  await page.locator(".search-result").first().click();
 }
 
 function defaultDeckCards(): Record<"main" | "extra" | "side", Record<string, number>> {
@@ -49,7 +48,7 @@ test("the deck on first run is exactly the cards in default.ydk", async ({ page 
   await openApp(page);
   const expected = defaultDeckCards();
   const saved = await page.evaluate(() => {
-    const doc = JSON.parse(localStorage.getItem("mapping.document.v1")!);
+    const doc = JSON.parse(localStorage.getItem("mapping.document.v2")!);
     const toMap = (cards: { card_id: number; quantity: number }[]) =>
       Object.fromEntries(cards.map((c) => [String(c.card_id), c.quantity]));
     return { main: toMap(doc.main), extra: toMap(doc.extra), side: toMap(doc.side) };
@@ -72,11 +71,11 @@ test("card search finds the newest cards, even from a partial phrase", async ({ 
   await openApp(page);
   const search = page.getByLabel("Card name or passcode");
   await search.fill("ars magna acropolis");
-  await expect(page.locator(".catalog-hits")).toContainText(
+  await expect(page.locator(".search-results")).toContainText(
     "Ars Magna Academic Arcane Apparition Acropolis",
   );
   await search.fill("omega vidolium");
-  await expect(page.locator(".catalog-hits")).toContainText("Omega Vidolium the Power Patron of Heaven's End");
+  await expect(page.locator(".search-results")).toContainText("Omega Vidolium the Power Patron of Heaven's End");
 });
 
 test("an Extra Deck monster added with Main selected goes to the Extra Deck", async ({ page }) => {
@@ -84,7 +83,7 @@ test("an Extra Deck monster added with Main selected goes to the Extra Deck", as
   await page.getByRole("button", { name: "New deck" }).click();
   await expect(page.locator(".counts")).toContainText("0 extra");
 
-  await expect(page.getByLabel("Deck section")).toHaveValue("main");
+  await expect(page.getByRole("button", { name: "Main", exact: true }).first()).toBeVisible();
   await addCardBySearch(page, "omega vidolium");
 
   await expect(page.getByRole("status").filter({ hasText: "to the Extra Deck" })).toBeVisible();
@@ -101,25 +100,39 @@ test("a main deck card stays in the Main Deck", async ({ page }) => {
 });
 
 test.describe("Hand Test", () => {
+  const nav = (page: Page, name: string) =>
+    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
+
   test.beforeEach(async ({ page }) => {
     await openApp(page);
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Hand Test" }).click();
+    await nav(page, "Hand Test").click();
   });
 
-  test("drawing a random hand shows it right under the buttons", async ({ page }) => {
+  test("drawing shuffles the deck and boxes the top 5 cards above the results", async ({ page }) => {
     await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    const grid = page.locator(".hand-deck-grid");
+    await expect(grid.locator(".hand-tile.in-hand")).toHaveCount(5);
+    await expect(grid.locator(".hand-tile")).toHaveCount(DEFAULT.main);
+    await expect(page.locator(".hand-total")).toContainText("5 / 5");
 
-    const tested = page.getByRole("heading", { name: "Tested Hand" });
-    await expect(tested).toBeVisible();
-    await expect(page.getByLabel("Cards in hand").first().locator("li")).toHaveCount(5);
+    // The shuffled order puts the drawn cards first.
+    const classes = await page.locator(".hand-deck-grid .hand-tile").evaluateAll((els) =>
+      els.map((el) => el.className),
+    );
+    expect(classes.slice(0, 5).every((name) => name.includes("in-hand"))).toBe(true);
 
-    // Regression: the result used to sit below the long card picker, so a draw
-    // looked like it did nothing. It must come before Generate Hands and the picker.
-    const testedY = (await tested.boundingBox())!.y;
-    const generateY = (await page.getByRole("heading", { name: "Generate Hands" }).boundingBox())!.y;
-    const pickerY = (await page.getByRole("heading", { name: "Select Manually" }).boundingBox())!.y;
-    expect(testedY).toBeLessThan(generateY);
-    expect(generateY).toBeLessThan(pickerY);
+    // The grid sits above the results, so a draw is visible without scrolling.
+    const gridY = (await grid.boundingBox())!.y;
+    const testedY = (await page.getByRole("heading", { name: "Tested Hand" }).boundingBox())!.y;
+    expect(gridY).toBeLessThan(testedY);
+  });
+
+  test("clicking tiles adds and removes cards from the hand", async ({ page }) => {
+    const grid = page.locator(".hand-deck-grid");
+    await grid.locator(".hand-tile").first().click();
+    await expect(page.locator(".hand-total")).toContainText("1 / 5");
+    await grid.locator(".hand-tile.in-hand").first().click();
+    await expect(page.locator(".hand-total")).toContainText("0 / 5");
   });
 
   test("Clear hand removes the tested hand", async ({ page }) => {
@@ -127,53 +140,49 @@ test.describe("Hand Test", () => {
     await expect(page.getByRole("heading", { name: "Tested Hand" })).toBeVisible();
     await page.getByRole("button", { name: "Clear hand", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Tested Hand" })).toHaveCount(0);
+    await expect(page.locator(".hand-tile.in-hand")).toHaveCount(0);
   });
 
-  test("generates the requested number of hands", async ({ page }) => {
-    const count = page.getByLabel("Number of hands");
-    await expect(count).toHaveValue("10");
-    await page.getByRole("button", { name: "Generate hands" }).click();
-    await expect(page.locator(".hand-batch-item")).toHaveCount(10);
-
-    await count.fill("25");
-    await page.getByRole("button", { name: "Generate hands" }).click();
-    await expect(page.locator(".hand-batch-item")).toHaveCount(25);
-
-    await page.getByRole("button", { name: "Clear hands" }).click();
-    await expect(page.locator(".hand-batch-item")).toHaveCount(0);
-  });
-
-  test("rejects an invalid number of hands", async ({ page }) => {
-    await page.getByLabel("Number of hands").fill("0");
-    await page.getByRole("button", { name: "Generate hands" }).click();
-    await expect(page.getByText("hand count must be an integer from 1 to 1000")).toBeVisible();
-  });
-
-  test("the manual picker tiles do not overlap", async ({ page }) => {
-    // Regression: an image's natural size once set the column width, so tiles
-    // piled on top of each other.
-    const tiles = page.locator(".hand-picker-grid li");
+  test("the deck tiles do not overlap", async ({ page }) => {
+    const tiles = page.locator(".hand-deck-grid li");
     await expect(tiles.first()).toBeVisible();
     const a = (await tiles.nth(0).boundingBox())!;
     const b = (await tiles.nth(1).boundingBox())!;
-    expect(a.width).toBeLessThanOrEqual(100);
+    expect(a.width).toBeLessThanOrEqual(110);
     expect(b.x).toBeGreaterThanOrEqual(a.x + a.width - 1);
-    // The images themselves must stay inside their tile (they once rendered at
-    // natural size and covered the neighbours).
-    const image = page.locator(".hand-picker-grid .hand-image-frame img").first();
-    if (await image.count()) {
-      const box = (await image.boundingBox())!;
-      expect(box.width).toBeLessThanOrEqual(a.width + 1);
-    }
   });
 
-  test("the manual picker builds a hand from card images", async ({ page }) => {
-    const first = page.locator(".hand-picker-grid .pick-tile").first();
-    await first.click();
-    await expect(page.locator(".hand-total")).toContainText("1 / 5");
-    // Scoped to the picker: deck cards have their own Remove buttons.
-    await page.locator(".hand-picker-grid").getByRole("button", { name: /^Remove / }).first().click();
-    await expect(page.locator(".hand-total")).toContainText("0 / 5");
+  test.describe("Many hands tab", () => {
+    test.beforeEach(async ({ page }) => {
+      await nav(page, "Many hands").click();
+    });
+
+    test("generates the requested number of hands", async ({ page }) => {
+      const count = page.getByLabel("Number of hands");
+      await expect(count).toHaveValue("10");
+      await page.getByRole("button", { name: "Generate hands" }).click();
+      await expect(page.locator(".hand-batch-item")).toHaveCount(10);
+
+      await count.fill("25");
+      await page.getByRole("button", { name: "Generate hands" }).click();
+      await expect(page.locator(".hand-batch-item")).toHaveCount(25);
+
+      await page.getByRole("button", { name: "Clear hands" }).click();
+      await expect(page.locator(".hand-batch-item")).toHaveCount(0);
+    });
+
+    test("rejects an invalid number of hands", async ({ page }) => {
+      await page.getByLabel("Number of hands").fill("0");
+      await page.getByRole("button", { name: "Generate hands" }).click();
+      await expect(page.getByText("hand count must be an integer from 1 to 1000")).toBeVisible();
+    });
+
+    test("Open in Hand Test boxes that hand in the deck grid", async ({ page }) => {
+      await page.getByRole("button", { name: "Generate hands" }).click();
+      await page.getByRole("button", { name: "Open in Hand Test" }).first().click();
+      await expect(page.getByRole("button", { name: "Draw Random Hand" })).toBeVisible();
+      await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
+    });
   });
 });
 

@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  generateHandBatch,
-  MAX_BATCH_HANDS,
-  summarizeBatch,
-  type BatchHand,
-} from "../lib/handBatch";
+import { useMemo, useState } from "react";
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
-import { CardFrame, HandImages } from "./HandImages";
-import { IconButton, PassMark } from "./IconButton";
+import { HandGrid } from "./HandGrid";
+import { PassMark } from "./IconButton";
 import {
   analysisContextOf,
   sectionSize,
@@ -22,7 +16,8 @@ import {
 } from "../lib/handExplorer";
 import type { DistinctMatchEvaluation } from "../lib/distinctMatch";
 import {
-  drawRandomHand,
+  handFromOrder,
+  shuffleDeck,
   evaluateHandTest,
   exactHandProbability,
   handOpeningQualityCounts,
@@ -53,11 +48,13 @@ interface Props {
   doc: MappingDocument;
   catalog: Catalog;
   onHandSize: (size: number) => void;
+  /** The tested hand lives in the app so the Many hands tab can open hands here. */
+  hand: TestedHand | null;
+  onHandChange: (hand: TestedHand | null) => void;
 }
 
-export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
-  const [hand, setHand] = useState<TestedHand | null>(null);
-  const [filter, setFilter] = useState("");
+export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange }: Props) {
+  const setHand = onHandChange;
 
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
@@ -112,62 +109,27 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
     return Object.values(hand.card_counts).reduce((sum, count) => sum + count, 0);
   }, [hand]);
 
+  // Drawing shuffles the whole deck on screen and boxes the top cards.
+  const [order, setOrder] = useState<number[] | null>(null);
   function drawRandom(): void {
-    setHand(drawRandomHand(doc.main, sample));
+    const shuffled = shuffleDeck(doc.main);
+    setOrder(shuffled);
+    setHand(handFromOrder(shuffled, Math.min(sample, shuffled.length)));
   }
-
-  const [batchCount, setBatchCount] = useState("10");
-  const [batch, setBatch] = useState<BatchHand[] | null>(null);
-  const [batchError, setBatchError] = useState<string | null>(null);
-
-  // A batch describes one deck and model; drop it when either changes.
-  useEffect(() => {
-    setBatch(null);
-    setBatchError(null);
-  }, [analysisKey, deck]);
-
-  function generateBatch(): void {
-    try {
-      setBatch(
-        generateHandBatch(
-          doc.main,
-          sample,
-          Number(batchCount),
-          doc.hand_conditions,
-          doc.hand_condition_sets,
-          groupsToMembership(doc.groups),
-        ),
-      );
-      setBatchError(null);
-    } catch (caught) {
-      setBatch(null);
-      setBatchError(
-        caught instanceof Error ? caught.message : "Could not generate hands",
-      );
-    }
-  }
-
-  const batchSummary = useMemo(() => (batch ? summarizeBatch(batch) : null), [batch]);
-  const BATCH_LIST_LIMIT = 100;
 
   function setCount(cardId: number, next: number): void {
-    setHand((current) => {
-      const counts = { ...(current?.card_counts ?? {}) };
-      if (next <= 0) {
-        delete counts[cardId];
-      } else {
-        counts[cardId] = next;
-      }
-      return { card_counts: counts, observed_cards: sample };
-    });
+    const counts = { ...(hand?.card_counts ?? {}) };
+    if (next <= 0) {
+      delete counts[cardId];
+    } else {
+      counts[cardId] = next;
+    }
+    setHand(
+      Object.keys(counts).length === 0
+        ? null
+        : { card_counts: counts, observed_cards: sample },
+    );
   }
-
-  const needle = filter.trim().toLowerCase();
-  const filteredCards = doc.main.filter((card) => {
-    if (!needle) return true;
-    const name = displayName(card.card_id, card.name, catalog).toLowerCase();
-    return name.includes(needle) || String(card.card_id).includes(needle);
-  });
 
   const roleCounts = useMemo(() => {
     if (!hand) return { starter: 0, extender: 0, interaction: 0 };
@@ -197,7 +159,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
   }, [doc.main, hand, context.turn_order]);
 
   return (
-    <section className="panel">
+    <section className="panel" id="hand-test-top">
       <header>
         <h2>Hand Test</h2>
         <label>
@@ -224,10 +186,28 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         <button type="button" onClick={drawRandom} disabled={!hand}>
           Draw Again
         </button>
-        <button type="button" onClick={() => setHand(null)} disabled={!hand}>
+        <button type="button" onClick={() => {
+            setOrder(null);
+            setHand(null);
+          }}
+          disabled={!hand}
+        >
           Clear hand
         </button>
       </div>
+
+      {doc.main.length === 0 ? (
+        <p className="empty">Add main-deck cards first.</p>
+      ) : (
+        <HandGrid
+          deck={doc.main}
+          counts={hand?.card_counts ?? {}}
+          sample={sample}
+          catalog={catalog}
+          order={hand ? order : null}
+          onCount={setCount}
+        />
+      )}
 
       {issues.some((issue) => issue.kind === "over_copy_limit" || issue.kind === "not_in_main") ? (
         <p className="error">
@@ -244,12 +224,6 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
       {hand && result && totalSelected === sample && issues.length === 0 ? (
         <>
           <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
-          <HandImages
-            deck={doc.main}
-            counts={hand.card_counts}
-            catalog={catalog}
-            showRoles
-          />
           <p className="explorer-notation">
             Exact composition probability:{" "}
             {exactProbability !== null ? formatPercent(exactProbability) : "—"}
@@ -371,161 +345,6 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         </>
       ) : null}
 
-      <h3 className="panel-subhead">Generate Hands</h3>
-      <p className="note">
-        Draw several random hands at once and see how many satisfy each
-        modeled condition. The exact probability is shown for comparison; a
-        small batch will not match it exactly.
-      </p>
-      <div className="row-actions hand-batch-controls">
-        <label>
-          Number of hands
-          <input
-            type="number"
-            min={1}
-            max={MAX_BATCH_HANDS}
-            value={batchCount}
-            onChange={(event) => setBatchCount(event.target.value)}
-          />
-        </label>
-        {[10, 50, 100].map((preset) => (
-          <button
-            key={preset}
-            type="button"
-            onClick={() => setBatchCount(String(preset))}
-          >
-            {preset}
-          </button>
-        ))}
-        <button type="button" className="primary" onClick={generateBatch} disabled={deck === 0}>
-          Generate hands
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setBatch(null);
-            setBatchError(null);
-          }}
-          disabled={!batch && !batchError}
-        >
-          Clear hands
-        </button>
-      </div>
-      {batchError ? <p className="error">{batchError}</p> : null}
-      {batch && batchSummary ? (
-        <>
-          <dl className="explorer-results" aria-label="Batch results">
-            {batchSummary.sets.length === 0 ? (
-              <p className="empty">Define a Hand Goal to see pass rates.</p>
-            ) : (
-              batchSummary.sets.map((set) => (
-                <div key={set.id} className="explorer-row">
-                  <dt>
-                    {set.name}
-                    <span className="explorer-notation">
-                      {set.passed} of {batchSummary.count} hands · exact{" "}
-                      {formatPercent(analysis?.sets.find((row) => row.id === set.id)?.union ?? 0)}
-                    </span>
-                  </dt>
-                  <dd>{formatPercent(set.rate)}</dd>
-                </div>
-              ))
-            )}
-          </dl>
-          <ol className="hand-batch-list">
-            {batch.slice(0, BATCH_LIST_LIMIT).map((entry) => (
-              <li key={entry.index} className="hand-batch-item">
-                <div className="hand-batch-head">
-                  <strong>Hand {entry.index}</strong>
-                  <span className="hand-batch-sets">
-                    {entry.result.sets.map((set) => (
-                      <span
-                        key={set.setId}
-                        className={set.passed ? "hand-pass-title" : "hand-fail-title"}
-                      >
-                        <PassMark passed={set.passed} /> {set.name}
-                      </span>
-                    ))}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setHand(entry.hand);
-                      // The tester sits above this list; bring it into view.
-                      requestAnimationFrame(() =>
-                        document
-                          .getElementById("tested-hand")
-                          ?.scrollIntoView({ block: "start" }),
-                      );
-                    }}
-                  >
-                    Open in tester
-                  </button>
-                </div>
-                <HandImages
-                  deck={doc.main}
-                  counts={entry.hand.card_counts}
-                  catalog={catalog}
-                  size="sm"
-                />
-              </li>
-            ))}
-          </ol>
-          {batch.length > BATCH_LIST_LIMIT ? (
-            <p className="empty">
-              Showing the first {BATCH_LIST_LIMIT} of {batch.length} hands; the
-              pass rates above count all of them.
-            </p>
-          ) : null}
-        </>
-      ) : null}
-
-      <h3 className="panel-subhead">Select Manually</h3>
-      <input
-        type="search"
-        value={filter}
-        placeholder="Filter main deck…"
-        aria-label="Filter cards for manual selection"
-        onChange={(event) => setFilter(event.target.value)}
-      />
-      {doc.main.length === 0 ? (
-        <p className="empty">Add main-deck cards first.</p>
-      ) : (
-        <ul className="hand-picker-grid">
-          {filteredCards.map((card) => {
-            const count = hand?.card_counts[card.card_id] ?? 0;
-            const canAdd = count < card.quantity && totalSelected < sample;
-            const name = displayName(card.card_id, card.name, catalog);
-            return (
-              <li key={card.card_id} className={count > 0 ? "picked" : undefined}>
-                <button
-                  type="button"
-                  className="pick-tile"
-                  aria-label={`Add ${name} to the hand`}
-                  aria-disabled={!canAdd}
-                  title={canAdd ? `Add ${name}` : `${name}: no more copies or the hand is full`}
-                  onClick={() => canAdd && setCount(card.card_id, count + 1)}
-                >
-                  <CardFrame cardId={card.card_id} name={name} />
-                  <span className="pick-badge">
-                    {count} / {card.quantity}
-                  </span>
-                </button>
-                <IconButton
-                  icon="minus"
-                  className="pick-remove"
-                  label={`Remove ${name} from the hand`}
-                  disabled={count === 0}
-                  onClick={() => setCount(card.card_id, count - 1)}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <p className="empty hand-total">
-        {totalSelected} / {sample} cards selected
-      </p>
     </section>
   );
 }

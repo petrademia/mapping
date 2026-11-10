@@ -4,7 +4,9 @@ import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
+import { HandBatchPanel } from "./components/HandBatchPanel";
 import { loadDefaultDeck } from "./lib/defaultDeck";
+import type { TestedHand } from "./lib/handTest";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
 import {
   CardImagesContext,
@@ -35,12 +37,13 @@ import {
 } from "./lib/document";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test" | "rank";
+type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank";
 
 const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "profile", label: "Profile" },
   { key: "models", label: "Models" },
   { key: "hand-test", label: "Hand Test" },
+  { key: "batch", label: "Many hands" },
   { key: "rank", label: "Rank" },
 ];
 
@@ -62,6 +65,8 @@ export function App() {
   const [extraIds, setExtraIds] = useState<ExtraDeckIds>(new Set());
   // Bumped by Clear everything so workspace panels drop their local state.
   const [resetKey, setResetKey] = useState(0);
+  // The hand being tested; lives here so the Many hands tab can open one in Hand Test.
+  const [testedHand, setTestedHand] = useState<TestedHand | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
   const [status, setStatus] = useState(
     "Local draft. Taxonomy annotations are deck-specific hypotheses.",
@@ -71,6 +76,19 @@ export function App() {
   const activeConfig = findConfiguration(doc, doc.active_configuration_id);
   const changeView = (next: MappingDocument) =>
     setDoc(mergeAnalysisEdit(doc, next));
+
+  const loadDefault = () => {
+    void loadDefaultDeck().then((deck) => {
+      if (!deck) {
+        setStatus("Could not load default.ydk.");
+        return;
+      }
+      setDoc(deck);
+      setResetKey((key) => key + 1);
+      setTestedHand(null);
+      setStatus("Loaded the default deck from default.ydk.");
+    });
+  };
 
   useEffect(() => {
     saveStored(doc);
@@ -131,6 +149,7 @@ export function App() {
               onClick={() => {
                 setDoc(createDocument("untitled"));
                 setResetKey((key) => key + 1);
+                setTestedHand(null);
                 setStatus("Started an empty deck.");
               }}
             >
@@ -140,17 +159,7 @@ export function App() {
               label="Default deck"
               confirmLabel="Replace"
               message="Replace the current deck and models with default.ydk?"
-              onConfirm={() => {
-                void loadDefaultDeck().then((deck) => {
-                  if (!deck) {
-                    setStatus("Could not load default.ydk.");
-                    return;
-                  }
-                  setDoc(deck);
-                  setResetKey((key) => key + 1);
-                  setStatus("Loaded the default deck from default.ydk.");
-                });
-              }}
+              onConfirm={loadDefault}
             />
             <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
           </div>
@@ -184,7 +193,13 @@ export function App() {
         </button>
       </div>
       <div className="workspace">
-        <DeckEditor doc={doc} catalog={catalog} onChange={setDoc} />
+        <DeckEditor
+          doc={doc}
+          catalog={catalog}
+          extraIds={extraIds}
+          onChange={setDoc}
+          onStatus={setStatus}
+        />
         <aside id={WORKSPACE_ID}>
           <nav className="context-presets workspace-nav" aria-label="Workspace">
             {WORKSPACES.map((entry) => (
@@ -255,9 +270,26 @@ export function App() {
               key={resetKey}
               doc={view}
               catalog={catalog}
+              hand={testedHand}
+              onHandChange={setTestedHand}
               onHandSize={(size) => {
                 if (!Number.isInteger(size) || size < 0) return;
                 setDoc(setOpeningHandSize(doc, size));
+              }}
+            />
+          ) : null}
+
+          {workspace === "batch" ? (
+            <HandBatchPanel
+              key={resetKey}
+              doc={view}
+              catalog={catalog}
+              onOpenInTester={(hand) => {
+                setTestedHand(hand);
+                setWorkspace("hand-test");
+                requestAnimationFrame(() =>
+                  document.getElementById("hand-test-top")?.scrollIntoView({ block: "start" }),
+                );
               }}
             />
           ) : null}

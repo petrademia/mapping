@@ -9,11 +9,15 @@ import type { MappingDocument } from "../lib/document";
 import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
 import { DeckGrid } from "./DeckGrid";
 import { DeckSection } from "./DeckSection";
+import { CardSearch } from "./CardSearch";
+import type { ExtraDeckIds } from "../lib/sectionRouting";
 
 interface Props {
   doc: MappingDocument;
   catalog: Catalog;
+  extraIds: ExtraDeckIds;
   onChange: (doc: MappingDocument) => void;
+  onStatus: (message: string) => void;
 }
 
 type View = "cards" | "list";
@@ -27,7 +31,7 @@ function readView(): View {
   }
 }
 
-export function DeckEditor({ doc, catalog, onChange }: Props) {
+export function DeckEditor({ doc, catalog, extraIds, onChange, onStatus }: Props) {
   const active = findConfiguration(doc, doc.active_configuration_id);
   const [view, setView] = useState<View>(readView);
 
@@ -41,6 +45,14 @@ export function DeckEditor({ doc, catalog, onChange }: Props) {
   }
 
   return (
+    <div className="deck-editor-layout">
+    <CardSearch
+      doc={doc}
+      catalog={catalog}
+      extraIds={extraIds}
+      onChange={onChange}
+      onStatus={onStatus}
+    />
     <div className="deck-editor" id={DECK_LIST_ID}>
       <div className="view-toggle" role="group" aria-label="Deck view">
         {(["cards", "list"] as const).map((entry) => (
@@ -76,7 +88,7 @@ export function DeckEditor({ doc, catalog, onChange }: Props) {
         <p className="deck-empty-state">
           No deck yet. Use <strong>Load file</strong> to open a .ydk or a saved
           mapping, paste a list under <strong>Paste a deck list</strong>, or
-          search a card above.
+          search a card on the right.
         </p>
       ) : null}
       {view === "cards" ? (
@@ -88,6 +100,7 @@ export function DeckEditor({ doc, catalog, onChange }: Props) {
           <DeckSection doc={doc} section="side" catalog={catalog} onChange={onChange} />
         </>
       )}
+    </div>
     </div>
   );
 }
