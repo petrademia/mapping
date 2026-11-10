@@ -30,7 +30,7 @@ function tax(
  * Compact research build inspired by 2026 community Elfnote Ars Magna lists.
  */
 export const elfnoteArsMagnaDemo: MappingDocument = {
-  schema_version: 7,
+  schema_version: 8,
   name: "elfnote_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
@@ -90,6 +90,8 @@ export const elfnoteArsMagnaDemo: MappingDocument = {
     },
   ],
   engine_access_set_id: "modeled-engine-access",
+  configurations: [],
+  active_configuration_id: null,
   main: [
     {
       card_id: 70488851,

@@ -1,4 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  generateHandBatch,
+  MAX_BATCH_HANDS,
+  summarizeBatch,
+  type BatchHand,
+} from "../lib/handBatch";
 import {
   analysisContextLabel,
   observedCards,
@@ -6,6 +12,7 @@ import {
 } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
+import { CardThumb } from "./CardThumb";
 import {
   analysisContextOf,
   sectionSize,
@@ -112,6 +119,40 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
     setHand(drawRandomHand(doc.main, sample));
   }
 
+  const [batchCount, setBatchCount] = useState("10");
+  const [batch, setBatch] = useState<BatchHand[] | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
+
+  // A batch describes one deck and model; drop it when either changes.
+  useEffect(() => {
+    setBatch(null);
+    setBatchError(null);
+  }, [analysisKey, deck]);
+
+  function generateBatch(): void {
+    try {
+      setBatch(
+        generateHandBatch(
+          doc.main,
+          sample,
+          Number(batchCount),
+          doc.hand_conditions,
+          doc.hand_condition_sets,
+          groupsToMembership(doc.groups),
+        ),
+      );
+      setBatchError(null);
+    } catch (caught) {
+      setBatch(null);
+      setBatchError(
+        caught instanceof Error ? caught.message : "Could not generate hands",
+      );
+    }
+  }
+
+  const batchSummary = useMemo(() => (batch ? summarizeBatch(batch) : null), [batch]);
+  const BATCH_LIST_LIMIT = 100;
+
   function setCount(cardId: number, next: number): void {
     setHand((current) => {
       const counts = { ...(current?.card_counts ?? {}) };
@@ -190,6 +231,97 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         </button>
       </div>
 
+      <h3 className="panel-subhead">Generate Hands</h3>
+      <p className="note">
+        Draw several random hands at once and see how many satisfy each
+        modeled condition. The exact probability is shown for comparison; a
+        small batch will not match it exactly.
+      </p>
+      <div className="row-actions hand-batch-controls">
+        <label>
+          Number of hands
+          <input
+            type="number"
+            min={1}
+            max={MAX_BATCH_HANDS}
+            value={batchCount}
+            onChange={(event) => setBatchCount(event.target.value)}
+          />
+        </label>
+        {[10, 50, 100].map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => setBatchCount(String(preset))}
+          >
+            {preset}
+          </button>
+        ))}
+        <button type="button" className="primary" onClick={generateBatch} disabled={deck === 0}>
+          Generate hands
+        </button>
+      </div>
+      {batchError ? <p className="error">{batchError}</p> : null}
+      {batch && batchSummary ? (
+        <>
+          <dl className="explorer-results" aria-label="Batch results">
+            {batchSummary.sets.length === 0 ? (
+              <p className="empty">Define a Modeled Outcome to see pass rates.</p>
+            ) : (
+              batchSummary.sets.map((set) => (
+                <div key={set.id} className="explorer-row">
+                  <dt>
+                    {set.name}
+                    <span className="explorer-notation">
+                      {set.passed} of {batchSummary.count} hands · exact{" "}
+                      {formatPercent(analysis?.sets.find((row) => row.id === set.id)?.union ?? 0)}
+                    </span>
+                  </dt>
+                  <dd>{formatPercent(set.rate)}</dd>
+                </div>
+              ))
+            )}
+          </dl>
+          <ol className="hand-batch-list">
+            {batch.slice(0, BATCH_LIST_LIMIT).map((entry) => (
+              <li key={entry.index} className="hand-batch-item">
+                <div className="hand-batch-head">
+                  <strong>Hand {entry.index}</strong>
+                  <span className="hand-batch-sets">
+                    {entry.result.sets.map((set) => (
+                      <span
+                        key={set.setId}
+                        className={set.passed ? "hand-pass-title" : "hand-fail-title"}
+                      >
+                        {set.passed ? "✓" : "✗"} {set.name}
+                      </span>
+                    ))}
+                  </span>
+                  <button type="button" onClick={() => setHand(entry.hand)}>
+                    Open in tester
+                  </button>
+                </div>
+                <p className="explorer-notation">
+                  {doc.main
+                    .filter((card) => (entry.hand.card_counts[card.card_id] ?? 0) > 0)
+                    .map(
+                      (card) =>
+                        `${displayName(card.card_id, card.name, catalog)} ×${entry.hand.card_counts[card.card_id]}`,
+                    )
+                    .join(", ")}
+                </p>
+              </li>
+            ))}
+          </ol>
+          {batch.length > BATCH_LIST_LIMIT ? (
+            <p className="empty">
+              Showing the first {BATCH_LIST_LIMIT} of {batch.length} hands; the
+              pass rates above count all of them.
+            </p>
+          ) : null}
+        </>
+      ) : null}
+
       <h3 className="panel-subhead">Select Manually</h3>
       <input
         type="search"
@@ -258,6 +390,10 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
               if (count === 0) return null;
               return (
                 <li key={card.card_id} className="hand-card">
+                  <CardThumb
+                    cardId={card.card_id}
+                    name={displayName(card.card_id, card.name, catalog)}
+                  />
                   <span className="explorer-title">
                     {displayName(card.card_id, card.name, catalog)} ×{count}
                   </span>

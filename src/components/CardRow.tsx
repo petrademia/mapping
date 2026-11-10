@@ -1,5 +1,6 @@
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
+import { CardThumb } from "./CardThumb";
 import type { MappingCard } from "../lib/document";
 import type { OpeningQualityValue, Role } from "../lib/taxonomy";
 import { OpeningQualityEditor } from "./OpeningQualityEditor";
@@ -28,9 +29,17 @@ export function CardRow({
 }: Props) {
   return (
     <tr>
-      <td className="card-name">
-        <strong>{displayName(card.card_id, card.name, catalog)}</strong>
-        <span className="card-id">{card.card_id}</span>
+      <td>
+        <div className="card-identity">
+          <CardThumb
+            cardId={card.card_id}
+            name={displayName(card.card_id, card.name, catalog)}
+          />
+          <div className="card-name">
+            <strong>{displayName(card.card_id, card.name, catalog)}</strong>
+            <span className="card-id">{card.card_id}</span>
+          </div>
+        </div>
       </td>
       <td>
         <QuantityEditor value={card.quantity} onChange={onQuantity} />

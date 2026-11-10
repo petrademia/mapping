@@ -295,14 +295,23 @@ Raw taxonomy and Opening Quality annotation statistics live in
 **Taxonomy / Annotation Analysis** (role slots + opening-quality slots) and
 never compete visually with modeled outcomes.
 
-### Coming next (not implemented)
+### Deck Configuration
 
-**Deck Configuration** will represent actual deck-list changes such as siding.
-v0 analyzes a single **Pre-Side** configuration (the document's Main Deck). A
-post-side list is a *different configuration* (which cards are in the deck), not
-a card annotation. Siding changes deck composition, not the semantic meaning of
-`undesirable`. Preserved attributes: `undesirable to draw != undesirable to
-include != should side out`.
+**Deck Configuration** represents actual deck-list changes such as siding. The
+deck list you edit is **Pre-Side**. A post-side list is a *different
+configuration* (which copies are in Main), not a card annotation. Siding
+changes deck composition, not the semantic meaning of `undesirable`. Preserved
+attributes: `undesirable to draw != undesirable to include != should side out`.
+
+- A post-side configuration only stores overrides ("N copies of this card in
+  Main"). Cards without an override follow Pre-Side.
+- Copies move between Main and Side only: the pool (`main + side`) per card is
+  fixed, and the Extra Deck is unchanged.
+- Annotations stay on the card by `card_id`; they are edited in the deck list
+  and shared by every configuration.
+- The selected configuration drives Profile, Models, Hand Test, the header
+  counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
+  all configurations.
 
 ### Analysis Context
 
@@ -360,7 +369,7 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 - select Analysis Context (going first/second × opening hand / first cards seen)
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
 - edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
-- add cards by catalog name search or passcode; paste-add appends without replacing
+- add cards by catalog name search or passcode; Extra Deck monsters (Fusion, Synchro, Xyz, Link, from `public/extra-deck.json`) are routed to the Extra Deck when Main is selected, Side is never rerouted; paste-add appends without replacing
 - define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-outcome union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Modeled Outcomes, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
@@ -380,11 +389,11 @@ Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hyperge
 
 ## Schema
 
-MAPPING owns a versioned document (`schema_version: 7`):
+MAPPING owns a versioned document (`schema_version: 8`):
 
 ```json
 {
-  "schema_version": 7,
+  "schema_version": 8,
   "name": "power_patron_ars_magna_v0",
   "main": [{
     "card_id": 62962630,
@@ -432,9 +441,20 @@ MAPPING owns a versioned document (`schema_version: 7`):
     "opening_hand_size": 5,
     "turn_order": "going_first",
     "observation_point": "opening_hand"
-  }
+  },
+  "configurations": [{
+    "id": "side-1",
+    "name": "Post-Side 1",
+    "notes": "Going second vs. backrow",
+    "overrides": [{ "card_id": 62962630, "main_quantity": 1 }]
+  }],
+  "active_configuration_id": "side-1"
 }
 ```
+
+`configurations` holds post-side overrides (Main copies per card, within the
+Pre-Side `main + side` pool); `active_configuration_id: null` selects Pre-Side.
+Schema v7 documents load with no configurations.
 
 Unclassified opening quality in either context is serialized as `null`, never silently as `"neutral"`. An absent `going_first` / `going_second` key defaults to `null`.
 
@@ -474,6 +494,12 @@ Dev server: http://localhost:51173 (pinned in `vite.config.ts`; see `~/Projects/
 npm test
 npm run typecheck
 npm run build
-`npm run extract-catalog` downloads MAPPING's pinned MyCard commit (`8c8d231`, recorded in `scripts/extract-catalog.py`) into `.cache/` and writes `public/catalog.json`. That pin can be newer than `yapping/tools/fetch_cards_db.sh`. Provenance is `public/catalog.meta.json`. Unknown ids still display as `#<id>`.
+`npm run extract-catalog` downloads MAPPING's pinned MyCard commit (recorded in `scripts/extract-catalog.py`, currently `ad0a51f`) into `.cache/`, verifies its SHA256, and writes `public/catalog.json`. That pin can be newer than `yapping/tools/fetch_cards_db.sh`. Provenance is `public/catalog.meta.json`. Unknown ids still display as `#<id>`.
 
-The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access). Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable. The Power Patron demo shows a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable).
+To pick up new sets, run `npm run extract-catalog -- --latest`. It resolves the newest upstream commit that touched the en-US `cards.cdb`, rewrites the pin and hash in the script, and regenerates the catalog. Review the diff and commit it.
+
+MyCard's English data can lag behind new sets (its newest en-US commit was 22 Sep 2026 when this was checked). Add `--with-ygoprodeck` to also name cards the MyCard cdb does not have yet, using YGOPRODeck's API. It only adds ids and names that are absent from MyCard, and `catalog.meta.json` records how many. That step reads a live API, so it is not reproducible from the pin alone.
+
+**Card images** are optional and local. `npm run fetch-images -- --demo [deck.ydk ...]` downloads small images for the card ids found in the files you name into `public/cards/` and writes `public/cards/index.json`. The image host (YGOPRODeck) asks users to download each image once rather than hotlink it, so the script is throttled, skips existing files, and stops on HTTP 403/429. `public/cards/` is gitignored; cards without an image show an empty placeholder box.
+
+The app starts with an empty deck on first run; it saves your draft in the browser afterwards. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.

@@ -1,6 +1,17 @@
-import { useEffect, useState } from "react";
-import { elfnoteArsMagnaDemo } from "./data/elfnoteArsMagnaDemo";
-import { powerPatronArsMagnaDemo } from "./data/powerPatronArsMagnaDemo";
+import { useEffect, useMemo, useState } from "react";
+import { ConfigurationPanel } from "./components/ConfigurationPanel";
+import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
+import {
+  CardImagesContext,
+  loadCardImageIds,
+  type CardImageIds,
+} from "./lib/cardImages";
+import {
+  applyConfiguration,
+  configurationLabel,
+  findConfiguration,
+  mergeAnalysisEdit,
+} from "./lib/configuration";
 import { AnalysisContextSelector } from "./components/AnalysisContextSelector";
 import { ModelsPanel } from "./components/ModelsPanel";
 import { HandTestPanel } from "./components/HandTestPanel";
@@ -27,15 +38,29 @@ const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "hand-test", label: "Hand Test" },
 ];
 
+const WORKSPACE_ID = "workspace";
+
+function formatDelta(value: number): string {
+  if (value === 0) return "±0";
+  return value > 0 ? `+${value}` : `−${Math.abs(value)}`;
+}
+
 export function App() {
   const [doc, setDoc] = useState<MappingDocument>(
-    () => loadStored() ?? powerPatronArsMagnaDemo,
+    () => loadStored() ?? createDocument("untitled"),
   );
   const [catalog, setCatalog] = useState<Catalog>(new Map());
+  const [imageIds, setImageIds] = useState<CardImageIds>(new Set());
+  const [extraIds, setExtraIds] = useState<ExtraDeckIds>(new Set());
   const [workspace, setWorkspace] = useState<Workspace>("profile");
   const [status, setStatus] = useState(
     "Local draft. Taxonomy annotations are deck-specific hypotheses.",
   );
+  // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
+  const view = useMemo(() => applyConfiguration(doc), [doc]);
+  const activeConfig = findConfiguration(doc, doc.active_configuration_id);
+  const changeView = (next: MappingDocument) =>
+    setDoc(mergeAnalysisEdit(doc, next));
 
   useEffect(() => {
     saveStored(doc);
@@ -43,13 +68,15 @@ export function App() {
 
   useEffect(() => {
     void loadCatalog().then(setCatalog);
+    void loadCardImageIds().then(setImageIds);
+    void loadExtraDeckIds().then(setExtraIds);
   }, []);
 
   return (
+    <CardImagesContext.Provider value={imageIds}>
     <div className="app">
       <header className="masthead">
         <div className="brand">
-          <p className="eyebrow">Yu-Gi-Oh! analysis family</p>
           <h1>MAPPING</h1>
           <p className="tag">
             Annotate Role and Opening Quality hypotheses per deck card, inspect
@@ -65,9 +92,10 @@ export function App() {
             />
           </label>
           <p className="counts">
-            <span>{sectionSize(doc.main)} main</span>
-            <span>{sectionSize(doc.extra)} extra</span>
-            <span>{sectionSize(doc.side)} side</span>
+            <span>{sectionSize(view.main)} main</span>
+            <span>{sectionSize(view.extra)} extra</span>
+            <span>{sectionSize(view.side)} side</span>
+            {activeConfig ? <span>{configurationLabel(activeConfig)}</span> : null}
           </p>
           <div className="row-actions">
             <button
@@ -79,39 +107,39 @@ export function App() {
             >
               New deck
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDoc(powerPatronArsMagnaDemo);
-                setStatus("Loaded Power Patron Ars Magna demo.");
-              }}
-            >
-              Load Power Patron
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDoc(elfnoteArsMagnaDemo);
-                setStatus("Loaded Elfnote Ars Magna demo.");
-              }}
-            >
-              Load Elfnote
-            </button>
           </div>
         </div>
       </header>
       <ImportExport
         doc={doc}
+        exportDoc={view}
         catalog={catalog}
+        extraIds={extraIds}
         onChange={setDoc}
         onStatus={setStatus}
       />
       <p className="status" role="status">
         {status}
       </p>
+      <div className="jump-bar">
+        <span>
+          Analyzing{" "}
+          <strong>{activeConfig ? configurationLabel(activeConfig) : "Pre-Side"}</strong>
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            document
+              .getElementById(WORKSPACE_ID)
+              ?.scrollIntoView({ block: "start" })
+          }
+        >
+          Go to analysis
+        </button>
+      </div>
       <div className="workspace">
         <DeckEditor doc={doc} catalog={catalog} onChange={setDoc} />
-        <aside>
+        <aside id={WORKSPACE_ID}>
           <nav className="context-presets workspace-nav" aria-label="Workspace">
             {WORKSPACES.map((entry) => (
               <button
@@ -127,6 +155,20 @@ export function App() {
             ))}
           </nav>
 
+          <p
+            className={activeConfig ? "analyzing-strip sided" : "analyzing-strip"}
+            role="status"
+          >
+            Analyzing <strong>{activeConfig ? configurationLabel(activeConfig) : "Pre-Side"}</strong>
+            {" · "}
+            {sectionSize(view.main)} main
+            {activeConfig
+              ? ` · ${formatDelta(sectionSize(view.main) - sectionSize(doc.main))} vs Pre-Side`
+              : null}
+          </p>
+
+          <ConfigurationPanel doc={doc} catalog={catalog} onChange={setDoc} />
+
           {workspace === "profile" ? (
             <>
               <AnalysisContextSelector
@@ -138,21 +180,21 @@ export function App() {
                 onChange={(context) => setDoc(setAnalysisContext(doc, context))}
               />
               <DeckProfile
-                doc={doc}
+                doc={view}
                 onHandSize={(size) => {
                   if (!Number.isInteger(size) || size < 0) return;
                   setDoc(setOpeningHandSize(doc, size));
                 }}
               />
-              <RoleSummary doc={doc} />
+              <RoleSummary doc={view} />
             </>
           ) : null}
 
           {workspace === "models" ? (
             <ModelsPanel
-              doc={doc}
+              doc={view}
               catalog={catalog}
-              onChange={setDoc}
+              onChange={changeView}
               onHandSize={(size) => {
                 if (!Number.isInteger(size) || size < 0) return;
                 setDoc(setOpeningHandSize(doc, size));
@@ -162,7 +204,7 @@ export function App() {
 
           {workspace === "hand-test" ? (
             <HandTestPanel
-              doc={doc}
+              doc={view}
               catalog={catalog}
               onHandSize={(size) => {
                 if (!Number.isInteger(size) || size < 0) return;
@@ -173,5 +215,6 @@ export function App() {
         </aside>
       </div>
     </div>
+    </CardImagesContext.Provider>
   );
 }

@@ -11,6 +11,11 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { serializeYapping } from "../lib/exportYapping";
+import {
+  routeParsed,
+  routeSection,
+  type ExtraDeckIds,
+} from "../lib/sectionRouting";
 import { parseDeckText, serializeYdk } from "../lib/ydk";
 
 function download(filename: string, text: string): void {
@@ -30,12 +35,23 @@ function slug(name: string): string {
 
 interface Props {
   doc: MappingDocument;
+  /** Active configuration view used for YDK and YAPPING export. Defaults to doc. */
+  exportDoc?: MappingDocument;
+  /** Extra Deck monster ids, used to route added cards to the right section. */
+  extraIds?: ExtraDeckIds;
   catalog: Catalog;
   onChange: (doc: MappingDocument) => void;
   onStatus: (message: string) => void;
 }
 
-export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
+export function ImportExport({
+  doc,
+  exportDoc = doc,
+  catalog,
+  extraIds = new Set(),
+  onChange,
+  onStatus,
+}: Props) {
   const [paste, setPaste] = useState("");
   const [addSection, setAddSection] = useState<DeckSection>("main");
   const [addQuery, setAddQuery] = useState("");
@@ -99,9 +115,9 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
         className="primary"
         onClick={() => {
           download(`${slug(doc.name)}.ydk`, serializeYdk({
-            main: doc.main,
-            extra: doc.extra,
-            side: doc.side,
+            main: exportDoc.main,
+            extra: exportDoc.extra,
+            side: exportDoc.side,
           }));
           onStatus("Saved YDK");
         }}
@@ -112,7 +128,7 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
         type="button"
         className="primary"
         onClick={() => {
-          download(`${slug(doc.name)}.yapping.json`, serializeYapping(doc));
+          download(`${slug(doc.name)}.yapping.json`, serializeYapping(exportDoc));
           onStatus("Exported YAPPING archetype JSON");
         }}
       >
@@ -132,8 +148,12 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
             onStatus("Quantity must be a positive integer");
             return;
           }
+          // Extra Deck monsters belong in Extra even if Main is selected.
+          const section = routeSection(addSection, cardId, extraIds, (id) =>
+            catalog.has(id),
+          );
           onChange(
-            addCard(doc, addSection, {
+            addCard(doc, section, {
               card_id: cardId,
               quantity,
               taxonomy: {
@@ -145,7 +165,12 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
           );
           setAddQuery("");
           setAddCardId(null);
-          onStatus(`Added ${displayName(cardId, catalog.get(cardId), catalog)}`);
+          const label = displayName(cardId, catalog.get(cardId), catalog);
+          onStatus(
+            section === addSection
+              ? `Added ${label}`
+              : `Added ${label} to the ${section === "extra" ? "Extra" : "Main"} Deck`,
+          );
         }}
       >
         <select
@@ -222,10 +247,18 @@ export function ImportExport({ doc, catalog, onChange, onStatus }: Props) {
           className="primary"
           onClick={() => {
             try {
-              const parsed = parseDeckText(paste, addSection);
-              onChange(addFromParsed(doc, parsed));
+              const { sections, moved } = routeParsed(
+                parseDeckText(paste, addSection),
+                extraIds,
+                (id) => catalog.has(id),
+              );
+              onChange(addFromParsed(doc, sections));
               setPaste("");
-              onStatus(`Added lines to deck (default section: ${addSection})`);
+              onStatus(
+                `Added lines to deck (default section: ${addSection})${
+                  moved > 0 ? `; moved ${moved} to the right section` : ""
+                }`,
+              );
             } catch (caught) {
               onStatus(
                 caught instanceof Error ? caught.message : "Add lines failed",

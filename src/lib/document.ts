@@ -16,6 +16,11 @@ import {
 } from "./analysisContext";
 import type { ConditionRequirement } from "./handExplorer";
 import {
+  findConfiguration,
+  normalizeConfigurations,
+  type SidingConfiguration,
+} from "./configuration";
+import {
   EMPTY_TAXONOMY,
   mergeTaxonomies,
   migrateLegacyRoles,
@@ -26,7 +31,7 @@ import {
   type Role,
 } from "./taxonomy";
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 /**
  * The fixed-id Hand Condition Set backing the "Modeled Engine Access"
@@ -63,14 +68,21 @@ export interface MappingDocument {
   /** id of the HandConditionSet that defines Modeled Engine Access. */
   engine_access_set_id: string | null;
   analysis: MappingAnalysis;
+  /**
+   * Post-side configurations. The main/extra/side lists above are Pre-Side.
+   * See `configuration.ts`.
+   */
+  configurations: SidingConfiguration[];
+  /** Configuration analyzed by the workspaces; null = Pre-Side. */
+  active_configuration_id: string | null;
 }
 
 /**
  * A concrete deck list under analysis (siding changes which list is used).
  * Annotations (taxonomy) stay on individual cards referenced by `card_id`;
  * a configuration only groups which cards/copies belong to the Main Deck.
- * Post-side configurations are a future task; v0 exposes only the pre-side
- * configuration derived from the document.
+ * Post-side lists are derived from `doc.configurations` (see
+ * `configuration.ts`); this helper is the Pre-Side view of the document.
  */
 export interface DeckConfiguration {
   id: string;
@@ -127,6 +139,8 @@ export function createDocument(name: string): MappingDocument {
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
     analysis: defaultAnalysis(),
+    configurations: [],
+    active_configuration_id: null,
   };
 }
 
@@ -606,10 +620,16 @@ function deckName(value: unknown): string {
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
   const version = Number(data.schema_version);
-  if (![1, 2, 3, 4, 5, 6, SCHEMA_VERSION].includes(version)) {
+  if (![1, 2, 3, 4, 5, 6, 7, SCHEMA_VERSION].includes(version)) {
     throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
   }
   const legacy = version < 6;
+  const configurations = normalizeConfigurations(data.configurations);
+  const activeId =
+    typeof data.active_configuration_id === "string" &&
+    configurations.some((c) => c.id === data.active_configuration_id)
+      ? data.active_configuration_id
+      : null;
   const legacyFlatRoles = version === 1;
   const analysis = (data.analysis ?? {}) as Record<string, unknown>;
   const parsedAnalysis = defaultAnalysis({
@@ -679,6 +699,8 @@ export function parseMappingJson(text: string): MappingDocument {
       hand_condition_sets: [...withoutDefault, engineSet],
       engine_access_set_id: ENGINE_ACCESS_SET_ID,
       analysis: parsedAnalysis,
+      configurations,
+      active_configuration_id: activeId,
     };
   }
   return {
@@ -704,6 +726,8 @@ export function parseMappingJson(text: string): MappingDocument {
     hand_condition_sets,
     engine_access_set_id: engineAccessId,
     analysis: parsedAnalysis,
+    configurations,
+    active_configuration_id: activeId,
   };
 }
 
@@ -747,6 +771,17 @@ export function serializeMapping(doc: MappingDocument): string {
     })),
     engine_access_set_id: doc.engine_access_set_id,
     analysis: doc.analysis,
+    configurations: doc.configurations.map((config) => ({
+      id: config.id,
+      name: config.name,
+      ...(config.notes ? { notes: config.notes } : {}),
+      overrides: config.overrides.map((o) => ({
+        card_id: o.card_id,
+        main_quantity: o.main_quantity,
+      })),
+    })),
+    active_configuration_id:
+      findConfiguration(doc, doc.active_configuration_id)?.id ?? null,
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
 }
