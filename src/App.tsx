@@ -434,7 +434,7 @@ export function App() {
           ) : null}
 
           {workspace === "rank" ? (
-            <RankPanel doc={doc} catalog={catalog} onChange={setDoc} />
+            <RankPanel doc={view} catalog={catalog} onChange={changeView} />
           ) : null}
         </aside>
       </div>

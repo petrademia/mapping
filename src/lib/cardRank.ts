@@ -93,15 +93,35 @@ export function moveItem(order: readonly number[], from: number, to: number): nu
   return next;
 }
 
+/**
+ * Store a new order for the cards in `doc.main`. Cards that are not in this
+ * list (sided out of the analyzed configuration) keep their saved place, so
+ * siding a card out and back in does not lose its rank. The listed cards fill
+ * the slots the listed cards held before, in their new order; listed cards that
+ * were never ranked go after.
+ */
 export function setRank(
   doc: MappingDocument,
   context: RankContext,
   order: readonly number[],
 ): MappingDocument {
-  return {
-    ...doc,
-    card_rank: { ...doc.card_rank, [context]: normalizeOrder(order, doc.main) },
-  };
+  const listed = new Set(doc.main.map((card) => card.card_id));
+  const queue = normalizeOrder(order, doc.main);
+  const next: number[] = [];
+  const placed = new Set<number>();
+  for (const id of doc.card_rank[context]) {
+    if (!listed.has(id)) {
+      next.push(id);
+      continue;
+    }
+    const take = queue.shift();
+    if (take !== undefined) {
+      next.push(take);
+      placed.add(take);
+    }
+  }
+  for (const id of queue) if (!placed.has(id)) next.push(id);
+  return { ...doc, card_rank: { ...doc.card_rank, [context]: next } };
 }
 
 /** Forget one context's order; its list goes back to deck order. */

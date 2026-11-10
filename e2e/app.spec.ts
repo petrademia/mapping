@@ -403,6 +403,22 @@ test.describe("Compare decks", () => {
   });
 });
 
+test("Card Rank follows the cards in the analyzed Post-Side list", async ({ page }) => {
+  await openApp(page);
+  await page.getByRole("button", { name: "Post-Side", exact: true }).click();
+  // Send the first Main card out and bring the last Side card in.
+  await page.locator('button[aria-label^="Move one"][aria-label$="to Side"]').first().click();
+  const comingIn = page.locator('button[aria-label^="Move one"][aria-label$="to Main"]').last();
+  const label = (await comingIn.getAttribute("aria-label"))!;
+  const name = label.replace(/^Move one /, "").replace(/ to Main$/, "");
+  await comingIn.click();
+
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+  const going = page.getByRole("region", { name: "Going First ranking" });
+  // The card that was sided in can be ranked now.
+  await expect(going.locator(`.rank-tile[title="${name}"]`).first()).toBeVisible();
+});
+
 test.describe("Rank scores hands", () => {
   const nav = (page: Page, name: string) =>
     page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });

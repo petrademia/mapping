@@ -50,6 +50,24 @@ describe("card rank", () => {
     expect(rankFor(doc, "going_first")).toEqual([40, 20, 10, 50]);
   });
 
+  it("keeps the rank of a card that is sided out, and gives it back when it returns", () => {
+    // Full list ranked 40 > 30 > 20 > 10; the analyzed (Post-Side) list lacks 30.
+    const full = setRank(deck(), "going_first", [40, 30, 20, 10]);
+    const sided = removeCard(full, "main", 30);
+    // Reordering what is shown must not forget card 30's slot.
+    const reordered = setRank(sided, "going_first", [10, 20, 40]);
+    expect(reordered.card_rank.going_first).toEqual([10, 30, 20, 40]);
+    // A card sided in is unranked until placed, then fills a slot of its own.
+    const swapped = addCard(sided, "main", { card_id: 50, quantity: 1, taxonomy: { ...EMPTY_TAXONOMY } });
+    expect(rankFor(swapped, "going_first")).toEqual([40, 20, 10, 50]);
+    const placed = setRank(swapped, "going_first", [50, 40, 20, 10]);
+    expect(rankFor(placed, "going_first")).toEqual([50, 40, 20, 10]);
+    // Card 30 returns to its saved place in the order.
+    const back = addCard(placed, "main", { card_id: 30, quantity: 1, taxonomy: { ...EMPTY_TAXONOMY } });
+    expect(rankFor(back, "going_first")).toContain(30);
+    expect(rankFor(back, "going_first")).toHaveLength(5);
+  });
+
   it("survives replacing the deck", () => {
     const doc = setRank(deck(), "going_first", [40, 30]);
     const next = replaceDeck(doc, {
