@@ -153,6 +153,15 @@ test.describe("Hand Test", () => {
     await expect(page.locator(".deck-grid-section .hand-deck-grid")).toHaveCount(1);
   });
 
+  test("a ten-card opening hand responds right away", async ({ page }) => {
+    // Regression: the exact odds were enumerated hand by hand and took tens of seconds.
+    const started = Date.now();
+    await page.getByLabel("Opening hand").fill("10");
+    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await expect(page.locator(".hand-tile.in-hand")).toHaveCount(10);
+    expect(Date.now() - started).toBeLessThan(4000);
+  });
+
   test("clicking tiles adds and removes cards from the hand", async ({ page }) => {
     const grid = page.locator(".hand-deck-grid");
     await grid.locator(".hand-tile").first().click();

@@ -1,7 +1,10 @@
 import type { MappingCard } from "./document";
 import {
+  cardClassKey,
+  countedAnalysis,
   forEachHandComposition,
   handConditionHolds,
+  type ConditionRequirement,
   type GroupMembership,
   type HandConditionLike,
   type HandConditionSetLike,
@@ -52,23 +55,63 @@ export function computeCardImpact(
     .map((id) => conditions.find((condition) => condition.id === id))
     .filter((condition): condition is HandConditionLike => condition !== undefined);
 
+  // Cards a condition names are their own kind; the rest merge by Groups and Roles,
+  // so interchangeable cards share one calculation.
+  const named = new Set<number>();
+  for (const condition of members) {
+    for (const predicate of [...condition.requirements, ...(condition.excludes ?? [])]) {
+      if (predicate.kind === "card") named.add(predicate.card_id);
+    }
+  }
+  const exact = members.some((condition) => (condition.distinct_constraints ?? []).length > 0);
+
   let total = 0n;
   let passing = 0n;
   const withWeight = deck.map(() => 0n);
   const withPassing = deck.map(() => 0n);
+  const byClass = new Map<string, { withWeight: bigint; withPassing: bigint }>();
 
-  forEachHandComposition(deck, handSize, (hand, weight) => {
-    total += weight;
-    const passed = members.some((condition) =>
-      handConditionHolds(hand, deck, condition, groups),
-    );
-    if (passed) passing += weight;
-    for (let i = 0; i < deck.length; i += 1) {
-      if ((hand[i] ?? 0) > 0) {
-        withWeight[i] = withWeight[i]! + weight;
-        if (passed) withPassing[i] = withPassing[i]! + weight;
+  deck.forEach((card, i) => {
+    const key = `${cardClassKey(card, named, groups)}|${card.quantity}`;
+    let result = exact ? undefined : byClass.get(key);
+    if (!result) {
+      const present: ConditionRequirement = { kind: "card", card_id: card.card_id, op: "gte", count: 1 };
+      const probe: HandConditionLike = { id: "__present", name: "present", requirements: [present] };
+      let rowTotal = 0n;
+      let rowPassing = 0n;
+      let rowWith = 0n;
+      let rowWithPassing = 0n;
+      const visit = (holds: readonly boolean[], weight: bigint): void => {
+        rowTotal += weight;
+        const passed = members.some((_, index) => holds[index]);
+        if (passed) rowPassing += weight;
+        if (holds[members.length]) {
+          rowWith += weight;
+          if (passed) rowWithPassing += weight;
+        }
+      };
+      if (exact) {
+        forEachHandComposition(deck, handSize, (hand, weight) => {
+          visit(
+            [
+              ...members.map((condition) => handConditionHolds(hand, deck, condition, groups)),
+              (hand[i] ?? 0) > 0,
+            ],
+            weight,
+          );
+        });
+      } else {
+        countedAnalysis(deck, handSize, [...members, probe], groups, undefined, (holds, weight) =>
+          visit(holds, weight),
+        );
       }
+      total = rowTotal;
+      passing = rowPassing;
+      result = { withWeight: rowWith, withPassing: rowWithPassing };
+      if (!exact) byClass.set(key, result);
     }
+    withWeight[i] = result.withWeight;
+    withPassing[i] = result.withPassing;
   });
 
   const baseline = total === 0n ? 0 : ratioToNumber(passing, total);
