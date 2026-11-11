@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "./lib/theme";
 import { Icon, IconButton } from "./components/IconButton";
 import { CardImpactPanel } from "./components/CardImpactPanel";
@@ -48,15 +48,27 @@ import { loadStored, saveStored } from "./lib/persistence";
 
 type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
 
-const WORKSPACES: { key: Workspace; label: string }[] = [
-  { key: "profile", label: "Profile" },
-  { key: "models", label: "Models" },
-  { key: "hand-test", label: "Hand Test" },
-  { key: "batch", label: "Batch Test" },
-  { key: "rank", label: "Rank" },
-  { key: "handtraps", label: "Handtraps" },
-  { key: "compare", label: "Compare" },
+const WORKSPACE_LABELS: Record<Workspace, string> = {
+  profile: "Profile",
+  models: "Models",
+  "hand-test": "Hand Test",
+  batch: "Batch Test",
+  rank: "Rank",
+  handtraps: "Handtraps",
+  compare: "Compare",
+};
+
+type Step = "define" | "test" | "analyze";
+
+/** The workspaces grouped by what you are doing: describe the deck, try hands, read the results. */
+const STEPS: { key: Step; label: string; workspaces: Workspace[] }[] = [
+  { key: "define", label: "Define", workspaces: ["models", "handtraps", "rank"] },
+  { key: "test", label: "Test", workspaces: ["hand-test", "batch"] },
+  { key: "analyze", label: "Analyze", workspaces: ["profile", "compare"] },
 ];
+
+const stepOf = (workspace: Workspace): (typeof STEPS)[number] =>
+  STEPS.find((step) => step.workspaces.includes(workspace)) ?? STEPS[0]!;
 
 const WORKSPACE_ID = "workspace";
 
@@ -99,6 +111,13 @@ export function App() {
   // The shuffled deck order behind the drawn hand, kept so it survives tab switches.
   const [handOrder, setHandOrder] = useState<number[] | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
+  // The workspace last open in each step, so returning to a step puts you back where you were.
+  const lastInStep = useRef<Partial<Record<Step, Workspace>>>({});
+  const goTo = (next: Workspace) => {
+    lastInStep.current[stepOf(next).key] = next;
+    setWorkspace(next);
+  };
+  const step = stepOf(workspace);
   // Which Models view opens when the next-step button sends you there.
   const [modelsStart, setModelsStart] = useState<ModelsView>("outcomes");
   const [status, setStatus] = useState("");
@@ -308,17 +327,29 @@ export function App() {
           onStatus={setStatus}
         />
         <aside id={WORKSPACE_ID}>
-          <nav className="context-presets workspace-nav" aria-label="Workspace">
-            {WORKSPACES.map((entry) => (
+          <nav className="context-presets workspace-nav step-nav" aria-label="Step">
+            {STEPS.map((entry) => (
               <button
                 key={entry.key}
                 type="button"
-                className={`context-chip${
-                  workspace === entry.key ? " on" : ""
-                }`}
-                onClick={() => setWorkspace(entry.key)}
+                className={`context-chip${step.key === entry.key ? " on" : ""}`}
+                aria-pressed={step.key === entry.key}
+                onClick={() => goTo(lastInStep.current[entry.key] ?? entry.workspaces[0]!)}
               >
                 {entry.label}
+              </button>
+            ))}
+          </nav>
+          <nav className="context-presets workspace-sub" aria-label="Workspace">
+            {step.workspaces.map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={`context-chip${workspace === key ? " on" : ""}`}
+                aria-pressed={workspace === key}
+                onClick={() => goTo(key)}
+              >
+                {WORKSPACE_LABELS[key]}
               </button>
             ))}
           </nav>
@@ -341,9 +372,9 @@ export function App() {
                 doc={view}
                 onDefineGoal={() => {
                   setModelsStart("outcomes");
-                  setWorkspace("models");
+                  goTo("models");
                 }}
-                onTestHand={() => setWorkspace("hand-test")}
+                onTestHand={() => goTo("hand-test")}
               />
               <GoalOdds doc={view} />
             </>
@@ -413,7 +444,7 @@ export function App() {
               onOpenInTester={(hand) => {
                 setTestedHand(hand);
                 setHandOrder(null);
-                setWorkspace("hand-test");
+                goTo("hand-test");
                 requestAnimationFrame(() =>
                   document.getElementById("hand-test-top")?.scrollIntoView({ block: "start" }),
                 );

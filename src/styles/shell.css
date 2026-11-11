@@ -123,6 +123,10 @@
   font-weight: 600;
 }
 
+/* Under the step tabs: the workspaces of that step, as plain chips. */
+.workspace-sub { margin: calc(var(--space-2) * -1) 0 var(--space-3); }
+.workspace-sub .context-chip { font-size: var(--text-sm); }
+
 .analyzing-strip {
   margin: 0 0 var(--space-3);
   padding: var(--space-2) var(--space-3);

@@ -267,13 +267,18 @@ why each predicate passed or failed.
 
 ### Workspaces
 
-The right rail is organized into three workspaces so modeling editors never
-compete with analysis results for vertical space:
+The right rail has three steps, each with its own workspaces, so modeling
+editors never compete with analysis results for vertical space:
 
-- **Profile** - Analysis Context, Deck Profile, Taxonomy / Annotation Analysis.
-- **Models** - a sub-navigated workspace: [Groups] [Hand Conditions]
-  [Hand Goals].
-- **Hand Test** - evaluate one exact hand against the model.
+- **Define** - describe the deck. **Models** (Hand Goals, Hand Conditions,
+  Groups), **Handtraps** and **Rank**.
+- **Test** - try hands. **Hand Test** evaluates one exact hand against the
+  model, with the opponent's handtraps; **Batch Test** deals many.
+- **Analyze** - read the results. **Profile** (Analysis Context, Deck Profile,
+  Card Impact, roles) and **Compare**.
+
+The app opens on Profile, whose next-step card points to Define. Returning to a
+step puts you back on the workspace you last used in it.
 
 ### Deck Profile
 

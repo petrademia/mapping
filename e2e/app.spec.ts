@@ -23,6 +23,23 @@ async function openApp(page: Page): Promise<void> {
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
 }
 
+const STEP_OF: Record<string, string> = {
+  Models: "Define",
+  Handtraps: "Define",
+  Rank: "Define",
+  "Hand Test": "Test",
+  "Batch Test": "Test",
+  Profile: "Analyze",
+  Compare: "Analyze",
+};
+
+/** Opens a workspace: first its step (Define, Test, Analyze), then its tab. */
+async function openWorkspace(page: Page, name: string): Promise<void> {
+  await page.getByRole("navigation", { name: "Step" }).getByRole("button", { name: STEP_OF[name]!, exact: true }).click();
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name, exact: true }).click();
+}
+const nav = (page: Page, name: string) => ({ click: () => openWorkspace(page, name) });
+
 async function addCardBySearch(page: Page, query: string): Promise<void> {
   await page.getByLabel("Card name or passcode").fill(query);
   await page.locator(".search-result").first().click();
@@ -127,8 +144,6 @@ test("a main deck card stays in the Main Deck", async ({ page }) => {
 });
 
 test.describe("Hand Test", () => {
-  const nav = (page: Page, name: string) =>
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
 
   test.beforeEach(async ({ page }) => {
     await openApp(page);
@@ -348,7 +363,7 @@ test.describe("Binder Pages shell", () => {
     await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
     await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
     await page.locator('.engine-member input[type="checkbox"]').last().check();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Profile" }).click();
+    await nav(page, "Profile").click();
     const odds = page.getByRole("region", { name: "Hand Goal odds" });
     await expect(odds).toBeVisible();
     await expect(odds.locator(".odds-fraction").first()).toContainText(/\d[\d,]* \/ [\d,]+/);
@@ -376,7 +391,7 @@ test.describe("Compare decks", () => {
 
   test.beforeEach(async ({ page }) => {
     await openApp(page);
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Compare" }).click();
+    await nav(page, "Compare").click();
   });
 
   test("starts empty and says what to do", async ({ page }) => {
@@ -399,12 +414,12 @@ test.describe("Compare decks", () => {
 
   test("compares Hand Goal odds with the exact hand count", async ({ page }) => {
     // Define a goal that reads a card both decks hold.
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Models" }).click();
+    await nav(page, "Models").click();
     await page.getByRole("navigation", { name: "Models" }).getByRole("button", { name: "Hand Goals" }).click();
     await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
     await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
     await page.locator('.engine-member input[type="checkbox"]').last().check();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Compare" }).click();
+    await nav(page, "Compare").click();
     await page.locator('.compare-panel input[type="file"]').setInputFiles({
       name: "slim.ydk",
       mimeType: "text/plain",
@@ -471,15 +486,13 @@ test("Card Rank follows the cards in the analyzed Post-Side list", async ({ page
   const name = label.replace(/^Move one /, "").replace(/ to Main$/, "");
   await comingIn.click();
 
-  await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+  await nav(page, "Rank").click();
   const going = page.getByRole("region", { name: "Going First ranking" });
   // The card that was sided in can be ranked now.
   await expect(going.locator(`.rank-tile[title="${name}"]`).first()).toBeVisible();
 });
 
 test.describe("Rank scores hands", () => {
-  const nav = (page: Page, name: string) =>
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
 
   async function rankFirstCardTop(page: Page): Promise<void> {
     await nav(page, "Rank").click();
@@ -543,8 +556,6 @@ test.describe("Rank scores hands", () => {
 });
 
 test.describe("Choosing the turn order where you test", () => {
-  const nav = (page: Page, name: string) =>
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
 
   test("Hand Test draws six cards going second on the first turn", async ({ page }) => {
     await openApp(page);
@@ -585,8 +596,6 @@ test.describe("Light and dark theme", () => {
 });
 
 test.describe("Handtrap versus", () => {
-  const nav = (page: Page, name: string) =>
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
 
   async function withGoal(page: Page): Promise<void> {
     await nav(page, "Models").click();
@@ -711,7 +720,7 @@ test.describe("Handtrap versus", () => {
 test.describe("Models are card art", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Models" }).click();
+    await nav(page, "Models").click();
   });
   const view = (page: Page, name: string) =>
     page.getByRole("navigation", { name: "Models" }).getByRole("button", { name });
@@ -788,7 +797,7 @@ test.describe("Sorting the deck sections", () => {
   test("Card Rank sorting waits for a ranking, then follows it", async ({ page }) => {
     await openApp(page);
     await expect(page.getByLabel("Sort Main Deck").locator("option", { hasText: "Card Rank" })).toBeDisabled();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    await nav(page, "Rank").click();
     const tiles = page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile");
     await tiles.nth(3).click();
     await tiles.nth(0).click();
@@ -883,7 +892,7 @@ test("Set as default makes the current deck what Default deck loads", async ({ p
 test.describe("Card Rank", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    await nav(page, "Rank").click();
   });
 
   const region = (page: Page, label: string) =>
@@ -956,7 +965,7 @@ test.describe("Card Rank", () => {
     await tiles.nth(1).click();
     await tiles.nth(0).click();
     await page.reload();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    await nav(page, "Rank").click();
     expect((await order(page, "Going First"))[0]).toBe(before[1]);
 
     await region(page, "Going First").getByRole("button", { name: "Reset" }).click();
