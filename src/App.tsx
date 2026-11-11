@@ -7,6 +7,7 @@ import { ClearMenu } from "./components/ClearMenu";
 import { ComparePanel } from "./components/ComparePanel";
 import { ScorecardPanel } from "./components/ScorecardPanel";
 import { ScorecardSummary } from "./components/ScorecardSummary";
+import { withDerivedLabels } from "./lib/derivedLabels";
 import { HandtrapPanel } from "./components/HandtrapPanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
@@ -127,7 +128,8 @@ export function App() {
   const [theme, setTheme] = useTheme();
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
   const view = useMemo(
-    () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
+    // Starter, Extender and Brick come from the Hand Conditions, so every workspace reads them.
+    () => withDerivedLabels(applyConfiguration(doc, doc.active_configuration_id, extraIds)),
     [doc, extraIds],
   );
   const activeConfig = findConfiguration(doc, doc.active_configuration_id);

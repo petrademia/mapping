@@ -87,6 +87,15 @@ Opening Quality:   Going First:  neutral
 - **extender** — meaningful additional engine capability when some access already exists. May coexist with starter.
 - **interaction** — meaningful ability to interact with the opponent from the relevant opening-hand context. Subtypes (hand trap, board breaker, etc.) are out of v0.
 
+**Starter, Extender and Brick are read from your Hand Conditions, not tagged by hand.** Only conditions that belong to a Hand Goal count:
+
+- A **starter** satisfies a condition on its own (one requirement, needing one copy). Every card of a Group requirement counts.
+- An **extender** is needed together with another card (two or more requirements, or two copies of one card). A card can be both.
+- A **brick** is in none of your routes and is not an Interaction card. Opening Quality you set by hand always wins; derived bricks only fill in where it is not set.
+- Role requirements, exclusions and requirements that only ask for fewer cards are ignored when deriving.
+- **Interaction** is the one role you tag. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
+- Nothing derived is saved: it is how the workspaces and the YAPPING export see the deck. The card editor shows the derived labels read-only.
+
 ### Opening quality definitions (hypotheses)
 
 - **desirable** — naturally opening the card is generally desirable in this deck.

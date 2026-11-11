@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { deriveLabels, type DerivedLabels } from "../lib/derivedLabels";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import {
@@ -60,11 +61,22 @@ interface Selection {
   cardId: number;
 }
 
-function RolePips({ card }: { card: MappingCard }) {
-  if (card.taxonomy.roles.length === 0) return null;
+/** The roles shown on a tile: Interaction as tagged, Starter and Extender as read from the Hand Conditions. */
+function shownRoles(card: MappingCard, derived: DerivedLabels | undefined): readonly string[] {
+  if (!derived) return card.taxonomy.roles;
+  return [
+    ...(derived.starter ? ["starter"] : []),
+    ...(derived.extender ? ["extender"] : []),
+    ...(card.taxonomy.roles.includes("interaction") ? ["interaction"] : []),
+  ];
+}
+
+function RolePips({ card, derived }: { card: MappingCard; derived: DerivedLabels | undefined }) {
+  const roles = shownRoles(card, derived);
+  if (roles.length === 0) return null;
   return (
     <span className="tile-pips" aria-hidden="true">
-      {card.taxonomy.roles.map((role) => (
+      {roles.map((role) => (
         <span key={role} className="tile-pip" data-role={role} />
       ))}
     </span>
@@ -76,6 +88,7 @@ function DetailRow({
   section,
   card,
   doc,
+  derived,
   catalog,
   onChange,
   onClose,
@@ -83,6 +96,8 @@ function DetailRow({
   section: DeckSection;
   card: MappingCard;
   doc: MappingDocument;
+  /** Starter, Extender and Brick for this card; null when no Hand Goal exists to read them from. */
+  derived: DerivedLabels | null;
   catalog: Catalog;
   onChange: (doc: MappingDocument) => void;
   onClose: () => void;
@@ -128,6 +143,7 @@ function DetailRow({
           <div className="taxonomy-cell">
             <RoleEditor
               roles={card.taxonomy.roles}
+              derived={derived}
               onChange={(roles) => onChange(setCardRoles(doc, section, card.card_id, roles))}
             />
             <OpeningQualityEditor
@@ -165,6 +181,8 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
       }
       return next;
     });
+  // Starter, Extender and Brick, read from the Hand Conditions (empty until a Hand Goal exists).
+  const labels = useMemo(() => deriveLabels(doc), [doc]);
   const turn = doc.analysis.turn_order;
   const rankOrder = isRanked(doc, turn) ? rankFor(doc, turn) : null;
   // Drag a tile to reorder inside a section, or onto another section to move one copy.
@@ -312,7 +330,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         onClick={() => toggle(section, card.card_id)}
                       >
                         <CardFrame cardId={card.card_id} name={name} />
-                        {section !== "extra" ? <RolePips card={card} /> : null}
+                        {section !== "extra" ? <RolePips card={card} derived={labels.get(card.card_id)} /> : null}
                         <span className="tile-name">{name}</span>
                       </button>
                     </li>
@@ -324,6 +342,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         section={section}
                         card={card}
                         doc={doc}
+                        derived={labels.get(card.card_id) ?? null}
                         catalog={catalog}
                         onChange={onChange}
                         onClose={() => setSelected(null)}

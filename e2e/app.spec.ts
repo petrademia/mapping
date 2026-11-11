@@ -332,9 +332,12 @@ test.describe("Deck view", () => {
     expect(detailBox.y).toBeGreaterThan(tileBox.y);
     expect(detailBox.y - tileBox.y).toBeLessThan(200);
     // And the Role controls are usable without scrolling away from the card.
-    await expect(detail.getByRole("button", { name: "Starter" })).toBeInViewport();
-    await detail.getByRole("button", { name: "Starter" }).click();
-    await expect(detail.getByRole("button", { name: "Starter" })).toHaveAttribute("aria-pressed", "true");
+    await expect(detail.getByRole("button", { name: "Interaction" })).toBeInViewport();
+    await detail.getByRole("button", { name: "Interaction" }).click();
+    await expect(detail.getByRole("button", { name: "Interaction" })).toHaveAttribute("aria-pressed", "true");
+    // Starter and Extender are not tagged by hand: there is no button for them.
+    await expect(detail.getByRole("button", { name: "Starter" })).toHaveCount(0);
+    await expect(detail.getByRole("button", { name: "Extender" })).toHaveCount(0);
   });
 
   test("Extra Deck cards have no role or opening quality controls", async ({ page }) => {
@@ -756,13 +759,21 @@ test.describe("Handtrap versus", () => {
     for (let k = 1; k < firstRow.length; k += 1) expect(firstRow[k]!).toBeLessThanOrEqual(firstRow[k - 1]!);
     await expect(card.getByText(/one interruption ends the turn/)).toBeVisible();
 
-    // Nothing else can be measured yet, and the card says why.
+    // Bricks come from the routes: with a Hand Goal, every card in no route counts as one.
+    await expect(read(first, "Clean")).toHaveText(/^\d+\.\d{2}%$/);
+    await expect(card.getByText(/No card is marked Undesirable/)).toHaveCount(0);
+    expect(value(await read(first, "Clean").innerText())).toBeLessThanOrEqual(
+      value(await read(first, "Opens").innerText()),
+    );
+    // The two that still cannot be measured say why.
     await expect(card.getByText("Add a handtrap in the Handtraps tab to measure resilience.")).toBeVisible();
     await expect(card.getByText(/No card has the Interaction role/)).toBeVisible();
-    await expect(card.getByText(/No card is marked Undesirable for going first/)).toBeVisible();
-    await expect(first.locator(".scorecard-combined .outcome-primary")).toHaveText(
-      await read(first, "Opens").innerText(),
-    );
+    // Combined is the mean of the two measured numbers (Opens and Clean).
+    const measuredMean =
+      (value(await read(first, "Opens").innerText()) + value(await read(first, "Clean").innerText())) / 2;
+    expect(
+      Math.abs(value(await first.locator(".scorecard-combined .outcome-primary").innerText()) - measuredMean),
+    ).toBeLessThan(0.011);
 
     await nav(page, "Handtraps").click();
     await page.getByRole("button", { name: "Add Effect Veiler" }).click();
@@ -777,7 +788,10 @@ test.describe("Handtrap versus", () => {
     const combined = async (turn: typeof first) =>
       value(await turn.locator(".scorecard-combined .outcome-primary").innerText());
     const meanFirst =
-      (value(await read(first, "Opens").innerText()) + value(await read(first, "Resilient").innerText())) / 2;
+      (value(await read(first, "Opens").innerText()) +
+        value(await read(first, "Clean").innerText()) +
+        value(await read(first, "Resilient").innerText())) /
+      3;
     expect(Math.abs((await combined(first)) - meanFirst)).toBeLessThan(0.011);
     const overall = value(
       await card.getByRole("status", { name: "Overall" }).locator(".outcome-primary").innerText(),
@@ -786,9 +800,11 @@ test.describe("Handtrap versus", () => {
 
     // A zero weight drops that number; the weights are remembered.
     await card.getByRole("spinbutton", { name: "Resilient" }).fill("0");
-    await expect(first.locator(".scorecard-combined .outcome-primary")).toHaveText(
-      await read(first, "Opens").innerText(),
-    );
+    const withoutResilient =
+      (value(await read(first, "Opens").innerText()) + value(await read(first, "Clean").innerText())) / 2;
+    await expect
+      .poll(async () => Math.abs((await combined(first)) - withoutResilient))
+      .toBeLessThan(0.011);
     await page.reload();
     await nav(page, "Scorecard").click();
     await expect(page.locator(".scorecard").getByRole("spinbutton", { name: "Resilient" })).toHaveValue("0");
@@ -835,7 +851,8 @@ test.describe("Handtrap versus", () => {
     await expect(quality.locator("li")).toHaveCount(4);
     await expect(quality.locator("li").filter({ hasText: "Opens" })).toContainText(/Hand Goal/);
     await expect(quality.locator("li").filter({ hasText: "Resilient" })).toContainText(/Veiler|to begin with/);
-    await expect(quality.getByText("no card is marked as a brick")).toBeVisible();
+    // Bricks come from the routes, so Clean is measured; only Interaction is not.
+    await expect(quality.locator("li").filter({ hasText: "Clean" })).toContainText(/in hand, up to 1 allowed/);
     await expect(quality.getByText("no card has the role")).toBeVisible();
 
     // The deck average here is the Scorecard's going-first combined number.
