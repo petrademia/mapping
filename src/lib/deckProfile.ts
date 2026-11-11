@@ -1,5 +1,6 @@
 import { groupsToMembership, type Group, type HandCondition } from "./handCondition";
 import {
+  countedAnalysis,
   forEachHandComposition,
   handConditionHolds,
   type AccessCountDistribution,
@@ -139,32 +140,62 @@ export function computeDeckProfile({
   let accessUndesirableGe1Weight = 0n;
   let accessAndInteractionWeight = 0n;
 
+  // Fold one outcome into the totals. `satisfiedAccessCount` is how many of the
+  // access conditions hold, `undesirable` the Undesirable copies and
+  // `interaction` the Interaction copies in the hand.
+  const record = (
+    satisfiedAccessCount: number,
+    weight: bigint,
+    undesirable: number,
+    interaction: number,
+  ): void => {
+    bucketWeights[satisfiedAccessCount] = bucketWeights[satisfiedAccessCount]! + weight;
+    if (satisfiedAccessCount === 0) return;
+    anyAccessWeight += weight;
+    if (undesirable === 0) accessNoUndesirableWeight += weight;
+    if (undesirable >= 1) accessUndesirableGe1Weight += weight;
+    if (interaction >= 1) accessAndInteractionWeight += weight;
+  };
+
   if (conditions.length > 0 && total > 0n) {
-    forEachHandComposition(deck, handSize, (hand, weight) => {
-      let satisfiedAccessCount = 0;
-      for (const condition of accessMembers) {
-        if (handConditionHolds(hand, deck, condition, groups)) {
-          satisfiedAccessCount += 1;
+    const usesDistinct = accessMembers.some(
+      (condition) => (condition.distinct_constraints ?? []).length > 0,
+    );
+    if (usesDistinct) {
+      // Distinct-match conditions read card identity, so list every composition.
+      forEachHandComposition(deck, handSize, (hand, weight) => {
+        let satisfied = 0;
+        for (const condition of accessMembers) {
+          if (handConditionHolds(hand, deck, condition, groups)) satisfied += 1;
         }
-      }
-      bucketWeights[satisfiedAccessCount] =
-        bucketWeights[satisfiedAccessCount]! + weight;
-      if (satisfiedAccessCount === 0) return;
-      anyAccessWeight += weight;
-      const undesirable = copyCountFor(
-        hand,
+        record(
+          satisfied,
+          weight,
+          copyCountFor(hand, deck, (card) => quality(card) === "undesirable"),
+          copyCountFor(hand, deck, (card) => card.taxonomy.roles.includes("interaction")),
+        );
+      });
+    } else {
+      // Count capped card, Role and Group totals instead of listing hands, so the
+      // cost does not grow with the number of distinct cards in the deck.
+      const hasInteraction: HandConditionLike = {
+        id: "__interaction",
+        name: "interaction",
+        requirements: [{ kind: "role", role: "interaction", op: "gte", count: 1 }],
+      };
+      countedAnalysis(
         deck,
-        (card) => quality(card) === "undesirable",
+        handSize,
+        [...accessMembers, hasInteraction],
+        groups,
+        turnOrder,
+        (holds, weight, undesirable) => {
+          let satisfied = 0;
+          for (let i = 0; i < accessMembers.length; i += 1) if (holds[i]) satisfied += 1;
+          record(satisfied, weight, undesirable, holds[accessMembers.length] ? 1 : 0);
+        },
       );
-      const interaction = copyCountFor(
-        hand,
-        deck,
-        (card) => card.taxonomy.roles.includes("interaction"),
-      );
-      if (undesirable === 0) accessNoUndesirableWeight += weight;
-      if (undesirable >= 1) accessUndesirableGe1Weight += weight;
-      if (interaction >= 1) accessAndInteractionWeight += weight;
-    });
+    }
   }
 
   const pAccess =
