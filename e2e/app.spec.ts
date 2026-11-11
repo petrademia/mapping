@@ -23,6 +23,24 @@ async function openApp(page: Page): Promise<void> {
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
 }
 
+const STEP_OF: Record<string, string> = {
+  Models: "Define",
+  Handtraps: "Define",
+  Rank: "Define",
+  "Hand Test": "Test",
+  "Batch Test": "Test",
+  Profile: "Analyze",
+  Scorecard: "Analyze",
+  Compare: "Analyze",
+};
+
+/** Opens a workspace: first its step (Define, Test, Analyze), then its tab. */
+async function openWorkspace(page: Page, name: string): Promise<void> {
+  await page.getByRole("navigation", { name: "Step" }).getByRole("button", { name: STEP_OF[name]!, exact: true }).click();
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name, exact: true }).click();
+}
+const nav = (page: Page, name: string) => ({ click: () => openWorkspace(page, name) });
+
 async function addCardBySearch(page: Page, query: string): Promise<void> {
   await page.getByLabel("Card name or passcode").fill(query);
   await page.locator(".search-result").first().click();
@@ -127,59 +145,82 @@ test("a main deck card stays in the Main Deck", async ({ page }) => {
 });
 
 test.describe("Hand Test", () => {
-  const nav = (page: Page, name: string) =>
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
 
   test.beforeEach(async ({ page }) => {
     await openApp(page);
     await nav(page, "Hand Test").click();
   });
 
-  test("drawing shuffles the deck and boxes the top 5 cards above the results", async ({ page }) => {
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
-    const grid = page.locator(".hand-deck-grid");
-    await expect(grid.locator(".hand-tile.in-hand")).toHaveCount(5);
-    await expect(grid.locator(".hand-tile")).toHaveCount(DEFAULT.main);
-    await expect(page.locator(".hand-total")).toContainText("5 / 5");
+  test("New Hand deals the opening hand beside the deck, which greys out what was drawn", async ({ page }) => {
+    await page.getByRole("button", { name: "New Hand" }).click();
+    const deck = page.getByRole("region", { name: "Deck" });
+    const hand = page.getByRole("region", { name: "Hand" });
+    await expect(hand.locator(".hand-tile.in-hand")).toHaveCount(5);
+    await expect(deck.locator(".hand-tile")).toHaveCount(DEFAULT.main);
+    await expect(deck.locator(".hand-tile.drawn")).toHaveCount(5);
+    await expect(page.locator(".hand-total")).toContainText("5 Cards in hand");
+    await expect(page.locator(".hand-remaining")).toContainText(`${DEFAULT.main - 5} / ${DEFAULT.main} Remaining`);
+    // The deck list above is no longer where the hand shows.
+    await expect(page.locator(".deck-grid-section .hand-tile")).toHaveCount(0);
+  });
 
-    // The shuffled order puts the drawn cards first.
-    const classes = await page.locator(".hand-deck-grid .hand-tile").evaluateAll((els) =>
-      els.map((el) => el.className),
-    );
-    expect(classes.slice(0, 5).every((name) => name.includes("in-hand"))).toBe(true);
+  test("Draw takes the chosen number of cards from the top of the deck", async ({ page }) => {
+    await page.getByRole("button", { name: "New Hand" }).click();
+    await page.getByLabel("Cards to draw").fill("3");
+    await page.getByRole("button", { name: "Draw", exact: true }).click();
+    await expect(page.locator(".hand-total")).toContainText("8 Cards in hand");
+    await expect(page.getByRole("region", { name: "Deck" }).locator(".hand-tile.drawn")).toHaveCount(8);
+    // A hand that is not the opening size still gets its results.
+    await expect(page.getByText("This hand has 8 cards; the opening hand is 5.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tested Hand" })).toBeVisible();
+  });
 
-    // The Main Deck in the middle is the grid; it is not a second copy in the panel.
-    await expect(page.locator(".hand-deck-grid")).toHaveCount(1);
-    await expect(page.locator(".deck-grid-section .hand-deck-grid")).toHaveCount(1);
+  test("Draw from an empty table starts from a fresh shuffle", async ({ page }) => {
+    await page.getByRole("button", { name: "Draw", exact: true }).click();
+    await expect(page.locator(".hand-total")).toContainText("1 Card in hand");
+  });
+
+  test("Shuffle mixes the deck again and keeps the hand", async ({ page }) => {
+    await page.getByRole("button", { name: "New Hand" }).click();
+    const ids = () =>
+      page
+        .getByRole("region", { name: "Hand" })
+        .locator(".hand-tile")
+        .evaluateAll((els) => els.map((el) => el.getAttribute("title")).sort());
+    const before = await ids();
+    await page.getByRole("button", { name: "Shuffle" }).click();
+    expect(await ids()).toEqual(before);
+    await expect(page.locator(".hand-total")).toContainText("5 Cards in hand");
   });
 
   test("a ten-card opening hand responds right away", async ({ page }) => {
     // Regression: the exact odds were enumerated hand by hand and took tens of seconds.
     const started = Date.now();
     await page.getByLabel("Opening hand").fill("10");
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(10);
     expect(Date.now() - started).toBeLessThan(4000);
   });
 
-  test("clicking tiles adds and removes cards from the hand", async ({ page }) => {
-    const grid = page.locator(".hand-deck-grid");
-    await grid.locator(".hand-tile").first().click();
-    await expect(page.locator(".hand-total")).toContainText("1 / 5");
-    await grid.locator(".hand-tile.in-hand").first().click();
-    await expect(page.locator(".hand-total")).toContainText("0 / 5");
+  test("clicking a card in the deck draws it and clicking it in the hand returns it", async ({ page }) => {
+    await page.getByRole("region", { name: "Deck" }).locator(".hand-tile").first().click();
+    await expect(page.locator(".hand-total")).toContainText("1 Card in hand");
+    await page.getByRole("region", { name: "Hand" }).locator(".hand-tile.in-hand").first().click();
+    await expect(page.locator(".hand-total")).toContainText("0 Cards in hand");
+    await expect(page.getByRole("heading", { name: "Tested Hand" })).toHaveCount(0);
   });
 
   test("Clear hand removes the tested hand", async ({ page }) => {
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.getByRole("heading", { name: "Tested Hand" })).toBeVisible();
     await page.getByRole("button", { name: "Clear hand", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Tested Hand" })).toHaveCount(0);
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(0);
+    await expect(page.locator(".hand-tile.drawn")).toHaveCount(0);
   });
 
   test("the deck tiles do not overlap", async ({ page }) => {
-    const tiles = page.locator(".hand-deck-grid li");
+    const tiles = page.getByRole("region", { name: "Deck" }).locator(".hand-deck-grid li");
     await expect(tiles.first()).toBeVisible();
     const a = (await tiles.nth(0).boundingBox())!;
     const b = (await tiles.nth(1).boundingBox())!;
@@ -212,10 +253,10 @@ test.describe("Hand Test", () => {
       await expect(page.getByText("hand count must be an integer from 1 to 1000")).toBeVisible();
     });
 
-    test("Open in Hand Test boxes that hand in the deck grid", async ({ page }) => {
+    test("Open in Hand Test puts that hand beside the deck", async ({ page }) => {
       await page.getByRole("button", { name: "Generate hands" }).click();
       await page.getByRole("button", { name: "Open in Hand Test" }).first().click();
-      await expect(page.getByRole("button", { name: "Draw Random Hand" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "New Hand" })).toBeVisible();
       await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
     });
   });
@@ -323,7 +364,7 @@ test.describe("Binder Pages shell", () => {
     await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
     await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
     await page.locator('.engine-member input[type="checkbox"]').last().check();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Profile" }).click();
+    await nav(page, "Profile").click();
     const odds = page.getByRole("region", { name: "Hand Goal odds" });
     await expect(odds).toBeVisible();
     await expect(odds.locator(".odds-fraction").first()).toContainText(/\d[\d,]* \/ [\d,]+/);
@@ -351,7 +392,7 @@ test.describe("Compare decks", () => {
 
   test.beforeEach(async ({ page }) => {
     await openApp(page);
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Compare" }).click();
+    await nav(page, "Compare").click();
   });
 
   test("starts empty and says what to do", async ({ page }) => {
@@ -374,12 +415,12 @@ test.describe("Compare decks", () => {
 
   test("compares Hand Goal odds with the exact hand count", async ({ page }) => {
     // Define a goal that reads a card both decks hold.
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Models" }).click();
+    await nav(page, "Models").click();
     await page.getByRole("navigation", { name: "Models" }).getByRole("button", { name: "Hand Goals" }).click();
     await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
     await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
     await page.locator('.engine-member input[type="checkbox"]').last().check();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Compare" }).click();
+    await nav(page, "Compare").click();
     await page.locator('.compare-panel input[type="file"]').setInputFiles({
       name: "slim.ydk",
       mimeType: "text/plain",
@@ -446,15 +487,13 @@ test("Card Rank follows the cards in the analyzed Post-Side list", async ({ page
   const name = label.replace(/^Move one /, "").replace(/ to Main$/, "");
   await comingIn.click();
 
-  await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+  await nav(page, "Rank").click();
   const going = page.getByRole("region", { name: "Going First ranking" });
   // The card that was sided in can be ranked now.
   await expect(going.locator(`.rank-tile[title="${name}"]`).first()).toBeVisible();
 });
 
 test.describe("Rank scores hands", () => {
-  const nav = (page: Page, name: string) =>
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
 
   async function rankFirstCardTop(page: Page): Promise<void> {
     await nav(page, "Rank").click();
@@ -466,16 +505,16 @@ test.describe("Rank scores hands", () => {
   test("Hand Test asks for a ranking until there is one", async ({ page }) => {
     await openApp(page);
     await nav(page, "Hand Test").click();
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
-    await expect(page.getByText("Define a Hand Goal or rank your cards in the Rank tab to score hands.")).toBeVisible();
+    await page.getByRole("button", { name: "New Hand" }).click();
+    await expect(page.getByText("Define a Hand Goal or rank your cards to score hands")).toBeVisible();
   });
 
   test("a ranked deck scores the hand and badges each card with its rank", async ({ page }) => {
     await openApp(page);
     await rankFirstCardTop(page);
     await nav(page, "Hand Test").click();
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
-    await expect(page.getByText(/^Rank score: \d+% \(a random hand averages \d+%\)/)).toBeVisible();
+    await page.getByRole("button", { name: "New Hand" }).click();
+    await expect(page.locator(".hand-facts li").first()).toContainText(/\d+%\s*a random hand averages \d+%/);
     await expect(page.locator(".hand-tile.in-hand .rank-badge")).toHaveCount(5);
   });
 
@@ -518,18 +557,16 @@ test.describe("Rank scores hands", () => {
 });
 
 test.describe("Choosing the turn order where you test", () => {
-  const nav = (page: Page, name: string) =>
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
 
   test("Hand Test draws six cards going second on the first turn", async ({ page }) => {
     await openApp(page);
     await nav(page, "Hand Test").click();
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
     await page.getByRole("radio", { name: /Going Second . First 6/ }).click();
     // The old hand no longer fits, so it is cleared; a new draw takes six cards.
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(0);
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(6);
   });
 
@@ -545,15 +582,213 @@ test.describe("Choosing the turn order where you test", () => {
   });
 });
 
+test.describe("Light and dark theme", () => {
+  test("the icon switch changes the theme and keeps it after a reload", async ({ page }) => {
+    await openApp(page);
+    const html = page.locator("html");
+    await page.getByRole("button", { name: "Dark theme" }).click();
+    await expect(html).toHaveAttribute("data-theme", "dark");
+    await expect(page.getByRole("button", { name: "Dark theme" })).toHaveAttribute("aria-pressed", "true");
+    await page.reload();
+    await expect(html).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("button", { name: "Light theme" }).click();
+    await expect(html).toHaveAttribute("data-theme", "light");
+  });
+});
+
+test.describe("Handtrap versus", () => {
+
+  async function withGoal(page: Page): Promise<void> {
+    await nav(page, "Models").click();
+    await page.getByRole("navigation", { name: "Models" }).getByRole("button", { name: "Hand Goals" }).click();
+    await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
+    await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
+    await page.locator('.engine-member input[type="checkbox"]').last().check();
+    await nav(page, "Handtraps").click();
+  }
+
+  test("asks for a Hand Goal before showing any odds", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Handtraps").click();
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await expect(page.getByText("Define a Hand Goal with at least one Hand Condition first.")).toBeVisible();
+  });
+
+  test("adds handtraps from card art and shows how a Hand Goal holds up", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    // The tile is gone once added, and a block asks which cards it can stop.
+    await expect(page.getByRole("button", { name: "Add Effect Veiler" })).toHaveCount(0);
+    await expect(page.getByText("Cards it can stop: none picked yet")).toBeVisible();
+    // With nothing picked it can stop nothing.
+    const table = page.getByRole("table", { name: "Hand Goal odds against handtraps" });
+    await expect(table.getByRole("row", { name: /Effect Veiler/ })).toContainText("no change");
+
+    await page.getByRole("button", { name: "Every card" }).click();
+    const veiler = table.getByRole("row", { name: /Effect Veiler/ });
+    await expect(veiler).toContainText("pts");
+    await expect(veiler).not.toContainText("no change");
+    await expect(veiler.locator(".odds-fraction")).toContainText(/\d[\d,]* \/ [\d,]+/);
+    // The no-handtrap row is the ceiling.
+    const base = await table.getByRole("row", { name: /No handtrap/ }).locator(".odds-percent").innerText();
+    const hit = await veiler.locator(".odds-percent").innerText();
+    expect(parseFloat(hit)).toBeLessThan(parseFloat(base));
+  });
+
+  test("saves a pair and compares it with each handtrap alone", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Add Ash Blossom & Joyous Spring" }).click();
+    for (const every of await page.getByRole("button", { name: "Every card" }).all()) await every.click();
+    await page.getByLabel("First handtrap").selectOption({ label: "Effect Veiler" });
+    await page.getByLabel("Second handtrap").selectOption({ label: "Ash Blossom & Joyous Spring" });
+    await page.getByRole("button", { name: "Save pair" }).click();
+    await expect(page.getByRole("list", { name: "Saved pairs" })).toContainText("Effect Veiler + Ash Blossom & Joyous Spring");
+    const table = page.getByRole("table", { name: "Hand Goal odds against handtraps" });
+    const pct = async (label: string) =>
+      parseFloat(
+        await table
+          .locator("tr", { has: page.getByRole("rowheader", { name: label, exact: true }) })
+          .locator(".odds-percent")
+          .innerText(),
+      );
+    const single = await pct("Effect Veiler");
+    const pair = await pct("Effect Veiler + Ash Blossom & Joyous Spring");
+    // Two handtraps are never better for you than one.
+    expect(pair).toBeLessThanOrEqual(single);
+
+    // Removing a handtrap removes the pairs that used it.
+    await page.getByRole("button", { name: "Remove" }).first().click();
+    await expect(page.getByRole("list", { name: "Saved pairs" })).toHaveCount(0);
+  });
+
+  test("Hand Test lets the opponent hold a handtrap from the Handtraps tab", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Hand Test").click();
+    // Nothing to choose until a handtrap exists.
+    await expect(page.getByRole("region", { name: "Opponent hand" })).toHaveCount(0);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Hand Test").click();
+    const opponent = page.getByRole("region", { name: "Opponent hand" });
+    await expect(opponent.getByText("0 Handtraps in opponent hand")).toBeVisible();
+    await page.getByRole("button", { name: "New Hand" }).click();
+    await expect(page.getByRole("list", { name: "Cards in hand" }).locator(".hand-tile")).toHaveCount(5);
+    // Deal Opponent puts a random handtrap in the opponent hand.
+    await opponent.getByRole("button", { name: "Deal Opponent" }).click();
+    await expect(opponent.getByText("1 Handtrap in opponent hand")).toBeVisible();
+    // Clicking the handtrap takes it back out, and clicking again gives it back.
+    await opponent.getByRole("button", { name: /Effect Veiler, in the opponent hand/ }).click();
+    await expect(opponent.getByText("0 Handtraps in opponent hand")).toBeVisible();
+    await opponent.getByRole("button", { name: /Effect Veiler, click to give/ }).click();
+    await expect(opponent.getByText("1 Handtrap in opponent hand")).toBeVisible();
+    await opponent.getByRole("button", { name: "Clear opponent" }).click();
+    await expect(opponent.getByText("0 Handtraps in opponent hand")).toBeVisible();
+  });
+
+  test("a card the opponent's handtrap would negate is marked in my hand", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Hand Test").click();
+    const opponent = page.getByRole("region", { name: "Opponent hand" });
+    await opponent.getByRole("button", { name: /Effect Veiler, click to give/ }).click();
+    // Deal hands until one satisfies the goal; Effect Veiler can stop any card, so it breaks it.
+    const marked = page.getByRole("list", { name: "Cards in hand" }).locator(".hand-tile.negated");
+    for (let tries = 0; tries < 60 && (await marked.count()) === 0; tries += 1) {
+      await page.getByRole("button", { name: "New Hand" }).click();
+    }
+    await expect(marked.first()).toBeVisible();
+    await expect(marked.first()).toHaveAccessibleName(/negated by the opponent/);
+    await opponent.getByRole("button", { name: "Clear opponent" }).click();
+    await expect(marked).toHaveCount(0);
+  });
+
+  test("the scorecard measures going first and going second, and follows the weights", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Scorecard").click();
+    await expect(page.getByText("Define a Hand Goal with at least one Hand Condition first.")).toBeVisible();
+
+    await withGoal(page);
+    await nav(page, "Scorecard").click();
+    const card = page.locator(".scorecard");
+    const first = card.getByRole("region", { name: "Going first" });
+    const second = card.getByRole("region", { name: "Going second" });
+    await expect(first.getByText("5 cards")).toBeVisible();
+    await expect(second.getByText("6 cards")).toBeVisible();
+
+    const read = (turn: typeof first, label: string) =>
+      turn.locator(".scorecard-rows > div").filter({ hasText: label }).locator("strong");
+    const value = (text: string) => Number.parseFloat(text);
+    await expect(read(first, "Opens")).toHaveText(/^\d+\.\d{2}%$/);
+    await expect(read(second, "Opens")).toHaveText(/^\d+\.\d{2}%$/);
+    // Six cards reach the goal at least as often as five.
+    expect(value(await read(second, "Opens").innerText())).toBeGreaterThanOrEqual(
+      value(await read(first, "Opens").innerText()),
+    );
+
+    // Nothing else can be measured yet, and the card says why.
+    await expect(card.getByText("Add a handtrap in the Handtraps tab to measure resilience.")).toBeVisible();
+    await expect(card.getByText(/No card has the Interaction role/)).toBeVisible();
+    await expect(card.getByText(/No card is marked Undesirable for going first/)).toBeVisible();
+    await expect(first.locator(".scorecard-combined .outcome-primary")).toHaveText(
+      await read(first, "Opens").innerText(),
+    );
+
+    await nav(page, "Handtraps").click();
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Scorecard").click();
+    await expect(read(first, "Resilient")).toHaveText(/^\d+\.\d{2}%$/);
+    expect(value(await read(first, "Resilient").innerText())).toBeLessThan(
+      value(await read(first, "Opens").innerText()),
+    );
+
+    // Each turn's combined number is the mean of what was measured; overall is the mean of the two turns.
+    const combined = async (turn: typeof first) =>
+      value(await turn.locator(".scorecard-combined .outcome-primary").innerText());
+    const meanFirst =
+      (value(await read(first, "Opens").innerText()) + value(await read(first, "Resilient").innerText())) / 2;
+    expect(Math.abs((await combined(first)) - meanFirst)).toBeLessThan(0.011);
+    const overall = value(
+      await card.getByRole("status", { name: "Overall" }).locator(".outcome-primary").innerText(),
+    );
+    expect(Math.abs(overall - ((await combined(first)) + (await combined(second))) / 2)).toBeLessThan(0.011);
+
+    // A zero weight drops that number; the weights are remembered.
+    await card.getByRole("spinbutton", { name: "Resilient" }).fill("0");
+    await expect(first.locator(".scorecard-combined .outcome-primary")).toHaveText(
+      await read(first, "Opens").innerText(),
+    );
+    await page.reload();
+    await nav(page, "Scorecard").click();
+    await expect(page.locator(".scorecard").getByRole("spinbutton", { name: "Resilient" })).toHaveValue("0");
+  });
+
+  test("handtraps are saved with the deck", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Dominus Purge" }).click();
+    await page.reload();
+    await nav(page, "Handtraps").click();
+    await expect(page.getByLabel("Handtrap name").first()).toHaveValue("Dominus Purge");
+  });
+});
+
 test.describe("Models are card art", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Models" }).click();
+    await nav(page, "Models").click();
   });
   const view = (page: Page, name: string) =>
     page.getByRole("navigation", { name: "Models" }).getByRole("button", { name });
 
   test("a Group is built by clicking cards in the Main Deck", async ({ page }) => {
+    await view(page, "Groups").click();
     await page.getByRole("button", { name: "+ Add group" }).click();
     const grid = page.locator(".pick-grid").first();
     await expect(grid.locator(".pick-tile")).toHaveCount(await grid.locator(".pick-tile").count());
@@ -583,6 +818,7 @@ test.describe("Models are card art", () => {
   });
 
   test("a Group requirement shows the cards it counts", async ({ page }) => {
+    await view(page, "Groups").click();
     await page.getByRole("button", { name: "+ Add group" }).click();
     await page.locator(".pick-grid").first().locator(".pick-tile").nth(0).click();
     await view(page, "Hand Conditions").click();
@@ -603,12 +839,14 @@ test.describe("Sorting the deck sections", () => {
     await openApp(page);
     const built = await titles(page);
     await page.getByLabel("Sort Main Deck").selectOption("name");
-    const sorted = await titles(page);
-    expect(sorted).toEqual([...built].sort((a, b) => a!.localeCompare(b!, undefined, { sensitivity: "base" })));
+    // The list re-renders after the change event, so wait for the new order.
+    await expect
+      .poll(() => titles(page))
+      .toEqual([...built].sort((a, b) => a!.localeCompare(b!, undefined, { sensitivity: "base" })));
     await expect(page.locator(".counts")).toContainText(`${DEFAULT.main} main`);
     // As built brings the original order back; the sort was only a view.
     await page.getByLabel("Sort Main Deck").selectOption("built");
-    expect(await titles(page)).toEqual(built);
+    await expect.poll(() => titles(page)).toEqual(built);
   });
 
   test("the choice is remembered after a reload", async ({ page }) => {
@@ -621,13 +859,13 @@ test.describe("Sorting the deck sections", () => {
   test("Card Rank sorting waits for a ranking, then follows it", async ({ page }) => {
     await openApp(page);
     await expect(page.getByLabel("Sort Main Deck").locator("option", { hasText: "Card Rank" })).toBeDisabled();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    await nav(page, "Rank").click();
     const tiles = page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile");
     await tiles.nth(3).click();
     await tiles.nth(0).click();
     const top = await page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile").first().getAttribute("title");
     await page.getByLabel("Sort Main Deck").selectOption("rank");
-    expect((await titles(page))[0]).toBe(top);
+    await expect.poll(async () => (await titles(page))[0]).toBe(top);
   });
 
   test("a sorted section does not accept reordering drops", async ({ page }) => {
@@ -716,7 +954,7 @@ test("Set as default makes the current deck what Default deck loads", async ({ p
 test.describe("Card Rank", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    await nav(page, "Rank").click();
   });
 
   const region = (page: Page, label: string) =>
@@ -789,7 +1027,7 @@ test.describe("Card Rank", () => {
     await tiles.nth(1).click();
     await tiles.nth(0).click();
     await page.reload();
-    await page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: "Rank" }).click();
+    await nav(page, "Rank").click();
     expect((await order(page, "Going First"))[0]).toBe(before[1]);
 
     await region(page, "Going First").getByRole("button", { name: "Reset" }).click();

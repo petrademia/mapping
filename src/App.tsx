@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "./lib/theme";
+import { Icon, IconButton } from "./components/IconButton";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { ComparePanel } from "./components/ComparePanel";
+import { ScorecardPanel } from "./components/ScorecardPanel";
+import { HandtrapPanel } from "./components/HandtrapPanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
 import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
 import { download, slug } from "./lib/download";
-import { scorerForDoc } from "./lib/rankScore";
 import { serializeYdk } from "./lib/ydk";
 import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
 import type { TestedHand } from "./lib/handTest";
@@ -34,7 +37,6 @@ import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
-  analysisContextOf,
   createDocument,
   sectionSize,
   setAnalysisContext,
@@ -42,19 +44,33 @@ import {
   setOpeningHandSize,
   type MappingDocument,
 } from "./lib/document";
-import { observedCards, type AnalysisContext } from "./lib/analysisContext";
+import type { AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare";
+type Workspace = "profile" | "scorecard" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
 
-const WORKSPACES: { key: Workspace; label: string }[] = [
-  { key: "profile", label: "Profile" },
-  { key: "models", label: "Models" },
-  { key: "hand-test", label: "Hand Test" },
-  { key: "batch", label: "Batch Test" },
-  { key: "rank", label: "Rank" },
-  { key: "compare", label: "Compare" },
+const WORKSPACE_LABELS: Record<Workspace, string> = {
+  profile: "Profile",
+  scorecard: "Scorecard",
+  models: "Models",
+  "hand-test": "Hand Test",
+  batch: "Batch Test",
+  rank: "Rank",
+  handtraps: "Handtraps",
+  compare: "Compare",
+};
+
+type Step = "define" | "test" | "analyze";
+
+/** The workspaces grouped by what you are doing: describe the deck, try hands, read the results. */
+const STEPS: { key: Step; label: string; workspaces: Workspace[] }[] = [
+  { key: "define", label: "Define", workspaces: ["models", "handtraps", "rank"] },
+  { key: "test", label: "Test", workspaces: ["hand-test", "batch"] },
+  { key: "analyze", label: "Analyze", workspaces: ["profile", "scorecard", "compare"] },
 ];
+
+const stepOf = (workspace: Workspace): (typeof STEPS)[number] =>
+  STEPS.find((step) => step.workspaces.includes(workspace)) ?? STEPS[0]!;
 
 const WORKSPACE_ID = "workspace";
 
@@ -97,11 +113,17 @@ export function App() {
   // The shuffled deck order behind the drawn hand, kept so it survives tab switches.
   const [handOrder, setHandOrder] = useState<number[] | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
+  // The workspace last open in each step, so returning to a step puts you back where you were.
+  const lastInStep = useRef<Partial<Record<Step, Workspace>>>({});
+  const goTo = (next: Workspace) => {
+    lastInStep.current[stepOf(next).key] = next;
+    setWorkspace(next);
+  };
+  const step = stepOf(workspace);
   // Which Models view opens when the next-step button sends you there.
-  const [modelsStart, setModelsStart] = useState<ModelsView>("groups");
-  const [status, setStatus] = useState(
-    "Local draft. Taxonomy annotations are deck-specific hypotheses.",
-  );
+  const [modelsStart, setModelsStart] = useState<ModelsView>("outcomes");
+  const [status, setStatus] = useState("");
+  const [theme, setTheme] = useTheme();
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
   const view = useMemo(
     () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
@@ -129,28 +151,6 @@ export function App() {
       setStatus("Loaded the default deck from default.ydk.");
     });
   };
-
-  const handSample = observedCards(analysisContextOf(view), view.analysis.opening_hand_size);
-  const handTestView =
-    workspace === "hand-test"
-      ? {
-          counts: testedHand?.card_counts ?? {},
-          sample: handSample,
-          order: testedHand ? handOrder : null,
-          rankOf: (cardId: number) =>
-            scorerForDoc(view, view.analysis.turn_order)?.positionOf(cardId) ?? null,
-          onCount: (cardId: number, next: number) => {
-            const counts = { ...(testedHand?.card_counts ?? {}) };
-            if (next <= 0) delete counts[cardId];
-            else counts[cardId] = next;
-            setTestedHand(
-              Object.keys(counts).length === 0
-                ? null
-                : { card_counts: counts, observed_cards: handSample },
-            );
-          },
-        }
-      : null;
 
   useEffect(() => {
     saveStored(doc);
@@ -191,6 +191,24 @@ export function App() {
             Annotate Role and Opening Quality hypotheses per deck card, inspect
             composition, then export configuration for YAPPING.
           </p>
+          <div className="theme-switch" role="group" aria-label="Color theme">
+            {(
+              [
+                ["system", "device", "Match the device"],
+                ["light", "sun", "Light theme"],
+                ["dark", "moon", "Dark theme"],
+              ] as const
+            ).map(([option, icon, label]) => (
+              <IconButton
+                key={option}
+                icon={icon}
+                label={label}
+                aria-pressed={theme === option}
+                className={theme === option ? "on" : ""}
+                onClick={() => setTheme(option)}
+              />
+            ))}
+          </div>
         </div>
         <div className="deck-meta">
           <label>
@@ -216,6 +234,7 @@ export function App() {
                 setStatus("Started an empty deck.");
               }}
             >
+              <Icon name="file" />
               New deck
             </button>
             <ClearButton
@@ -265,6 +284,7 @@ export function App() {
                 setStatus("Saved YDK");
               }}
             >
+              <Icon name="download" />
               Save YDK
             </button>
           </div>
@@ -307,20 +327,31 @@ export function App() {
           onFormatChange={changeFormat}
           onChange={setDoc}
           onStatus={setStatus}
-          handTest={handTestView}
         />
         <aside id={WORKSPACE_ID}>
-          <nav className="context-presets workspace-nav" aria-label="Workspace">
-            {WORKSPACES.map((entry) => (
+          <nav className="context-presets workspace-nav step-nav" aria-label="Step">
+            {STEPS.map((entry) => (
               <button
                 key={entry.key}
                 type="button"
-                className={`context-chip${
-                  workspace === entry.key ? " on" : ""
-                }`}
-                onClick={() => setWorkspace(entry.key)}
+                className={`context-chip${step.key === entry.key ? " on" : ""}`}
+                aria-pressed={step.key === entry.key}
+                onClick={() => goTo(lastInStep.current[entry.key] ?? entry.workspaces[0]!)}
               >
                 {entry.label}
+              </button>
+            ))}
+          </nav>
+          <nav className="context-presets workspace-sub" aria-label="Workspace">
+            {step.workspaces.map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={`context-chip${workspace === key ? " on" : ""}`}
+                aria-pressed={workspace === key}
+                onClick={() => goTo(key)}
+              >
+                {WORKSPACE_LABELS[key]}
               </button>
             ))}
           </nav>
@@ -343,9 +374,9 @@ export function App() {
                 doc={view}
                 onDefineGoal={() => {
                   setModelsStart("outcomes");
-                  setWorkspace("models");
+                  goTo("models");
                 }}
-                onTestHand={() => setWorkspace("hand-test")}
+                onTestHand={() => goTo("hand-test")}
               />
               <GoalOdds doc={view} />
             </>
@@ -395,6 +426,7 @@ export function App() {
               doc={view}
               catalog={catalog}
               hand={testedHand}
+              order={handOrder}
               onHandChange={setTestedHand}
               onOrderChange={setHandOrder}
               onContext={changeContext}
@@ -414,13 +446,19 @@ export function App() {
               onOpenInTester={(hand) => {
                 setTestedHand(hand);
                 setHandOrder(null);
-                setWorkspace("hand-test");
+                goTo("hand-test");
                 requestAnimationFrame(() =>
                   document.getElementById("hand-test-top")?.scrollIntoView({ block: "start" }),
                 );
               }}
             />
           ) : null}
+
+          {workspace === "handtraps" ? (
+            <HandtrapPanel doc={view} catalog={catalog} onChange={changeView} />
+          ) : null}
+
+          {workspace === "scorecard" ? <ScorecardPanel doc={view} /> : null}
 
           {workspace === "compare" ? (
             <ComparePanel

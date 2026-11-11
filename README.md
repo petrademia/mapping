@@ -236,12 +236,18 @@ whether one *exact* hand satisfies it. It evaluates the user's existing model
 (Hand Conditions + Hand Goals) against a single concrete hand and explains
 why each predicate passed or failed.
 
-- **Hand acquisition**: *Draw Random Hand* samples uniformly over physical
-  cards (each copy is a distinct card, so multi-copy cards are weighted
-  correctly) from the current Main Deck, sized by the current Analysis Context
-  (opening 5 / opening 5 / first 6 cards seen). *Manual selection* uses a
-  searchable stepper that enforces deck copy limits and the observed sample
-  size.
+- **Deck and hand side by side**: the Main Deck is shown as card art next to
+  the hand. *New Hand* shuffles the deck and deals the opening hand (sampled
+  uniformly over physical cards, so multi-copy cards are weighted correctly,
+  sized by the Analysis Context: opening 5 / opening 5 / first 6 cards seen).
+  *Draw* takes the number of cards you choose off the top, *Shuffle* mixes the
+  deck again and keeps the hand, and clicking a card moves it between the deck
+  (where it greys out) and the hand. A hand of any size gets results.
+- **Opponent hand**: a pane of the handtraps from the Handtraps tab. Click
+  handtraps to hold them, or Deal Opponent to draw a random few (set how many
+  beside the button). Each Hand Goal that holds then shows whether it survives
+  those handtraps, and the cards they would negate are greyed under a red
+  cross in your hand.
 - **Condition trace**: every requirement, exclusion, and distinct-card
   constraint shows PASS/FAIL. Requirements and exclusions include actual count
   and contributing cards; distinct constraints show eligible names and, when
@@ -261,13 +267,36 @@ why each predicate passed or failed.
 
 ### Workspaces
 
-The right rail is organized into three workspaces so modeling editors never
-compete with analysis results for vertical space:
+The right rail has three steps, each with its own workspaces, so modeling
+editors never compete with analysis results for vertical space:
 
-- **Profile** - Analysis Context, Deck Profile, Taxonomy / Annotation Analysis.
-- **Models** - a sub-navigated workspace: [Groups] [Hand Conditions]
-  [Hand Goals].
-- **Hand Test** - evaluate one exact hand against the model.
+- **Define** - describe the deck. **Models** (Hand Goals, Hand Conditions,
+  Groups), **Handtraps** and **Rank**.
+- **Test** - try hands. **Hand Test** evaluates one exact hand against the
+  model, with the opponent's handtraps; **Batch Test** deals many.
+- **Analyze** - read the results. **Profile** (Analysis Context, Deck Profile,
+  Card Impact, roles), **Scorecard** and **Compare**.
+
+The **Scorecard** measures one Hand Goal going first (the five-card opening
+hand) and going second (six cards, after the first draw), in terms of how the
+Main Deck's slots are spent. All numbers are exact over every possible hand:
+
+- **Opens** - hands that meet the Hand Goal.
+- **Clean** - hands that meet it holding at most N bricks, where a brick is a
+  card whose Opening Quality for that turn order is Undesirable. The table
+  under it shows 0 to 3 bricks, so you can see how many bricks the deck can
+  carry before the goal suffers.
+- **Resilient** - hands that still meet it after the opponent's handtraps, worst
+  case over the handtraps and pairs in the Handtraps tab.
+- **Interaction** - hands with at least one card marked with the Interaction role.
+- A slot mix per turn order (desirable, neutral, bricks, not set), and a
+  combined number per turn order and overall. The combined numbers are weighted
+  means; the weights are yours (kept in this browser), and a number that cannot
+  be measured, or has weight 0, is left out. They measure how reliably you reach
+  your plan, not how often you win.
+
+The app opens on Profile, whose next-step card points to Define. Returning to a
+step puts you back on the workspace you last used in it.
 
 ### Deck Profile
 
@@ -316,6 +345,26 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
 - The selected configuration drives Profile, Models, Hand Test, the header
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
+
+### Handtrap versus
+
+The **Handtraps** tab asks how your Hand Goals hold up when the opponent holds
+handtraps. You add handtraps (the usual ones come as card art: Effect Veiler,
+Infinite Impermanence, Ash Blossom & Joyous Spring, Dominus Purge, Dominus
+Impulse, Fydraulis Harmonia, Ghost Belle & Haunted Mansion, or any you name)
+and pick, per handtrap, the cards of yours it can stop. You can also save
+**pairs** the opponent holds together.
+
+- A handtrap negates one copy of a card in your hand that it can stop. The
+  opponent always chooses the copy that hurts the goal most, or does nothing
+  when that is better for them, so every number is the worst case.
+- A pair applies two negations, one per handtrap, each on its own copy.
+- Results are exact over every possible hand (same method as Hand Goals): for
+  each goal, the chance it holds and survives, with the exact hand count and
+  the drop in points against no handtrap.
+- A handtrap with no cards picked can stop nothing and shows no change.
+- Handtraps and pairs are saved with the deck (`handtraps`,
+  `handtrap_pairs`, schema 10).
 
 ### Analysis Context
 

@@ -97,8 +97,6 @@
 .impact-value { font-family: var(--font-mono); font-size: var(--text-sm); font-variant-numeric: tabular-nums; text-align: right; }
 
 /* ---- Models: Groups, Hand Conditions, Hand Goals ----------------------- */
-.models-steps { display: grid; gap: var(--space-1); margin: 0 0 var(--space-2); padding-left: var(--space-5); color: var(--muted); }
-.models-steps strong { font-weight: 600; color: var(--ink); }
 .models-nav { margin: var(--space-1) 0 var(--space-3); }
 .access-block { margin-bottom: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); }
 .access-block-head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
@@ -225,3 +223,55 @@
 .deck-sort { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
 .deck-sort select { min-height: 1.75rem; padding-top: var(--space-1); padding-bottom: var(--space-1); font-size: var(--text-xs); }
 
+/* ---- Handtrap versus --------------------------------------------------- */
+.handtrap-add { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0; padding: 0; list-style: none; }
+.handtrap-add li { width: 52px; }
+.handtrap-art { flex: none; width: 36px; }
+.handtrap-block .access-block-head input { min-width: 0; }
+.handtrap-pairs { display: grid; gap: var(--space-1); margin: var(--space-2) 0; padding: 0; list-style: none; }
+.handtrap-pairs li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-1) 0; border-bottom: 1px solid var(--line); }
+.handtrap-table .num .delta { display: block; font-size: var(--text-xs); }
+.handtrap-table .odds-percent { font-size: var(--text-md); }
+.handtrap-picker { margin-top: var(--space-2); }
+.handtrap-picker summary { min-height: var(--control-h); display: flex; align-items: center; color: var(--accent-strong); font-weight: 500; cursor: pointer; }
+
+/* Hand Test: the drawn hand as art, facts as tiles, cards as small art. */
+.hand-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-2); margin: var(--space-3) 0; padding: 0; list-style: none; }
+.hand-facts li { display: grid; align-content: start; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.hand-facts li > span:first-child { font-size: var(--text-2xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.hand-facts strong { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 400; }
+.hand-facts small { font-size: var(--text-xs); color: var(--muted); }
+.hand-facts .role-counts { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-family: var(--font-sans); font-size: var(--text-sm); font-weight: 600; }
+.role-counts span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.role-counts span::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--c); }
+.mini-cards { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.mini-cards li { width: 34px; }
+.versus-broken { display: grid; gap: var(--space-1); }
+
+
+/* Scorecard */
+.scorecard-combined { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); margin: var(--space-3) 0; }
+.scorecard-combined .outcome-primary { margin: 0; }
+.scorecard-rows { display: grid; gap: var(--space-3); margin: 0 0 var(--space-3); }
+.scorecard-rows > div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--space-2); align-items: start; }
+.scorecard-rows dt { font-weight: 600; }
+.scorecard-rows dd { display: grid; gap: var(--space-1); margin: 0; }
+.scorecard-rows strong { font-family: var(--font-mono); font-size: var(--text-md); font-weight: 500; }
+.scorecard-rows small { color: var(--muted); font-size: var(--text-xs); }
+.meter { display: block; height: 0.5rem; overflow: hidden; border-radius: var(--radius-pill); background: var(--sunken); }
+.meter > span { display: block; height: 100%; background: var(--accent); }
+.scorecard-weights { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.scorecard-weights label { display: grid; gap: var(--space-1); }
+.scorecard-weights input, .scorecard-weights select { width: 100%; }
+.scorecard-assumptions { margin: var(--space-2) 0 0; padding-left: var(--space-5); color: var(--muted); font-size: var(--text-sm); }
+.scorecard-overall { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); margin: var(--space-3) 0; }
+.scorecard-overall .outcome-primary { margin: 0; }
+.scorecard-turns { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); margin-bottom: var(--space-3); }
+.scorecard-turn { min-width: 0; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.scorecard-turn .panel-subhead { margin-top: 0; }
+.scorecard-turn .scorecard-combined { margin: var(--space-1) 0 var(--space-3); }
+.scorecard-turn .scorecard-rows > div { grid-template-columns: 5.5rem minmax(0, 1fr); }
+.scorecard-slots { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--text-xs); color: var(--muted); }
+.scorecard-slots span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.scorecard-slots span::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--c); }
+.scorecard-curve td.on { font-weight: 600; color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }

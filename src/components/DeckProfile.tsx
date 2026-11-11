@@ -144,12 +144,12 @@ export function DeckProfile({ doc, onHandSize }: Props) {
         rate, or YAPPING utility.
       </p>
       {deck === 0 ? (
-        <p className="empty">Add main-deck cards to profile the deck.</p>
+        <p className="empty">Add Main Deck cards to profile the deck.</p>
       ) : profile && "error" in profile ? (
         <p className="error">{profile.error}</p>
       ) : !hasAnnotations ? (
         <p className="empty">
-          Assign roles or contextual opening quality on main-deck cards to
+          Assign roles or contextual opening quality on Main Deck cards to
           profile the deck.
         </p>
       ) : profile ? (
@@ -220,10 +220,10 @@ export function DeckProfile({ doc, onHandSize }: Props) {
           </article>
 
           <details className="panel-details">
-            <summary>Annotation &amp; composition analysis</summary>
+            <summary>Tag breakdown</summary>
 
             <article>
-              <h3>Annotation Coverage</h3>
+              <h3>Tag coverage</h3>
               <p className="explorer-notation">
                 Opening Quality slots classified per turn order (physical
                 copies). Not set means not judged yet, not a neutral
@@ -303,7 +303,7 @@ export function DeckProfile({ doc, onHandSize }: Props) {
             <article data-role="interaction">
               <h3>Interaction-tagged cards</h3>
               <p className="explorer-notation">
-                Raw taxonomy event. An interaction-tagged card is not
+                Raw tag count. An interaction-tagged card is not
                 automatically usable interaction in every context - model that
                 with Hand Conditions instead.
               </p>

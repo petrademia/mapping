@@ -20,7 +20,7 @@ interface PickerProps {
  * because Groups and Hand Conditions talk about cards, not copies.
  */
 export function DeckPicker({ deck, catalog, selected, onToggle, label }: PickerProps) {
-  if (deck.length === 0) return <p className="empty">Add main-deck cards first.</p>;
+  if (deck.length === 0) return <p className="empty">Add Main Deck cards first.</p>;
   const any = selected.size > 0;
   return (
     <ul className="pick-grid" aria-label={label}>
