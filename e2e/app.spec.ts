@@ -658,15 +658,44 @@ test.describe("Handtrap versus", () => {
     await openApp(page);
     await nav(page, "Hand Test").click();
     // Nothing to choose until a handtrap exists.
-    await expect(page.getByLabel("Opponent holds")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Opponent hand" })).toHaveCount(0);
     await withGoal(page);
     await page.getByRole("button", { name: "Add Effect Veiler" }).click();
     await page.getByRole("button", { name: "Every card" }).click();
     await nav(page, "Hand Test").click();
-    await page.getByLabel("Opponent holds").selectOption({ label: "Effect Veiler" });
+    const opponent = page.getByRole("region", { name: "Opponent hand" });
+    await expect(opponent.getByText("0 Handtraps in opponent hand")).toBeVisible();
     await page.getByRole("button", { name: "New Hand" }).click();
-    await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
-    await expect(page.getByLabel("Opponent holds")).toHaveValue(/.+/);
+    await expect(page.getByRole("list", { name: "Cards in hand" }).locator(".hand-tile")).toHaveCount(5);
+    // Deal Opponent puts a random handtrap in the opponent hand.
+    await opponent.getByRole("button", { name: "Deal Opponent" }).click();
+    await expect(opponent.getByText("1 Handtrap in opponent hand")).toBeVisible();
+    // Clicking the handtrap takes it back out, and clicking again gives it back.
+    await opponent.getByRole("button", { name: /Effect Veiler, in the opponent hand/ }).click();
+    await expect(opponent.getByText("0 Handtraps in opponent hand")).toBeVisible();
+    await opponent.getByRole("button", { name: /Effect Veiler, click to give/ }).click();
+    await expect(opponent.getByText("1 Handtrap in opponent hand")).toBeVisible();
+    await opponent.getByRole("button", { name: "Clear opponent" }).click();
+    await expect(opponent.getByText("0 Handtraps in opponent hand")).toBeVisible();
+  });
+
+  test("a card the opponent's handtrap would negate is marked in my hand", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Hand Test").click();
+    const opponent = page.getByRole("region", { name: "Opponent hand" });
+    await opponent.getByRole("button", { name: /Effect Veiler, click to give/ }).click();
+    // Deal hands until one satisfies the goal; Effect Veiler can stop any card, so it breaks it.
+    const marked = page.getByRole("list", { name: "Cards in hand" }).locator(".hand-tile.negated");
+    for (let tries = 0; tries < 60 && (await marked.count()) === 0; tries += 1) {
+      await page.getByRole("button", { name: "New Hand" }).click();
+    }
+    await expect(marked.first()).toBeVisible();
+    await expect(marked.first()).toHaveAccessibleName(/negated by the opponent/);
+    await opponent.getByRole("button", { name: "Clear opponent" }).click();
+    await expect(marked).toHaveCount(0);
   });
 
   test("handtraps are saved with the deck", async ({ page }) => {

@@ -243,9 +243,11 @@ why each predicate passed or failed.
   *Draw* takes the number of cards you choose off the top, *Shuffle* mixes the
   deck again and keeps the hand, and clicking a card moves it between the deck
   (where it greys out) and the hand. A hand of any size gets results.
-- **Opponent holds**: pick a handtrap or saved pair from the Handtraps tab to
-  see which Hand Goals survive it for the hand drawn, and which cards it
-  would negate.
+- **Opponent hand**: a pane of the handtraps from the Handtraps tab. Click
+  handtraps to hold them, or Deal Opponent to draw a random few (set how many
+  beside the button). Each Hand Goal that holds then shows whether it survives
+  those handtraps, and the cards they would negate are greyed under a red
+  cross in your hand.
 - **Condition trace**: every requirement, exclusion, and distinct-card
   constraint shows PASS/FAIL. Requirements and exclusions include actual count
   and contributing cards; distinct constraints show eligible names and, when

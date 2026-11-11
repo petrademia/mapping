@@ -183,6 +183,26 @@
 .hand-pane .hand-deck-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-1); margin: 0; }
 .hand-tile.drawn .hand-image-frame { filter: grayscale(1); opacity: 0.45; }
 .hand-tile.drawn { cursor: default; }
+/* A card the opponent's handtrap would negate: faded to grey under a red cross, so it
+   never reads as just another chosen card. */
+.hand-tile.in-hand.negated .hand-image-frame { filter: grayscale(1); opacity: 0.55; border-color: var(--ink); box-shadow: 0 0 0 3px var(--ink); }
+.negated-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--danger);
+  color: var(--paper);
+  transform: translate(-50%, -50%);
+}
+.negated-mark svg { width: 1rem; height: 1rem; }
+.hand-opponent { margin-top: var(--space-3); }
+.hand-opponent .hand-actions { margin-bottom: var(--space-2); }
+.hand-opponent .hand-deck-grid { grid-template-columns: repeat(auto-fill, 72px); gap: var(--space-2); }
 .hand-actions { align-items: center; }
 .draw-group { display: inline-flex; gap: var(--space-1); }
 .draw-group input { width: 4rem; }

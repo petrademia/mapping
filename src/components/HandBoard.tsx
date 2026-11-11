@@ -2,6 +2,7 @@ import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import type { MappingCard } from "../lib/document";
 import { CardFrame } from "./HandImages";
+import { Icon } from "./IconButton";
 
 interface Props {
   deck: readonly MappingCard[];
@@ -13,6 +14,8 @@ interface Props {
   /** Rank position (1 = best) of a card, shown on the cards in the hand. */
   rankOf?: (cardId: number) => number | null;
   onCount: (cardId: number, next: number) => void;
+  /** card_id -> copies in the hand that the opponent's handtraps would negate. */
+  negated?: Readonly<Record<number, number>>;
 }
 
 /**
@@ -20,7 +23,7 @@ interface Props {
  * hand turn grey; click one that is not to draw it, and click a card in the hand
  * to put it back.
  */
-export function HandBoard({ deck, counts, catalog, order, rankOf, onCount }: Props) {
+export function HandBoard({ deck, counts, catalog, order, rankOf, onCount, negated = {} }: Props) {
   const names = new Map(deck.map((card) => [card.card_id, card.name] as const));
   const nameOf = (cardId: number): string => displayName(cardId, names.get(cardId), catalog);
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
@@ -87,16 +90,22 @@ export function HandBoard({ deck, counts, catalog, order, rankOf, onCount }: Pro
             {handTiles.map(({ cardId, copy }) => {
               const name = nameOf(cardId);
               const rank = rankOf?.(cardId) ?? null;
+              const hit = copy < (negated[cardId] ?? 0);
               return (
                 <li key={`${cardId}-${copy}`}>
                   <button
                     type="button"
-                    className="hand-tile in-hand"
-                    aria-label={`${name}, in hand. Click to return it to the deck`}
-                    title={name}
+                    className={hit ? "hand-tile in-hand negated" : "hand-tile in-hand"}
+                    aria-label={`${name}, in hand${hit ? ", negated by the opponent" : ""}. Click to return it to the deck`}
+                    title={hit ? `${name} (negated)` : name}
                     onClick={() => onCount(cardId, (counts[cardId] ?? 0) - 1)}
                   >
                     <CardFrame cardId={cardId} name={name} />
+                    {hit ? (
+                      <span className="negated-mark" aria-hidden="true">
+                        <Icon name="x" />
+                      </span>
+                    ) : null}
                     {rank !== null ? (
                       <span className="rank-badge" title={`Ranked #${rank}`}>
                         #{rank}

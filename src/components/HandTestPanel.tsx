@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { handVersus, scenariosFor } from "../lib/handtrapVersus";
+import { handVersus } from "../lib/handtrapVersus";
+import { HandOpponent } from "./HandOpponent";
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
@@ -65,7 +66,8 @@ interface Props {
 
 export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandChange, onOrderChange: setOrder, onContext }: Props) {
   const setHand = onHandChange;
-  const [opponent, setOpponent] = useState("");
+  const [opponent, setOpponent] = useState<string[]>([]);
+  const [dealCount, setDealCount] = useState(2);
   const [drawCount, setDrawCount] = useState(1);
 
   const deck = sectionSize(doc.main);
@@ -111,14 +113,42 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
     // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
   }, [analysisKey, hand]);
 
-  // The opponent's handtraps, from the Handtraps tab: one handtrap or a saved pair.
-  const scenarios = useMemo(() => scenariosFor(doc), [doc.handtraps, doc.handtrap_pairs]);
-  const scenario = scenarios.find((entry) => entry.id === opponent) ?? null;
+  // The opponent's hand: handtraps from the Handtraps tab, dealt at random or clicked in.
+  const held = useMemo(
+    () => opponent.filter((id) => doc.handtraps.some((handtrap) => handtrap.id === id)),
+    [opponent, doc.handtraps],
+  );
+  const heldLabel = held.map((id) => doc.handtraps.find((handtrap) => handtrap.id === id)?.name ?? id).join(" and ");
   const versus = useMemo(() => {
-    if (!hand || !scenario) return null;
-    return new Map(handVersus(doc, hand.card_counts, scenario.handtrapIds).map((goal) => [goal.setId, goal]));
+    if (!hand || held.length === 0) return null;
+    return new Map(handVersus(doc, hand.card_counts, held).map((goal) => [goal.setId, goal]));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the doc parts the result reads
-  }, [hand, scenario, doc.main, doc.groups, doc.hand_conditions, doc.hand_condition_sets, doc.handtraps]);
+  }, [hand, held, doc.main, doc.groups, doc.hand_conditions, doc.hand_condition_sets, doc.handtraps]);
+  // Copies of each of my cards the opponent would negate, over every Hand Goal that holds.
+  const negated = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const goal of versus?.values() ?? []) {
+      if (!goal.holds || goal.survives) continue;
+      const perGoal: Record<number, number> = {};
+      for (const cardId of goal.negated) perGoal[cardId] = (perGoal[cardId] ?? 0) + 1;
+      for (const [cardId, copies] of Object.entries(perGoal)) {
+        counts[Number(cardId)] = Math.max(counts[Number(cardId)] ?? 0, copies);
+      }
+    }
+    return counts;
+  }, [versus]);
+
+  function dealOpponent(): void {
+    const pool = doc.handtraps.map((handtrap) => handtrap.id);
+    for (let i = pool.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+    }
+    setOpponent(pool.slice(0, Math.min(dealCount, pool.length)));
+  }
+  function toggleOpponent(id: string): void {
+    setOpponent(held.includes(id) ? held.filter((entry) => entry !== id) : [...held, id]);
+  }
 
   const issues = useMemo(() => {
     if (!hand) return [];
@@ -240,20 +270,6 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
 
       <ContextChips context={context} openingHandSize={opening} onChange={onContext} />
 
-      {scenarios.length > 0 ? (
-        <label>
-          Opponent holds
-          <select value={scenario?.id ?? ""} onChange={(event) => setOpponent(event.target.value)}>
-            <option value="">Nothing</option>
-            {scenarios.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
       <div className="row-actions hand-actions">
         <button type="button" onClick={newHand} disabled={deck === 0}>
           <Icon name="redo" />
@@ -298,8 +314,21 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
           order={deckOrder}
           rankOf={(cardId) => rankScorer?.positionOf(cardId) ?? null}
           onCount={setCount}
+          negated={negated}
         />
       )}
+
+      {doc.handtraps.length > 0 ? (
+        <HandOpponent
+          pool={doc.handtraps}
+          held={held}
+          dealCount={dealCount}
+          onDealCount={setDealCount}
+          onDeal={dealOpponent}
+          onClear={() => setOpponent([])}
+          onToggle={toggleOpponent}
+        />
+      ) : null}
 
       {issues.some((issue) => issue.kind === "over_copy_limit" || issue.kind === "not_in_main") ? (
         <p className="error">
@@ -379,12 +408,12 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
                       {set.satisfiedCount} of {set.memberCount} Hand{" "}
                       {set.memberCount === 1 ? "Condition" : "Conditions"}
                     </span>
-                    {scenario && set.passed && versus?.get(set.setId) ? (
+                    {held.length > 0 && set.passed && versus?.get(set.setId) ? (
                       versus.get(set.setId)!.survives ? (
-                        <span className="explorer-notation">Still holds against {scenario.label}</span>
+                        <span className="explorer-notation">Still holds against {heldLabel}</span>
                       ) : (
                         <span className="versus-broken">
-                          <span className="explorer-notation">Broken by {scenario.label}, negating</span>
+                          <span className="explorer-notation">Broken by {heldLabel}, negating</span>
                           <MiniCards ids={versus.get(set.setId)!.negated} catalog={catalog} label="Negated cards" />
                         </span>
                       )
