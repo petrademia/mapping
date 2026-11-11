@@ -683,12 +683,14 @@ test.describe("Sorting the deck sections", () => {
     await openApp(page);
     const built = await titles(page);
     await page.getByLabel("Sort Main Deck").selectOption("name");
-    const sorted = await titles(page);
-    expect(sorted).toEqual([...built].sort((a, b) => a!.localeCompare(b!, undefined, { sensitivity: "base" })));
+    // The list re-renders after the change event, so wait for the new order.
+    await expect
+      .poll(() => titles(page))
+      .toEqual([...built].sort((a, b) => a!.localeCompare(b!, undefined, { sensitivity: "base" })));
     await expect(page.locator(".counts")).toContainText(`${DEFAULT.main} main`);
     // As built brings the original order back; the sort was only a view.
     await page.getByLabel("Sort Main Deck").selectOption("built");
-    expect(await titles(page)).toEqual(built);
+    await expect.poll(() => titles(page)).toEqual(built);
   });
 
   test("the choice is remembered after a reload", async ({ page }) => {
@@ -707,7 +709,7 @@ test.describe("Sorting the deck sections", () => {
     await tiles.nth(0).click();
     const top = await page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile").first().getAttribute("title");
     await page.getByLabel("Sort Main Deck").selectOption("rank");
-    expect((await titles(page))[0]).toBe(top);
+    await expect.poll(async () => (await titles(page))[0]).toBe(top);
   });
 
   test("a sorted section does not accept reordering drops", async ({ page }) => {
