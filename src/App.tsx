@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "./lib/theme";
+import { Icon, IconButton } from "./components/IconButton";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { ComparePanel } from "./components/ComparePanel";
+import { HandtrapPanel } from "./components/HandtrapPanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
 import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
 import { download, slug } from "./lib/download";
-import { scorerForDoc } from "./lib/rankScore";
 import { serializeYdk } from "./lib/ydk";
 import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
 import type { TestedHand } from "./lib/handTest";
@@ -34,7 +36,6 @@ import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
-  analysisContextOf,
   createDocument,
   sectionSize,
   setAnalysisContext,
@@ -42,10 +43,10 @@ import {
   setOpeningHandSize,
   type MappingDocument,
 } from "./lib/document";
-import { observedCards, type AnalysisContext } from "./lib/analysisContext";
+import type { AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare";
+type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
 
 const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "profile", label: "Profile" },
@@ -53,6 +54,7 @@ const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "hand-test", label: "Hand Test" },
   { key: "batch", label: "Batch Test" },
   { key: "rank", label: "Rank" },
+  { key: "handtraps", label: "Handtraps" },
   { key: "compare", label: "Compare" },
 ];
 
@@ -99,9 +101,8 @@ export function App() {
   const [workspace, setWorkspace] = useState<Workspace>("profile");
   // Which Models view opens when the next-step button sends you there.
   const [modelsStart, setModelsStart] = useState<ModelsView>("groups");
-  const [status, setStatus] = useState(
-    "Local draft. Taxonomy annotations are deck-specific hypotheses.",
-  );
+  const [status, setStatus] = useState("");
+  const [theme, setTheme] = useTheme();
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
   const view = useMemo(
     () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
@@ -129,28 +130,6 @@ export function App() {
       setStatus("Loaded the default deck from default.ydk.");
     });
   };
-
-  const handSample = observedCards(analysisContextOf(view), view.analysis.opening_hand_size);
-  const handTestView =
-    workspace === "hand-test"
-      ? {
-          counts: testedHand?.card_counts ?? {},
-          sample: handSample,
-          order: testedHand ? handOrder : null,
-          rankOf: (cardId: number) =>
-            scorerForDoc(view, view.analysis.turn_order)?.positionOf(cardId) ?? null,
-          onCount: (cardId: number, next: number) => {
-            const counts = { ...(testedHand?.card_counts ?? {}) };
-            if (next <= 0) delete counts[cardId];
-            else counts[cardId] = next;
-            setTestedHand(
-              Object.keys(counts).length === 0
-                ? null
-                : { card_counts: counts, observed_cards: handSample },
-            );
-          },
-        }
-      : null;
 
   useEffect(() => {
     saveStored(doc);
@@ -191,6 +170,24 @@ export function App() {
             Annotate Role and Opening Quality hypotheses per deck card, inspect
             composition, then export configuration for YAPPING.
           </p>
+          <div className="theme-switch" role="group" aria-label="Color theme">
+            {(
+              [
+                ["system", "device", "Match the device"],
+                ["light", "sun", "Light theme"],
+                ["dark", "moon", "Dark theme"],
+              ] as const
+            ).map(([option, icon, label]) => (
+              <IconButton
+                key={option}
+                icon={icon}
+                label={label}
+                aria-pressed={theme === option}
+                className={theme === option ? "on" : ""}
+                onClick={() => setTheme(option)}
+              />
+            ))}
+          </div>
         </div>
         <div className="deck-meta">
           <label>
@@ -216,6 +213,7 @@ export function App() {
                 setStatus("Started an empty deck.");
               }}
             >
+              <Icon name="file" />
               New deck
             </button>
             <ClearButton
@@ -265,6 +263,7 @@ export function App() {
                 setStatus("Saved YDK");
               }}
             >
+              <Icon name="download" />
               Save YDK
             </button>
           </div>
@@ -307,7 +306,6 @@ export function App() {
           onFormatChange={changeFormat}
           onChange={setDoc}
           onStatus={setStatus}
-          handTest={handTestView}
         />
         <aside id={WORKSPACE_ID}>
           <nav className="context-presets workspace-nav" aria-label="Workspace">
@@ -395,6 +393,7 @@ export function App() {
               doc={view}
               catalog={catalog}
               hand={testedHand}
+              order={handOrder}
               onHandChange={setTestedHand}
               onOrderChange={setHandOrder}
               onContext={changeContext}
@@ -420,6 +419,10 @@ export function App() {
                 );
               }}
             />
+          ) : null}
+
+          {workspace === "handtraps" ? (
+            <HandtrapPanel doc={view} catalog={catalog} onChange={changeView} />
           ) : null}
 
           {workspace === "compare" ? (

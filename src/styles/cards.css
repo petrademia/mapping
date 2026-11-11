@@ -166,9 +166,46 @@
 .swap-grid { margin: 0; }
 .rank-grid { grid-template-columns: repeat(auto-fill, 64px); gap: var(--space-2); }
 
-.hand-deck { margin: var(--space-2) 0; }
-.hand-deck .hand-total { margin: 0 0 var(--space-2); color: var(--muted); font-family: var(--font-mono); }
-.hand-deck-grid { margin: 0; }
+/* Hand Test: the deck beside the hand. Cards in the hand turn grey in the deck. */
+.hand-board-wrap { container-type: inline-size; margin: var(--space-3) 0; }
+.hand-board { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--space-4); }
+/* In a narrow column the hand goes first and the deck runs eight to a row. */
+@container (max-width: 720px) {
+  .hand-board { grid-template-columns: minmax(0, 1fr); }
+  .hand-pane[aria-label="Hand"] { order: -1; }
+  .hand-board .hand-pane .hand-deck-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .hand-board .hand-pane[aria-label="Hand"] .hand-deck-grid { grid-template-columns: repeat(auto-fill, 72px); gap: var(--space-2); }
+}
+.hand-pane { min-width: 0; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); align-self: start; }
+.hand-pane header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-2); }
+.hand-pane header p { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.hand-pane header .hand-remaining, .hand-pane header .hand-total { color: var(--ink); font-family: var(--font-mono); font-size: var(--text-xs); white-space: nowrap; }
+.hand-pane .hand-deck-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-1); margin: 0; }
+.hand-tile.drawn .hand-image-frame { filter: grayscale(1); opacity: 0.45; }
+.hand-tile.drawn { cursor: default; }
+/* A card the opponent's handtrap would negate: faded to grey under a red cross, so it
+   never reads as just another chosen card. */
+.hand-tile.in-hand.negated .hand-image-frame { filter: grayscale(1); opacity: 0.55; border-color: var(--ink); box-shadow: 0 0 0 3px var(--ink); }
+.negated-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--danger);
+  color: var(--paper);
+  transform: translate(-50%, -50%);
+}
+.negated-mark svg { width: 1rem; height: 1rem; }
+.hand-opponent { margin-top: var(--space-3); }
+.hand-opponent .hand-actions { margin-bottom: var(--space-2); }
+.hand-opponent .hand-deck-grid { grid-template-columns: repeat(auto-fill, 72px); gap: var(--space-2); }
+.hand-actions { align-items: center; }
+.draw-group { display: inline-flex; gap: var(--space-1); }
+.draw-group input { width: 4rem; }
 .swap-heading { margin: var(--space-3) 0 var(--space-1); font-size: var(--text-sm); font-weight: 500; color: var(--muted); }
 
 .deck-detail { margin: var(--space-2) 0; padding: var(--space-3); border: 1px solid var(--line); background: var(--sunken); }

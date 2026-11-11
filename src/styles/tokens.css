@@ -77,3 +77,43 @@
   background: var(--ground);
   color: var(--ink);
 }
+
+/* Dark: the same binder after hours. Only colours and shadows change. The theme
+   is always set on <html data-theme> (see theme.ts), following the system until
+   the user chooses. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ground: #14120f;
+  --panel: #1f1c18;
+  --paper: #2a2620;
+  --sunken: #34302a;
+  --rail: #0d0c0a;
+  --rail-ink: #ece4d2;
+
+  --ink: #ece4d2;
+  --muted: #a89e8b;        /* 6:1 on --panel */
+  --line: #4d463b;
+
+  --accent: #e0734f;
+  --accent-strong: #f08a66; /* red text on dark, 6.4:1 */
+  --accent-hover: #ee8461;
+
+  --danger: #e5766a;
+  --danger-strong: #f08f84;
+  --pass: #86bd72;
+
+  --starter: #d9a627;
+  --extender: #4fb3a5;
+  --interaction: #e0734f;
+  --desirable: #7fb86b;
+  --neutral: #a39c8c;
+  --undesirable: #b0a08e;
+  --unclassified: #5a5346;
+  --swatch: #8aa08a;
+
+  --control-border: color-mix(in srgb, var(--ink) 40%, transparent);
+  --shadow-page: 0 24px 48px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 8px 24px rgb(0 0 0 / 0.6);
+  --sleeve: 0 0 0 2px color-mix(in srgb, var(--ink) 20%, transparent);
+}

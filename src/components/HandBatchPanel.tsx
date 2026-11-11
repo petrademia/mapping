@@ -168,7 +168,7 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester, onContext }: Prop
         </button>
       </div>
       {error ? <p className="error">{error}</p> : null}
-      {deck === 0 ? <p className="empty">Add main-deck cards first.</p> : null}
+      {deck === 0 ? <p className="empty">Add Main Deck cards first.</p> : null}
       {batch && summary ? (
         <>
           <dl className="explorer-results" aria-label="Batch results">

@@ -21,6 +21,7 @@ import {
   type SidingConfiguration,
 } from "./configuration";
 import { emptyRank, parseCardRank, type CardRank } from "./cardRank";
+import { parseHandtraps, parsePairs, type Handtrap, type HandtrapPair } from "./handtrap";
 import {
   EMPTY_TAXONOMY,
   mergeTaxonomies,
@@ -32,7 +33,7 @@ import {
   type Role,
 } from "./taxonomy";
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 /**
  * The fixed-id Hand Condition Set backing the "Modeled Engine Access"
@@ -80,6 +81,10 @@ export interface MappingDocument {
   active_configuration_id: string | null;
   /** Manual card preference order per turn order (see cardRank.ts). */
   card_rank: CardRank;
+  /** Opponent handtraps and the cards of yours each can stop (see handtrap.ts). */
+  handtraps: Handtrap[];
+  /** Saved pairs of handtraps the opponent holds together. */
+  handtrap_pairs: HandtrapPair[];
 }
 
 /**
@@ -147,6 +152,8 @@ export function createDocument(name: string): MappingDocument {
     configurations: [],
     active_configuration_id: null,
     card_rank: emptyRank(),
+    handtraps: [],
+    handtrap_pairs: [],
   };
 }
 
@@ -309,6 +316,11 @@ export function clearTags(doc: MappingDocument): MappingDocument {
 }
 
 /** Remove all Groups, and the group lines inside Hand Conditions. */
+/** Remove every handtrap and pair. */
+export function clearHandtraps(doc: MappingDocument): MappingDocument {
+  return { ...doc, handtraps: [], handtrap_pairs: [] };
+}
+
 export function clearGroups(doc: MappingDocument): MappingDocument {
   return doc.groups.reduce((next, group) => removeGroup(next, group.id), doc);
 }
@@ -714,11 +726,13 @@ function deckName(value: unknown): string {
 export function parseMappingJson(text: string): MappingDocument {
   const data = JSON.parse(text) as Record<string, unknown>;
   const version = Number(data.schema_version);
-  if (![1, 2, 3, 4, 5, 6, 7, 8, SCHEMA_VERSION].includes(version)) {
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, SCHEMA_VERSION].includes(version)) {
     throw new Error(`unsupported schema_version: ${String(data.schema_version)}`);
   }
   const legacy = version < 6;
   const configurations = normalizeConfigurations(data.configurations);
+  const handtraps = parseHandtraps(data.handtraps);
+  const handtrapPairs = parsePairs(data.handtrap_pairs, handtraps);
   const activeId =
     typeof data.active_configuration_id === "string" &&
     configurations.some((c) => c.id === data.active_configuration_id)
@@ -800,6 +814,8 @@ export function parseMappingJson(text: string): MappingDocument {
       configurations,
       active_configuration_id: activeId,
       card_rank: parseCardRank(data.card_rank),
+      handtraps,
+      handtrap_pairs: handtrapPairs,
     };
   }
   return {
@@ -828,6 +844,8 @@ export function parseMappingJson(text: string): MappingDocument {
     configurations,
     active_configuration_id: activeId,
     card_rank: parseCardRank(data.card_rank),
+    handtraps,
+    handtrap_pairs: handtrapPairs,
   };
 }
 
@@ -894,6 +912,17 @@ export function serializeMapping(doc: MappingDocument): string {
       going_first: [...doc.card_rank.going_first],
       going_second: [...doc.card_rank.going_second],
     },
+    handtraps: doc.handtraps.map((handtrap) => ({
+      id: handtrap.id,
+      name: handtrap.name,
+      ...(handtrap.card_id !== undefined ? { card_id: handtrap.card_id } : {}),
+      hits: [...handtrap.hits],
+      ...(handtrap.notes ? { notes: handtrap.notes } : {}),
+    })),
+    handtrap_pairs: doc.handtrap_pairs.map((pair) => ({
+      id: pair.id,
+      handtrap_ids: [...pair.handtrap_ids],
+    })),
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
 }

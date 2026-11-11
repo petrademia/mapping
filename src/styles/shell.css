@@ -48,6 +48,10 @@
 .masthead button.primary { background-color: var(--accent); border-color: var(--accent); color: var(--paper); }
 .masthead button.primary:hover:not(:disabled) { background-color: var(--accent-hover); border-color: var(--accent-hover); }
 .masthead :focus-visible { outline-color: var(--rail-ink); }
+.theme-switch { display: inline-flex; gap: var(--space-1); margin-top: var(--space-3); }
+.masthead .theme-switch button { width: var(--control-h); height: var(--control-h); color: color-mix(in srgb, var(--rail-ink) 78%, transparent); }
+.masthead .theme-switch button.on,
+.masthead .theme-switch button.on:hover:not(:disabled) { background-color: var(--rail-ink); border-color: var(--rail-ink); color: var(--rail); }
 /* Popovers open on cream even when launched from the rail. */
 .masthead .clear-popover { color: var(--ink); }
 .masthead .clear-popover button { color: var(--ink); border-color: var(--line); }

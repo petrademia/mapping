@@ -14,6 +14,7 @@ import {
 } from "../lib/sectionRouting";
 import { download, slug } from "../lib/download";
 import { parseDeckText } from "../lib/ydk";
+import { Icon } from "./IconButton";
 
 interface Props {
   doc: MappingDocument;
@@ -64,6 +65,7 @@ export function ImportExport({
   return (
     <div className="toolbar-actions">
       <label className="file-button">
+        <Icon name="upload" />
         Load file
         <input
           type="file"
@@ -80,6 +82,7 @@ export function ImportExport({
         type="button"
         onClick={() => download(`${slug(doc.name)}.mapping.json`, serializeMapping(doc))}
       >
+        <Icon name="save" />
         Save mapping
       </button>
       <button
@@ -89,6 +92,7 @@ export function ImportExport({
           onStatus("Exported YAPPING archetype JSON");
         }}
       >
+        <Icon name="download" />
         Export for YAPPING
       </button>
       <details className="paste">

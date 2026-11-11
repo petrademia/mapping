@@ -3,6 +3,7 @@ import {
   clearConfigurations,
   clearGroups,
   clearHandConditions,
+  clearHandtraps,
   clearModeledOutcomes,
   clearSection,
   clearTags,
@@ -118,6 +119,13 @@ export function ClearMenu({ doc, onChange, onStatus }: Props) {
       message: "Empty every Hand Goal? Engine Access stays, empty.",
       run: () => clearModeledOutcomes(doc),
       done: "Cleared all Hand Goals",
+    },
+    {
+      label: "Handtraps",
+      count: doc.handtraps.length,
+      message: `Remove all ${doc.handtraps.length} handtraps and their pairs?`,
+      run: () => clearHandtraps(doc),
+      done: "Cleared all handtraps",
     },
     {
       label: "Card ranks",

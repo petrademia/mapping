@@ -236,12 +236,18 @@ whether one *exact* hand satisfies it. It evaluates the user's existing model
 (Hand Conditions + Hand Goals) against a single concrete hand and explains
 why each predicate passed or failed.
 
-- **Hand acquisition**: *Draw Random Hand* samples uniformly over physical
-  cards (each copy is a distinct card, so multi-copy cards are weighted
-  correctly) from the current Main Deck, sized by the current Analysis Context
-  (opening 5 / opening 5 / first 6 cards seen). *Manual selection* uses a
-  searchable stepper that enforces deck copy limits and the observed sample
-  size.
+- **Deck and hand side by side**: the Main Deck is shown as card art next to
+  the hand. *New Hand* shuffles the deck and deals the opening hand (sampled
+  uniformly over physical cards, so multi-copy cards are weighted correctly,
+  sized by the Analysis Context: opening 5 / opening 5 / first 6 cards seen).
+  *Draw* takes the number of cards you choose off the top, *Shuffle* mixes the
+  deck again and keeps the hand, and clicking a card moves it between the deck
+  (where it greys out) and the hand. A hand of any size gets results.
+- **Opponent hand**: a pane of the handtraps from the Handtraps tab. Click
+  handtraps to hold them, or Deal Opponent to draw a random few (set how many
+  beside the button). Each Hand Goal that holds then shows whether it survives
+  those handtraps, and the cards they would negate are greyed under a red
+  cross in your hand.
 - **Condition trace**: every requirement, exclusion, and distinct-card
   constraint shows PASS/FAIL. Requirements and exclusions include actual count
   and contributing cards; distinct constraints show eligible names and, when
@@ -316,6 +322,26 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
 - The selected configuration drives Profile, Models, Hand Test, the header
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
+
+### Handtrap versus
+
+The **Handtraps** tab asks how your Hand Goals hold up when the opponent holds
+handtraps. You add handtraps (the usual ones come as card art: Effect Veiler,
+Infinite Impermanence, Ash Blossom & Joyous Spring, Dominus Purge, Dominus
+Impulse, Fydraulis Harmonia, Ghost Belle & Haunted Mansion, or any you name)
+and pick, per handtrap, the cards of yours it can stop. You can also save
+**pairs** the opponent holds together.
+
+- A handtrap negates one copy of a card in your hand that it can stop. The
+  opponent always chooses the copy that hurts the goal most, or does nothing
+  when that is better for them, so every number is the worst case.
+- A pair applies two negations, one per handtrap, each on its own copy.
+- Results are exact over every possible hand (same method as Hand Goals): for
+  each goal, the chance it holds and survives, with the exact hand count and
+  the drop in points against no handtrap.
+- A handtrap with no cards picked can stop nothing and shows no change.
+- Handtraps and pairs are saved with the deck (`handtraps`,
+  `handtrap_pairs`, schema 10).
 
 ### Analysis Context
 

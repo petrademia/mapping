@@ -17,7 +17,6 @@ import { isRanked, rankFor } from "../lib/cardRank";
 import { SORT_LABELS, sortCards, sortsFor, type DeckSort } from "../lib/deckSort";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { ClearButton } from "./ClearButton";
-import { HandGrid } from "./HandGrid";
 import { CardFrame } from "./HandImages";
 import { IconButton } from "./IconButton";
 import { OpeningQualityEditor } from "./OpeningQualityEditor";
@@ -30,20 +29,10 @@ const TITLES: Record<DeckSection, string> = {
   side: "Side Deck",
 };
 
-/** While Hand Test is open, the Main Deck itself is shuffled and the hand boxed. */
-export interface HandTestView {
-  counts: Readonly<Record<number, number>>;
-  sample: number;
-  order: readonly number[] | null;
-  rankOf?: (cardId: number) => number | null;
-  onCount: (cardId: number, next: number) => void;
-}
-
 interface Props {
   doc: MappingDocument;
   catalog: Catalog;
   onChange: (doc: MappingDocument) => void;
-  handTest?: HandTestView | null;
   /** Extra Deck monster ids; decides which sections a dragged card may enter. */
   extraIds?: ExtraDeckIds;
 }
@@ -162,7 +151,7 @@ function DetailRow({
  * under that row (no scrolling to the end of the section). Extra Deck cards
  * are never drawn, so they have no roles or opening quality to edit.
  */
-export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set() }: Props) {
+export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
   // A sort only changes how a section is shown; it never touches the deck itself.
   const [sorts, setSorts] = useState<Record<DeckSection, DeckSort>>(readSorts);
@@ -250,7 +239,7 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
             <header>
               <h2>{TITLES[section]}</h2>
               <p>{sectionSize(cards)} cards</p>
-              {cards.length > 1 && !(section === "main" && handTest) ? (
+              {cards.length > 1 ? (
                 <label className="deck-sort">
                   Sort
                   <select
@@ -281,16 +270,6 @@ export function DeckGrid({ doc, catalog, onChange, handTest, extraIds = new Set(
             </header>
             {cards.length === 0 ? (
               <p className="empty">No cards in this section.</p>
-            ) : section === "main" && handTest ? (
-              <HandGrid
-                deck={cards}
-                counts={handTest.counts}
-                sample={handTest.sample}
-                catalog={catalog}
-                order={handTest.order}
-                rankOf={handTest.rankOf}
-                onCount={handTest.onCount}
-              />
             ) : (
               <ul className="deck-grid" aria-label={`${TITLES[section]} cards`}>
                 {/* One tile per physical copy, copies of a card side by side. */}

@@ -48,7 +48,7 @@ export function RoleSummary({ doc }: Props) {
   return (
     <section className="panel">
       <header>
-        <h2>Taxonomy / Annotation Analysis</h2>
+        <h2>Card tags</h2>
         <p>Main deck {deck}</p>
       </header>
       <p className="note">
