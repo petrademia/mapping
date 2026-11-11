@@ -100,7 +100,7 @@ export function App() {
   const [handOrder, setHandOrder] = useState<number[] | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
   // Which Models view opens when the next-step button sends you there.
-  const [modelsStart, setModelsStart] = useState<ModelsView>("groups");
+  const [modelsStart, setModelsStart] = useState<ModelsView>("outcomes");
   const [status, setStatus] = useState("");
   const [theme, setTheme] = useTheme();
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.

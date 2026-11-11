@@ -27,16 +27,16 @@ interface Props {
   catalog: Catalog;
   onChange: (doc: MappingDocument) => void;
   onHandSize: (size: number) => void;
-  /** Which view opens first; Groups by default. */
+  /** Which view opens first; Hand Goals by default. */
   initialView?: ModelsView;
 }
 
 export type ModelsView = "groups" | "conditions" | "outcomes";
 
 const VIEWS: { key: ModelsView; label: string }[] = [
-  { key: "groups", label: "Groups" },
-  { key: "conditions", label: "Hand Conditions" },
   { key: "outcomes", label: "Hand Goals" },
+  { key: "conditions", label: "Hand Conditions" },
+  { key: "groups", label: "Groups" },
 ];
 
 export function ModelsPanel({
@@ -44,7 +44,7 @@ export function ModelsPanel({
   catalog,
   onChange,
   onHandSize,
-  initialView = "groups",
+  initialView = "outcomes",
 }: Props) {
   const [view, setView] = useState<ModelsView>(initialView);
   const deck = sectionSize(doc.main);
@@ -159,19 +159,10 @@ export function ModelsPanel({
           />
         </label>
       </header>
-      <ol className="models-steps">
-        <li>
-          <strong>Groups</strong> name sets of cards, like "Handtraps".
-        </li>
-        <li>
-          <strong>Hand Conditions</strong> are rules about what a hand holds,
-          like "Nervedo and a valid S/T".
-        </li>
-        <li>
-          <strong>Hand Goals</strong> are what you want from a hand. A
-          hand matches a goal when it matches any of its Hand Conditions.
-        </li>
-      </ol>
+      <p className="note">
+        Start with a Hand Goal: the hands you want to open. Build it from Hand
+        Conditions, and use Groups to name sets of cards like "Handtraps".
+      </p>
       <nav className="context-presets models-nav" aria-label="Models">
         {VIEWS.map((entry) => (
           <button
@@ -189,12 +180,11 @@ export function ModelsPanel({
         <>
           <h3 className="panel-subhead">Groups</h3>
           <p className="note">
-            Named Main Deck card sets for predicates: "which cards are
-            interchangeable for this pattern?" Deck-specific helpers - not
-            taxonomy labels.
+            A group names a set of Main Deck cards, like "Handtraps", so a Hand
+            Condition can count them together.
           </p>
           {doc.groups.length === 0 ? (
-            <p className="empty">No groups yet.</p>
+            <p className="empty">No groups yet. Add one to count several cards as a single thing.</p>
           ) : (
             doc.groups.map((group) => (
               <GroupEditor
@@ -218,12 +208,12 @@ export function ModelsPanel({
           <h3 className="panel-subhead">Hand Conditions</h3>
           <p className="note">
             A rule about what a hand holds. It matches when every Requires line
-            holds and no Excludes line does. MAPPING works out the exact chance
-            across all possible hands. The name is only a label ("through 1
-            Ash"); the Requires and Excludes lines are the rule.
+            holds and no Excludes line does. The name is only a label.
           </p>
           {doc.hand_conditions.length === 0 ? (
-            <p className="empty">No Hand Conditions yet.</p>
+            <p className="empty">
+              No Hand Conditions yet. Add one here, or create one from inside a Hand Goal.
+            </p>
           ) : (
             doc.hand_conditions.map((condition) => (
               <ConditionEditor
@@ -247,11 +237,13 @@ export function ModelsPanel({
         <>
           <h3 className="panel-subhead">Hand Goals</h3>
           <p className="note">
-            Group Hand Conditions into a goal you care about. A hand matches
-            the goal when it matches any of them.
+            A Hand Goal is a hand you want. It matches when the hand matches any
+            of its Hand Conditions.
           </p>
           {doc.hand_condition_sets.length === 0 ? (
-            <p className="empty">No Hand Goals yet.</p>
+            <p className="empty">
+              No Hand Goals yet. Add one, then pick or create the Hand Conditions that make it.
+            </p>
           ) : (
             doc.hand_condition_sets.map((set) => {
               const setSummary = analysis?.sets.find(

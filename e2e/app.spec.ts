@@ -717,6 +717,7 @@ test.describe("Models are card art", () => {
     page.getByRole("navigation", { name: "Models" }).getByRole("button", { name });
 
   test("a Group is built by clicking cards in the Main Deck", async ({ page }) => {
+    await view(page, "Groups").click();
     await page.getByRole("button", { name: "+ Add group" }).click();
     const grid = page.locator(".pick-grid").first();
     await expect(grid.locator(".pick-tile")).toHaveCount(await grid.locator(".pick-tile").count());
@@ -746,6 +747,7 @@ test.describe("Models are card art", () => {
   });
 
   test("a Group requirement shows the cards it counts", async ({ page }) => {
+    await view(page, "Groups").click();
     await page.getByRole("button", { name: "+ Add group" }).click();
     await page.locator(".pick-grid").first().locator(".pick-tile").nth(0).click();
     await view(page, "Hand Conditions").click();
