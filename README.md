@@ -248,6 +248,14 @@ why each predicate passed or failed.
   beside the button). Each Hand Goal that holds then shows whether it survives
   those handtraps, and the cards they would negate are greyed under a red
   cross in your hand.
+- **Hand quality**: the tested hand run through the Scorecard's checks (meets
+  the Hand Goal, holds at most N bricks, survives the worst opponent hand,
+  holds an Interaction card), with the same weights. The rating is the weighted
+  share of those checks it passes, shown next to the deck average. Averaged
+  over every possible hand of that size it equals the deck's combined number
+  (the tests check this exactly), so a hand above the average is above what the
+  deck gives you. A check the deck cannot measure is left out, the same as in
+  the Scorecard. It rates the hand by your models, not by how it plays.
 - **Condition trace**: every requirement, exclusion, and distinct-card
   constraint shows PASS/FAIL. Requirements and exclusions include actual count
   and contributing cards; distinct constraints show eligible names and, when

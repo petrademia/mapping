@@ -9,6 +9,9 @@ import { Icon, PassMark } from "./IconButton";
 import { CardFrame } from "./HandImages";
 import { HandBoard } from "./HandBoard";
 import { scorerWithSource } from "../lib/rankScore";
+import { rateHand } from "../lib/handRating";
+import { scorecard } from "../lib/scorecard";
+import { useScorecardSettings } from "../lib/scorecardWeights";
 import {
   analysisContextOf,
   sectionSize,
@@ -220,6 +223,21 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
   );
   const rankScorer = ranked?.scorer ?? null;
 
+  // The hand read against the Scorecard: the same checks, the same weights.
+  const [scoreSettings] = useScorecardSettings();
+  const quality = useMemo(() => {
+    if (!hand) return null;
+    const deckScore = scorecard(doc, null, scoreSettings);
+    if ("error" in deckScore) return null;
+    const turn = context.turn_order === "going_first" ? deckScore.first : deckScore.second;
+    return {
+      goalName: deckScore.goalName,
+      sample: turn.sample,
+      rating: rateHand(doc, hand.card_counts, deckScore.goalId, turn, scoreSettings),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the doc parts the rating reads
+  }, [hand, doc, scoreSettings, context.turn_order]);
+
   const roleCounts = useMemo(() => {
     if (!hand) return { starter: 0, extender: 0, interaction: 0 };
     const counts = { starter: 0, extender: 0, interaction: 0 };
@@ -346,6 +364,14 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
       {hand && result && issues.length === 0 ? (
         <>
           <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
+          {quality ? (
+            <HandQuality
+              goalName={quality.goalName}
+              rating={quality.rating}
+              handSize={totalSelected}
+              sample={quality.sample}
+            />
+          ) : null}
           <ul className="hand-facts">
             <li>
               <span>Rank score</span>
@@ -562,6 +588,58 @@ function DistinctRow({
         <span className="explorer-notation">{evaluation.detail}</span>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * How good this hand is by the Scorecard's own checks: the share of them it
+ * passes, with your weights, set against what an average hand of this deck scores.
+ */
+function HandQuality({
+  goalName,
+  rating,
+  handSize,
+  sample,
+}: {
+  goalName: string;
+  rating: import("../lib/handRating").HandRating;
+  handSize: number;
+  sample: number;
+}) {
+  const { score, deckAverage } = rating;
+  const verdict =
+    score === null || deckAverage === null
+      ? null
+      : Math.abs(score - deckAverage) < 1e-9
+        ? "At the deck average"
+        : score > deckAverage
+          ? "Above the deck average"
+          : "Below the deck average";
+  return (
+    <section className="hand-quality" aria-label="Hand quality">
+      <p className="hand-quality-score" role="status">
+        <span className="outcome-primary">{score === null ? "-" : formatPercent(score)}</span>{" "}
+        <span className="explorer-notation">
+          hand quality for {goalName || "the Hand Goal"}
+          {verdict && deckAverage !== null ? ` · ${verdict} (${formatPercent(deckAverage)})` : ""}
+        </span>
+      </p>
+      <ul className="hand-quality-checks">
+        {rating.checks.map((check) => (
+          <li key={check.key} className={check.passed === null ? "unmeasured" : undefined}>
+            {check.passed === null ? <span aria-hidden="true">-</span> : <PassMark passed={check.passed} />}
+            <span>
+              <strong>{check.label}</strong> {check.detail}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {handSize !== sample ? (
+        <p className="note">
+          This hand has {handSize} cards; the deck average is for a hand of {sample}.
+        </p>
+      ) : null}
+    </section>
   );
 }
 

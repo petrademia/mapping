@@ -58,6 +58,8 @@ export const TURN_CONTEXTS: Record<"first" | "second", AnalysisContext> = {
 export interface ScenarioSurvival {
   label: string;
   probability: number;
+  /** The handtraps in play, so one hand can be judged against the same scenario. */
+  handtrapIds: string[];
 }
 
 export interface SlotMix {
@@ -81,6 +83,8 @@ export interface TurnScore {
   /** Worst case over every handtrap scenario; null until a handtrap is defined. */
   resilient: number | null;
   worstScenario: string | null;
+  /** The handtraps of that worst scenario. */
+  worstScenarioIds: string[];
   scenarios: ScenarioSurvival[];
   /** P(at least one Interaction card); null when no card has the role. */
   interaction: number | null;
@@ -238,6 +242,7 @@ function turnScore(
   // Resilience against the handtraps defined in the Handtraps tab.
   let resilient: number | null = null;
   let worstScenario: string | null = null;
+  let worstScenarioIds: string[] = [];
   const scenarios: ScenarioSurvival[] = [];
   const scenarioList = scenariosFor(doc);
   if (scenarioList.length === 0) {
@@ -249,7 +254,13 @@ function turnScore(
     } else {
       for (const result of versus.scenarios) {
         const row = result.goals.find((item) => item.setId === goal.id);
-        if (row) scenarios.push({ label: result.scenario.label, probability: row.probability });
+        if (row) {
+          scenarios.push({
+            label: result.scenario.label,
+            probability: row.probability,
+            handtrapIds: [...result.scenario.handtrapIds],
+          });
+        }
       }
       const worst = scenarios.reduce<ScenarioSurvival | null>(
         (low, item) => (low === null || item.probability < low.probability ? item : low),
@@ -257,6 +268,7 @@ function turnScore(
       );
       resilient = worst?.probability ?? null;
       worstScenario = worst?.label ?? null;
+      worstScenarioIds = worst?.handtrapIds ?? [];
     }
   }
 
@@ -280,6 +292,7 @@ function turnScore(
     brickCurve,
     resilient,
     worstScenario,
+    worstScenarioIds,
     scenarios,
     interaction,
     combined: combine({ opens, clean, resilient, interaction }, settings),

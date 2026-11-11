@@ -810,6 +810,33 @@ test.describe("Handtrap versus", () => {
     await expect(page.locator(".scorecard")).toBeVisible();
   });
 
+  test("Hand Test rates a hand by the Scorecard's checks and shows the deck average", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Hand Test").click();
+    await page.getByRole("button", { name: "New Hand" }).click();
+
+    const quality = page.getByRole("region", { name: "Hand quality" });
+    const status = quality.getByRole("status");
+    await expect(status).toContainText(/\d+\.\d{2}% hand quality for/);
+    await expect(status).toContainText(/(Above|Below|At) the deck average \(\d+\.\d{2}%\)/);
+    // The four checks of the Scorecard; the two this deck cannot measure say why.
+    await expect(quality.locator("li")).toHaveCount(4);
+    await expect(quality.locator("li").filter({ hasText: "Opens" })).toContainText(/Hand Goal/);
+    await expect(quality.locator("li").filter({ hasText: "Resilient" })).toContainText(/Veiler|to begin with/);
+    await expect(quality.getByText("no card is marked as a brick")).toBeVisible();
+    await expect(quality.getByText("no card has the role")).toBeVisible();
+
+    // The deck average here is the Scorecard's going-first combined number.
+    const average = (await status.innerText()).match(/\((\d+\.\d{2}%)\)/)![1]!;
+    await nav(page, "Scorecard").click();
+    await expect(
+      page.getByRole("region", { name: "Going first" }).locator(".scorecard-combined .outcome-primary"),
+    ).toHaveText(average);
+  });
+
   test("handtraps are saved with the deck", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
