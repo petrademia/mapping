@@ -103,6 +103,30 @@ export interface Scorecard {
 
 export type ScorecardResult = Scorecard | { error: string };
 
+export const COMPONENT_LABELS = {
+  opens: "Opens",
+  clean: "Clean",
+  resilient: "Resilient",
+  interaction: "Interaction",
+} as const;
+
+export type ComponentKey = keyof typeof COMPONENT_LABELS;
+
+/** The measured number that is lowest for a turn order: the place to look first. */
+export function weakest(turn: TurnScore): { key: ComponentKey; value: number } | null {
+  let low: { key: ComponentKey; value: number } | null = null;
+  for (const key of Object.keys(COMPONENT_LABELS) as ComponentKey[]) {
+    const value = turn[key];
+    if (value !== null && (low === null || value < low.value)) low = { key, value };
+  }
+  return low;
+}
+
+/** The numbers that could not be measured for a turn order. */
+export function unmeasured(turn: TurnScore): ComponentKey[] {
+  return (Object.keys(COMPONENT_LABELS) as ComponentKey[]).filter((key) => turn[key] === null);
+}
+
 /** The Hand Goals that can be scored: those with at least one Hand Condition. */
 export function scorableGoals(doc: MappingDocument): { id: string; name: string }[] {
   return doc.hand_condition_sets

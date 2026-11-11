@@ -4,15 +4,20 @@ import { expect, test, type Page } from "@playwright/test";
 // Every test gets a fresh browser context, so there is no saved draft and the
 // app loads public/default.ydk as a real first run does. Expected counts come
 // from that file, so replacing the default deck does not break these tests.
-function defaultDeckCounts(): { main: number; extra: number; side: number } {
-  const counts = { main: 0, extra: 0, side: 0 };
-  let section: keyof typeof counts = "main";
+function defaultDeckCounts(): { main: number; extra: number; side: number; sideToMain: number } {
+  const counts = { main: 0, extra: 0, side: 0, sideToMain: 0 };
+  // Extra Deck monsters can sit in the Side Deck but cannot be swapped into Main.
+  const extraIds = new Set<number>(JSON.parse(readFileSync("public/extra-deck.json", "utf8")));
+  let section: "main" | "extra" | "side" = "main";
   for (const raw of readFileSync("public/default.ydk", "utf8").split(/\r?\n/)) {
     const line = raw.trim().toLowerCase();
     if (line === "#main") section = "main";
     else if (line === "#extra") section = "extra";
     else if (line === "!side" || line === "#side") section = "side";
-    else if (/^\d+$/.test(line)) counts[section] += 1;
+    else if (/^\d+$/.test(line)) {
+      counts[section] += 1;
+      if (section === "side" && !extraIds.has(Number(line))) counts.sideToMain += 1;
+    }
   }
   return counts;
 }
@@ -501,7 +506,8 @@ test("Card Rank follows the cards in the analyzed Post-Side list", async ({ page
   await nav(page, "Rank").click();
   const going = page.getByRole("region", { name: "Going First ranking" });
   // The card that was sided in can be ranked now.
-  await expect(going.locator(`.rank-tile[title="${name}"]`).first()).toBeVisible();
+  // By title text, not a CSS selector: card names can contain quotation marks.
+  await expect(going.locator(".rank-tile").and(page.getByTitle(name, { exact: true })).first()).toBeVisible();
 });
 
 test.describe("Rank scores hands", () => {
@@ -780,6 +786,30 @@ test.describe("Handtrap versus", () => {
     await expect(page.locator(".scorecard").getByRole("spinbutton", { name: "Resilient" })).toHaveValue("0");
   });
 
+  test("the landing view summarises going first and going second, and says what is missing", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await nav(page, "Profile").click();
+    const summary = page.getByRole("region", { name: "Quality at a glance" });
+    const first = summary.getByRole("region", { name: "Going first" });
+    const second = summary.getByRole("region", { name: "Going second" });
+    await expect(first.getByRole("status")).toHaveText(/^\d+\.\d%$/);
+    await expect(second.getByRole("status")).toHaveText(/^\d+\.\d%$/);
+    await expect(first.getByText(/^Weakest:/)).toBeVisible();
+    // Nothing else is modelled yet, so it says how to measure the rest.
+    await expect(summary.getByText(/Not measured yet: .*Resilient, to measure it add a handtrap/)).toBeVisible();
+
+    // Adding a handtrap makes Resilient measured, so it drops off the missing list.
+    await nav(page, "Handtraps").click();
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Profile").click();
+    await expect(summary.getByText(/Resilient, to measure it/)).toHaveCount(0);
+
+    await summary.getByRole("button", { name: "Open the Scorecard" }).click();
+    await expect(page.locator(".scorecard")).toBeVisible();
+  });
+
   test("handtraps are saved with the deck", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
@@ -915,12 +945,17 @@ test.describe("Sorting the deck sections", () => {
 test("the minus on the last copy removes the card", async ({ page }) => {
   await openApp(page);
   const section = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
-  // The first card in the default deck has one copy.
   await section.locator(".deck-tile").first().click();
   const editor = section.getByRole("group", { name: /^Edit / });
-  await expect(editor.getByLabel("Quantity", { exact: true })).toHaveValue("1");
+  const quantity = editor.getByRole("spinbutton", { name: "Quantity" });
+  // Take the first card down to one copy, whatever the default deck holds.
+  const copies = Number(await quantity.inputValue());
+  for (let copy = copies; copy > 1; copy -= 1) {
+    await editor.getByRole("button", { name: "Decrease quantity" }).click();
+  }
+  await expect(quantity).toHaveValue("1");
   await editor.getByRole("button", { name: "Remove card" }).click();
-  await expect(page.locator(".counts")).toContainText(`${DEFAULT.main - 1} main`);
+  await expect(page.locator(".counts")).toContainText(`${DEFAULT.main - copies} main`);
   await expect(section.getByRole("group", { name: /^Edit / })).toHaveCount(0);
 });
 
@@ -1184,7 +1219,7 @@ test.describe("Deck Configuration", () => {
     await expect(page.getByRole("heading", { name: /^Not in Main \(/ })).toBeVisible();
     await expect(page.getByText("Click a card in Main to send it to the Side")).toBeVisible();
     await expect(page.getByRole("list", { name: "Main in this configuration", exact: true }).locator("li")).toHaveCount(DEFAULT.main);
-    await expect(page.getByRole("list", { name: "Not in Main in this configuration", exact: true }).locator("li")).toHaveCount(DEFAULT.side);
+    await expect(page.getByRole("list", { name: "Not in Main in this configuration", exact: true }).locator("li")).toHaveCount(DEFAULT.sideToMain);
 
     // Send the first Main card out, bring the last Side card in: same size, two changes.
     await page.locator('button[aria-label^="Move one"][aria-label$="to Side"]').first().click();

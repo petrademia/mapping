@@ -281,4 +281,10 @@
 .scorecard-slots { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--text-xs); color: var(--muted); }
 .scorecard-slots span { display: inline-flex; align-items: center; gap: var(--space-1); }
 .scorecard-slots span::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--c); }
+.summary-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-3); margin: var(--space-3) 0; }
+.summary-tile { min-width: 0; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.summary-tile h3 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.summary-tile .outcome-primary { margin: var(--space-1) 0; font-size: var(--text-2xl, var(--text-xl)); }
+.summary-weakest { margin: 0; font-size: var(--text-xs); color: var(--muted); }
+.summary-weakest strong { color: var(--ink); font-weight: 600; }
 .scorecard-curve td.on { font-weight: 600; color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }

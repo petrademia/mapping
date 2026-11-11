@@ -8,6 +8,8 @@ import {
   DEFAULT_WEIGHTS,
   scorableGoals,
   scorecard,
+  unmeasured,
+  weakest,
   type Scorecard,
 } from "./scorecard";
 
@@ -143,6 +145,22 @@ describe("scorecard", () => {
     const card = ok(scorecard(two, "g"));
     expect(card.first.scenarios.map((s) => s.label)).toEqual(["Veiler", "Harmless"]);
     expect(card.first.resilient).toBeCloseTo(40 / 56, 12);
+  });
+});
+
+describe("the summary helpers", () => {
+  it("name the lowest measured number and what could not be measured", () => {
+    const card = ok(scorecard(doc(), "g"));
+    // Going first: opens 55/56, clean 16/56, resilient 40/56, interaction 50/56.
+    expect(weakest(card.first)).toEqual({ key: "clean", value: 16 / 56 });
+    // Going second: opens 1, clean 3/28, resilient 25/28, interaction 27/28.
+    expect(weakest(card.second)).toEqual({ key: "clean", value: 3 / 28 });
+    expect(unmeasured(card.first)).toEqual([]);
+
+    const partial = ok(scorecard(doc({ handtrap: false, bricks: false }), "g"));
+    expect(unmeasured(partial.first)).toEqual(["clean", "resilient"]);
+    // Only what was measured counts: interaction (50/56) is below opens (55/56).
+    expect(weakest(partial.first)).toEqual({ key: "interaction", value: 50 / 56 });
   });
 });
 

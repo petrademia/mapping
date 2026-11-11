@@ -289,6 +289,10 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
   case over the handtraps and pairs in the Handtraps tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
+- The Profile view opens with **Quality at a glance**: one combined number for
+  going first and one for going second, the weakest measured number in each,
+  and what is not measured yet and how to measure it. It is a summary of the
+  Scorecard, so it is only as complete as your models.
 - A slot mix per turn order (desirable, neutral, bricks, not set), and a
   combined number per turn order and overall. The combined numbers are weighted
   means; the weights are yours (kept in this browser), and a number that cannot
