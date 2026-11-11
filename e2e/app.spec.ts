@@ -545,6 +545,86 @@ test.describe("Choosing the turn order where you test", () => {
   });
 });
 
+test.describe("Handtrap versus", () => {
+  const nav = (page: Page, name: string) =>
+    page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name });
+
+  async function withGoal(page: Page): Promise<void> {
+    await nav(page, "Models").click();
+    await page.getByRole("navigation", { name: "Models" }).getByRole("button", { name: "Hand Goals" }).click();
+    await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
+    await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
+    await page.locator('.engine-member input[type="checkbox"]').last().check();
+    await nav(page, "Handtraps").click();
+  }
+
+  test("asks for a Hand Goal before showing any odds", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Handtraps").click();
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await expect(page.getByText("Define a Hand Goal with at least one Hand Condition first.")).toBeVisible();
+  });
+
+  test("adds handtraps from card art and shows how a Hand Goal holds up", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    // The tile is gone once added, and a block asks which cards it can stop.
+    await expect(page.getByRole("button", { name: "Add Effect Veiler" })).toHaveCount(0);
+    await expect(page.getByText("Cards it can stop: none picked yet")).toBeVisible();
+    // With nothing picked it can stop nothing.
+    const table = page.getByRole("table", { name: "Hand Goal odds against handtraps" });
+    await expect(table.getByRole("row", { name: /Effect Veiler/ })).toContainText("no change");
+
+    await page.getByRole("button", { name: "Every card" }).click();
+    const veiler = table.getByRole("row", { name: /Effect Veiler/ });
+    await expect(veiler).toContainText("pts");
+    await expect(veiler).not.toContainText("no change");
+    await expect(veiler.locator(".odds-fraction")).toContainText(/\d[\d,]* \/ [\d,]+/);
+    // The no-handtrap row is the ceiling.
+    const base = await table.getByRole("row", { name: /No handtrap/ }).locator(".odds-percent").innerText();
+    const hit = await veiler.locator(".odds-percent").innerText();
+    expect(parseFloat(hit)).toBeLessThan(parseFloat(base));
+  });
+
+  test("saves a pair and compares it with each handtrap alone", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Add Ash Blossom & Joyous Spring" }).click();
+    for (const every of await page.getByRole("button", { name: "Every card" }).all()) await every.click();
+    await page.getByLabel("First handtrap").selectOption({ label: "Effect Veiler" });
+    await page.getByLabel("Second handtrap").selectOption({ label: "Ash Blossom & Joyous Spring" });
+    await page.getByRole("button", { name: "Save pair" }).click();
+    await expect(page.getByRole("list", { name: "Saved pairs" })).toContainText("Effect Veiler + Ash Blossom & Joyous Spring");
+    const table = page.getByRole("table", { name: "Hand Goal odds against handtraps" });
+    const pct = async (label: string) =>
+      parseFloat(
+        await table
+          .locator("tr", { has: page.getByRole("rowheader", { name: label, exact: true }) })
+          .locator(".odds-percent")
+          .innerText(),
+      );
+    const single = await pct("Effect Veiler");
+    const pair = await pct("Effect Veiler + Ash Blossom & Joyous Spring");
+    // Two handtraps are never better for you than one.
+    expect(pair).toBeLessThanOrEqual(single);
+
+    // Removing a handtrap removes the pairs that used it.
+    await page.getByRole("button", { name: "Remove" }).first().click();
+    await expect(page.getByRole("list", { name: "Saved pairs" })).toHaveCount(0);
+  });
+
+  test("handtraps are saved with the deck", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Dominus Purge" }).click();
+    await page.reload();
+    await nav(page, "Handtraps").click();
+    await expect(page.getByLabel("Handtrap name").first()).toHaveValue("Dominus Purge");
+  });
+});
+
 test.describe("Models are card art", () => {
   test.beforeEach(async ({ page }) => {
     await openApp(page);

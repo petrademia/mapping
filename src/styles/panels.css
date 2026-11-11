@@ -225,3 +225,15 @@
 .deck-sort { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
 .deck-sort select { min-height: 1.75rem; padding-top: var(--space-1); padding-bottom: var(--space-1); font-size: var(--text-xs); }
 
+/* ---- Handtrap versus --------------------------------------------------- */
+.handtrap-add { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0; padding: 0; list-style: none; }
+.handtrap-add li { width: 52px; }
+.handtrap-art { flex: none; width: 36px; }
+.handtrap-block .access-block-head input { min-width: 0; }
+.handtrap-pairs { display: grid; gap: var(--space-1); margin: var(--space-2) 0; padding: 0; list-style: none; }
+.handtrap-pairs li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-1) 0; border-bottom: 1px solid var(--line); }
+.handtrap-table .num .delta { display: block; font-size: var(--text-xs); }
+.handtrap-table .odds-percent { font-size: var(--text-md); }
+.handtrap-picker { margin-top: var(--space-2); }
+.handtrap-picker summary { min-height: var(--control-h); display: flex; align-items: center; color: var(--accent-strong); font-weight: 500; cursor: pointer; }
+

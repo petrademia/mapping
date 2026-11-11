@@ -317,6 +317,26 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
 
+### Handtrap versus
+
+The **Handtraps** tab asks how your Hand Goals hold up when the opponent holds
+handtraps. You add handtraps (the usual ones come as card art: Effect Veiler,
+Infinite Impermanence, Ash Blossom & Joyous Spring, Dominus Purge, Dominus
+Impulse, Fydraulis Harmonia, Ghost Belle & Haunted Mansion, or any you name)
+and pick, per handtrap, the cards of yours it can stop. You can also save
+**pairs** the opponent holds together.
+
+- A handtrap negates one copy of a card in your hand that it can stop. The
+  opponent always chooses the copy that hurts the goal most, or does nothing
+  when that is better for them, so every number is the worst case.
+- A pair applies two negations, one per handtrap, each on its own copy.
+- Results are exact over every possible hand (same method as Hand Goals): for
+  each goal, the chance it holds and survives, with the exact hand count and
+  the drop in points against no handtrap.
+- A handtrap with no cards picked can stop nothing and shows no change.
+- Handtraps and pairs are saved with the deck (`handtraps`,
+  `handtrap_pairs`, schema 10).
+
 ### Analysis Context
 
 Composition probabilities are evaluated under an **Analysis Context** (not taxonomy):

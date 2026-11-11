@@ -3,6 +3,7 @@ import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { ComparePanel } from "./components/ComparePanel";
+import { HandtrapPanel } from "./components/HandtrapPanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
@@ -45,7 +46,7 @@ import {
 import { observedCards, type AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare";
+type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
 
 const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "profile", label: "Profile" },
@@ -53,6 +54,7 @@ const WORKSPACES: { key: Workspace; label: string }[] = [
   { key: "hand-test", label: "Hand Test" },
   { key: "batch", label: "Batch Test" },
   { key: "rank", label: "Rank" },
+  { key: "handtraps", label: "Handtraps" },
   { key: "compare", label: "Compare" },
 ];
 
@@ -420,6 +422,10 @@ export function App() {
                 );
               }}
             />
+          ) : null}
+
+          {workspace === "handtraps" ? (
+            <HandtrapPanel doc={view} catalog={catalog} onChange={changeView} />
           ) : null}
 
           {workspace === "compare" ? (
