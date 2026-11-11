@@ -306,6 +306,11 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
   case over the handtraps and pairs in the Handtraps tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
+- **1 to 2 and 1 to 3 handtraps** - two extra columns on the interruption table:
+  the average of the "after 1, 2 (and 3)" results, each count weighted equally.
+  It is the survival to expect if the opponent holds that many handtraps (for
+  example 1 to 2 in game 1, and 1 to 3 after they side in more). The Profile
+  summary shows the same averages.
 - **Interruption curve** - hands that still meet the Hand Goal after 0, 1, 2 and 3
   interruptions, where each interruption stops any one card in hand and the
   opponent picks the one that hurts most. It needs no handtrap defined. A hand

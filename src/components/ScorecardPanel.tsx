@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { MappingDocument } from "../lib/document";
 import {
   BRICK_CURVE_MAX,
+  rangeMean,
   scorableGoals,
   scorecard,
   type ScorecardSettings,
@@ -226,6 +227,8 @@ export function ScorecardPanel({ doc }: Props) {
                         {k}
                       </th>
                     ))}
+                    <th scope="col">1 to 2 handtraps</th>
+                    <th scope="col">1 to 3 handtraps</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -246,10 +249,23 @@ export function ScorecardPanel({ doc }: Props) {
                           {percent(value)}
                         </td>
                       ))}
+                      {[2, 3].map((to) => {
+                        const mean = rangeMean(values as number[], 1, to);
+                        return (
+                          <td key={`range-${to}`} className="num range">
+                            {mean === null ? "-" : percent(mean)}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <p className="note">
+                "1 to 2 handtraps" and "1 to 3 handtraps" average the columns after 1, 2 (and 3)
+                interruptions, each count weighted equally: the survival to expect if the opponent
+                holds that many.
+              </p>
               {result.first.interruptionsPriority.length > 0 ? (
                 <p className="note">
                   The last two rows assume the opponent uses each handtrap on the first card or Group

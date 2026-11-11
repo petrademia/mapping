@@ -753,10 +753,15 @@ test.describe("Handtrap versus", () => {
 
     // The interruption curve needs no handtrap: Opens, then fewer hands after each interruption.
     const curve = card.getByRole("table", { name: "Interruption curve" });
-    const firstRow = (await curve.getByRole("row", { name: /Going first/ }).locator("td").allInnerTexts()).map(value);
-    expect(firstRow).toHaveLength(4);
+    const cells = (await curve.getByRole("row", { name: /^Going first(?!,)/ }).locator("td").allInnerTexts()).map(value);
+    // Four counts (0 to 3 interruptions), then the averages for 1 to 2 and 1 to 3 handtraps.
+    expect(cells).toHaveLength(6);
+    const firstRow = cells.slice(0, 4);
     expect(firstRow[0]).toBeCloseTo(value(await read(first, "Opens").innerText()), 1);
     for (let k = 1; k < firstRow.length; k += 1) expect(firstRow[k]!).toBeLessThanOrEqual(firstRow[k - 1]!);
+    expect(cells[4]).toBeCloseTo((firstRow[1]! + firstRow[2]!) / 2, 1);
+    expect(cells[5]).toBeCloseTo((firstRow[1]! + firstRow[2]! + firstRow[3]!) / 3, 1);
+    await expect(curve.getByRole("columnheader", { name: "1 to 2 handtraps" })).toBeVisible();
     await expect(card.getByText(/one interruption ends the turn/)).toBeVisible();
 
     // Bricks come from the routes: with a Hand Goal, every card in no route counts as one.

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { MappingDocument } from "../lib/document";
-import { COMPONENT_LABELS, scorecard, unmeasured, weakest, type TurnScore } from "../lib/scorecard";
+import { COMPONENT_LABELS, rangeMean, scorecard, unmeasured, weakest, type TurnScore } from "../lib/scorecard";
 import { useScorecardSettings } from "../lib/scorecardWeights";
 
 const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
@@ -29,6 +29,16 @@ function Tile({ title, turn }: { title: string; turn: TurnScore }) {
             <>
               {" "}
               ({percent(turn.interruptionsPriority[1]!)} if they follow your list)
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {turn.interruptions.length > 2 ? (
+        <p className="summary-weakest">
+          With 1 to 2 handtraps: <strong>{percent(rangeMean(turn.interruptions, 1, 2)!)}</strong>
+          {turn.interruptions.length > 3 ? (
+            <>
+              ; 1 to 3: <strong>{percent(rangeMean(turn.interruptions, 1, 3)!)}</strong>
             </>
           ) : null}
         </p>

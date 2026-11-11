@@ -3,6 +3,7 @@ import { createDocument, type MappingDocument } from "./document";
 import { parseSettings } from "./scorecardWeights";
 import {
   atLeastOne,
+  rangeMean,
   combine,
   DEFAULT_SETTINGS,
   DEFAULT_WEIGHTS,
@@ -196,6 +197,16 @@ describe("the interruption curve", () => {
     expect(card.first.resilientPriority).not.toBeNull();
     // It never changes the combined number, which stays the worst case.
     expect(card.first.combined).toBeCloseTo(ok(scorecard(doc(), "g")).first.combined!, 12);
+  });
+
+  it("averages the curve over the handtraps you expect the opponent to hold", () => {
+    const curve = ok(scorecard(doc(), "g")).first.interruptions; // 55, 40, 10, 0 of 56
+    expect(rangeMean(curve, 1, 2)).toBeCloseTo((40 + 10) / 2 / 56, 12);
+    expect(rangeMean(curve, 1, 3)).toBeCloseTo((40 + 10 + 0) / 3 / 56, 12);
+    expect(rangeMean(curve, 1, 1)).toBeCloseTo(40 / 56, 12);
+    expect(rangeMean(curve, 1, 4)).toBeNull(); // the curve stops at three
+    expect(rangeMean(curve, 2, 1)).toBeNull();
+    expect(rangeMean([], 1, 2)).toBeNull();
   });
 
   it("needs no handtrap to be defined", () => {

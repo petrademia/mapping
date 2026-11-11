@@ -53,6 +53,17 @@ export const BRICK_CURVE_MAX = 3;
 /** The interruption curve is measured for 0 up to this many interruptions. */
 export const INTERRUPTION_CURVE_MAX = 3;
 
+/**
+ * The average of a curve over a range of interruptions, each count weighted equally: the
+ * survival to expect when the opponent holds anywhere from `from` to `to` handtraps.
+ * null when the curve does not reach that far.
+ */
+export function rangeMean(curve: readonly number[], from: number, to: number): number | null {
+  if (from < 0 || to < from || to >= curve.length) return null;
+  const values = curve.slice(from, to + 1);
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 /** The two situations measured: the opening hand going first, the first-turn hand going second. */
 export const TURN_CONTEXTS: Record<"first" | "second", AnalysisContext> = {
   first: { turn_order: "going_first", observation_point: "opening_hand" },
