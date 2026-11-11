@@ -192,10 +192,15 @@ export function ModelsPanel({
                 group={group}
                 doc={doc}
                 catalog={catalog}
-                normalSummon={doc.normal_summon_group_id === group.id}
+                chokePoint={doc.choke_point_group_ids.includes(group.id)}
                 onChange={(next) => onChange(upsertGroup(doc, next))}
-                onNormalSummon={(on) =>
-                  onChange({ ...doc, normal_summon_group_id: on ? group.id : null })
+                onChokePoint={(on) =>
+                  onChange({
+                    ...doc,
+                    choke_point_group_ids: on
+                      ? [...doc.choke_point_group_ids.filter((id) => id !== group.id), group.id]
+                      : doc.choke_point_group_ids.filter((id) => id !== group.id),
+                  })
                 }
                 onRemove={() => onChange(removeGroup(doc, group.id))}
               />

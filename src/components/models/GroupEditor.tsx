@@ -8,19 +8,18 @@ export function GroupEditor({
   group,
   doc,
   catalog,
-  normalSummon,
+  chokePoint,
   onChange,
-  onNormalSummon,
+  onChokePoint,
   onRemove,
 }: {
   group: Group;
   doc: MappingDocument;
   catalog: Catalog;
-  /** This is the Group of cards that each need the Normal Summon. */
-  normalSummon: boolean;
+  /** The cards of this Group share one bottleneck, so only one of them can complete a turn. */
+  chokePoint: boolean;
   onChange: (group: Group) => void;
-  /** Only one Group can be the Normal Summon Group; choosing this one replaces another. */
-  onNormalSummon: (on: boolean) => void;
+  onChokePoint: (on: boolean) => void;
   onRemove: () => void;
 }) {
   const members = new Set(group.card_ids);
@@ -46,14 +45,15 @@ export function GroupEditor({
       <label className="check-row">
         <input
           type="checkbox"
-          checked={normalSummon}
-          onChange={(event) => onNormalSummon(event.target.checked)}
+          checked={chokePoint}
+          onChange={(event) => onChokePoint(event.target.checked)}
         />
         <span>
-          Uses the Normal Summon
+          Only one of these can complete a turn
           <small>
-            Each card here needs your one Normal Summon a turn, so only one can be
-            used. The handtrap analysis counts a second copy as no backup.
+            A shared bottleneck, such as your one Normal Summon, or a once-per-turn
+            effect every route runs through. If it is stopped, a second card from this
+            Group is no backup. You can mark more than one Group.
           </small>
         </span>
       </label>

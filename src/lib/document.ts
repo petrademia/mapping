@@ -72,11 +72,12 @@ export interface MappingDocument {
   /** id of the HandConditionSet that defines Modeled Engine Access. */
   engine_access_set_id: string | null;
   /**
-   * id of the Group of cards that each need your one Normal Summon a turn (for
-   * example Medius the Pure and The Great Gallant Bandit). Only one of them can
-   * be used in a turn, which the handtrap analysis takes into account. null = none.
+   * ids of the Groups whose cards share one bottleneck, such as the one Normal
+   * Summon a turn or a once-per-turn effect every route runs through. Only one
+   * card of such a Group can complete in a turn, so a second card is no backup for
+   * the first when it is stopped. The handtrap analysis takes this into account.
    */
-  normal_summon_group_id: string | null;
+  choke_point_group_ids: string[];
   analysis: MappingAnalysis;
   /**
    * Post-side configurations. The main/extra/side lists above are Pre-Side.
@@ -154,7 +155,7 @@ export function createDocument(name: string): MappingDocument {
       },
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
-    normal_summon_group_id: null,
+    choke_point_group_ids: [],
     analysis: defaultAnalysis(),
     configurations: [],
     active_configuration_id: null,
@@ -360,7 +361,7 @@ export function clearModeledOutcomes(doc: MappingDocument): MappingDocument {
       },
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
-    normal_summon_group_id: null,
+    choke_point_group_ids: [],
   };
 }
 
@@ -497,7 +498,7 @@ export function removeGroup(
   return {
     ...doc,
     groups: doc.groups.filter((group) => group.id !== groupId),
-    normal_summon_group_id: doc.normal_summon_group_id === groupId ? null : doc.normal_summon_group_id,
+    choke_point_group_ids: doc.choke_point_group_ids.filter((id) => id !== groupId),
     hand_conditions: doc.hand_conditions.map((condition) =>
       normalizeHandCondition({
         ...condition,
@@ -760,12 +761,16 @@ export function parseMappingJson(text: string): MappingDocument {
   });
   const rawGroups = data.groups ?? data.access_groups;
   const groups = Array.isArray(rawGroups) ? rawGroups.map(parseGroup) : [];
-  // Files from before this field, or one naming a Group that is gone, have none.
-  const normalSummonGroupId =
-    typeof data.normal_summon_group_id === "string" &&
-    groups.some((group) => group.id === data.normal_summon_group_id)
-      ? data.normal_summon_group_id
-      : null;
+  // Groups marked as a shared bottleneck. Files from before this field have none, ids of a
+  // Group that is gone are dropped, and an earlier single "Normal Summon Group" is read as one.
+  const chokeIds = new Set<string>();
+  const knownGroup = (id: unknown): id is string =>
+    typeof id === "string" && groups.some((group) => group.id === id);
+  if (Array.isArray(data.choke_point_group_ids)) {
+    for (const id of data.choke_point_group_ids) if (knownGroup(id)) chokeIds.add(id);
+  }
+  if (knownGroup(data.normal_summon_group_id)) chokeIds.add(data.normal_summon_group_id);
+  const chokePointGroupIds = [...chokeIds];
   const rawConditions = data.hand_conditions ?? data.access_conditions;
   const hand_conditions = Array.isArray(rawConditions)
     ? rawConditions.map(parseHandCondition)
@@ -825,7 +830,7 @@ export function parseMappingJson(text: string): MappingDocument {
       hand_conditions,
       hand_condition_sets: [...withoutDefault, engineSet],
       engine_access_set_id: ENGINE_ACCESS_SET_ID,
-      normal_summon_group_id: normalSummonGroupId,
+      choke_point_group_ids: chokePointGroupIds,
       analysis: parsedAnalysis,
       configurations,
       active_configuration_id: activeId,
@@ -856,7 +861,7 @@ export function parseMappingJson(text: string): MappingDocument {
     hand_conditions,
     hand_condition_sets,
     engine_access_set_id: engineAccessId,
-    normal_summon_group_id: normalSummonGroupId,
+    choke_point_group_ids: chokePointGroupIds,
     analysis: parsedAnalysis,
     configurations,
     active_configuration_id: activeId,
@@ -905,7 +910,7 @@ export function serializeMapping(doc: MappingDocument): string {
       aggregation: set.aggregation,
     })),
     engine_access_set_id: doc.engine_access_set_id,
-    normal_summon_group_id: doc.normal_summon_group_id,
+    choke_point_group_ids: [...doc.choke_point_group_ids],
     analysis: doc.analysis,
     configurations: doc.configurations.map((config) => ({
       id: config.id,

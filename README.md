@@ -312,8 +312,8 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
   with one route ends its turn on the first interruption; two independent
   routes (for example two starters that do not need each other) take one, not
   two. The Scorecard also shows the share of hands that meet the goal with only
-  one route. A second copy of a card counts as a backup here, so it overstates
-  a card that needs the Normal Summon.
+  one route. A second copy of a card counts as a backup here, and so does
+  another route, unless you marked their Group as a choke point in Models.
 - The Profile view opens with **Quality at a glance**: one combined number for
   going first and one for going second, the weakest measured number in each,
   and what is not measured yet and how to measure it. It is a summary of the
@@ -388,13 +388,17 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   opponent always chooses the copy that hurts the goal most, or does nothing
   when that is better for them, so every number is the worst case.
 - A pair applies two negations, one per handtrap, each on its own copy.
-- **One Normal Summon a turn.** In Models, Groups, mark one Group as "Uses the
-  Normal Summon" and list the cards that each need it (for example Medius the
-  Pure and The Great Gallant Bandit). You can use only one of them a turn, so a
-  second copy is no backup for the one that was stopped, and a goal that needs
-  two of them at once cannot be met. You choose which one to use, then the
-  opponent answers, and a goal survives when some choice survives every answer.
-  Without a marked Group, copies back each other up as before.
+- **Choke points.** Some cards share one bottleneck: your one Normal Summon a
+  turn, or a once-per-turn effect that several routes all run through (for
+  example Tinia, Corruption, Finite and Citrinitas all end at one Citrinitas
+  effect). In Models, Groups, put those cards in a Group and mark it "Only one
+  of these can complete a turn". You can mark several Groups. Only one card of
+  a marked Group can be used in a turn, so a second card is no backup for the
+  one that was stopped, and a goal that needs two of them at once cannot be
+  met. For each Group you choose which card to use, then the opponent answers,
+  and a goal survives when some choice survives every answer. Without a marked
+  Group, copies and routes back each other up as before. Files saved with the
+  earlier single "Normal Summon Group" are read as one marked Group.
 - Results are exact over every possible hand (same method as Hand Goals): for
   each goal, the chance it holds and survives, with the exact hand count and
   the drop in points against no handtrap.

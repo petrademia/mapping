@@ -65,30 +65,45 @@ export function scenariosFor(doc: MappingDocument): VersusScenario[] {
   ];
 }
 
-/** The cards that each need your one Normal Summon a turn (the document's Normal Summon Group). */
-function normalSummonCards(doc: MappingDocument): ReadonlySet<number> {
-  const group = doc.normal_summon_group_id
-    ? doc.groups.find((entry) => entry.id === doc.normal_summon_group_id)
-    : undefined;
-  return new Set(group?.card_ids ?? []);
+/**
+ * The Groups marked as a shared bottleneck, as hand positions: for each, the rows of its
+ * cards in `deck`. Groups with no card in the deck are left out.
+ */
+function chokePointRows(doc: MappingDocument, deck: readonly { card_id: number }[]): number[][] {
+  const rows: number[][] = [];
+  for (const id of doc.choke_point_group_ids) {
+    const group = doc.groups.find((entry) => entry.id === id);
+    if (!group) continue;
+    const members = new Set(group.card_ids);
+    const inDeck = deck.flatMap((card, row) => (members.has(card.card_id) ? [row] : []));
+    if (inDeck.length > 0) rows.push(inDeck);
+  }
+  return rows;
 }
 
 /**
- * Runs `test` as if only one card that needs the Normal Summon could be used: you
- * choose which one (or none) before the opponent answers, and succeed when any
- * choice passes. `rows` are the hand positions of those cards. The hand is put back.
+ * Runs `test` as if only one card of each choke-point Group could be used: for each
+ * Group you choose which card (or none) before the opponent answers, and it
+ * succeeds when any combination of choices passes. The hand is put back.
  */
-function withNormalSummon(hand: number[], rows: readonly number[], test: () => boolean): boolean {
+function withChokePoints(
+  hand: number[],
+  groups: readonly (readonly number[])[],
+  test: () => boolean,
+  index = 0,
+): boolean {
+  if (index === groups.length) return test();
+  const rows = groups[index]!;
   const present = rows.filter((row) => hand[row]! > 0);
-  if (present.length === 0) return test();
+  if (present.length === 0) return withChokePoints(hand, groups, test, index + 1);
   const saved = rows.map((row) => hand[row]!);
   for (const choice of [...present, -1]) {
     rows.forEach((row) => {
       hand[row] = row === choice ? 1 : 0;
     });
-    const ok = test();
-    rows.forEach((row, index) => {
-      hand[row] = saved[index]!;
+    const ok = withChokePoints(hand, groups, test, index + 1);
+    rows.forEach((row, at) => {
+      hand[row] = saved[at]!;
     });
     if (ok) return true;
   }
@@ -138,9 +153,8 @@ export function analyzeVersus(
     );
   }
 
-  // Cards that share the Normal Summon: the Group is already part of what tells rows apart.
-  const normalSummon = normalSummonCards(doc);
-  const normalSummonRows = deck.flatMap((card, row) => (normalSummon.has(card.card_id) ? [row] : []));
+  // Cards that share a bottleneck: each Group is already part of what tells rows apart.
+  const chokeRows = chokePointRows(doc, deck);
 
   const baseline = goals.map(() => 0n);
   const survived = scenarios.map(() => goals.map(() => 0n));
@@ -174,7 +188,7 @@ export function analyzeVersus(
       base.forEach((passes, goal) => {
         if (
           passes &&
-          withNormalSummon(hand, normalSummonRows, () => survives(hand, goal, scenario.handtrapIds, 0))
+          withChokePoints(hand, chokeRows, () => survives(hand, goal, scenario.handtrapIds, 0))
         ) {
           survived[index]![goal] = survived[index]![goal]! + weight;
         }
@@ -247,22 +261,23 @@ export function handVersus(
     return null;
   }
 
-  // You choose which card that needs the Normal Summon to use, then the opponent
-  // answers: the goal is broken only when every choice can be broken.
-  const normalSummon = normalSummonCards(doc);
-  const normalSummonRows = deck.flatMap((card, row) => (normalSummon.has(card.card_id) ? [row] : []));
-  function breakChoosing(members: readonly HandConditionLike[]): number[] | null {
-    const present = normalSummonRows.filter((row) => hand[row]! > 0);
-    if (present.length === 0) return breakWith(members, 0);
-    const saved = normalSummonRows.map((row) => hand[row]!);
+  // For each choke-point Group you choose which of its cards to use, then the opponent
+  // answers: the goal is broken only when every combination of choices can be broken.
+  const chokeRows = chokePointRows(doc, deck);
+  function breakChoosing(members: readonly HandConditionLike[], index = 0): number[] | null {
+    if (index === chokeRows.length) return breakWith(members, 0);
+    const rows = chokeRows[index]!;
+    const present = rows.filter((row) => hand[row]! > 0);
+    if (present.length === 0) return breakChoosing(members, index + 1);
+    const saved = rows.map((row) => hand[row]!);
     let shown: number[] | null = null;
     for (const choice of [...present, -1]) {
-      normalSummonRows.forEach((row) => {
+      rows.forEach((row) => {
         hand[row] = row === choice ? 1 : 0;
       });
-      const result = breakWith(members, 0);
-      normalSummonRows.forEach((row, index) => {
-        hand[row] = saved[index]!;
+      const result = breakChoosing(members, index + 1);
+      rows.forEach((row, at) => {
+        hand[row] = saved[at]!;
       });
       if (result === null) return null; // this choice survives every answer
       // Show a break that names cards, when there is one.

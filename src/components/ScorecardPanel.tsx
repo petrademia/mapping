@@ -250,8 +250,8 @@ export function ScorecardPanel({ doc }: Props) {
                   <strong>{percent(result.first.interruptions[0]! - result.first.interruptions[1]!)}</strong>{" "}
                   going first,{" "}
                   <strong>{percent(result.second.interruptions[0]! - result.second.interruptions[1]!)}</strong>{" "}
-                  going second. A second copy of the same card counts as a backup here, which is
-                  not true for a card that needs the Normal Summon.
+                  going second. A second copy of a card counts as a backup here, and so does
+                  another route, unless you marked their Group as a choke point in Models.
                 </p>
               ) : null}
             </>
@@ -355,8 +355,9 @@ export function ScorecardPanel({ doc }: Props) {
               <li>
                 Resilient only removes cards from your hand. It does not model a handtrap
                 that stops a later step of your combo, or a card that stops handtraps. It
-                counts the one Normal Summon a turn only for the Group you marked "Uses the
-                Normal Summon" in Models; otherwise a second copy is treated as a backup.
+                counts a shared bottleneck, such as the one Normal Summon or a once-per-turn
+                effect, only for the Groups you marked "Only one of these can complete a turn"
+                in Models; otherwise a second copy or a second route is treated as a backup.
               </li>
               <li>
                 Interaction counts cards you marked with the Interaction role, whether or

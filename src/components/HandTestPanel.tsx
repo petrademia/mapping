@@ -438,9 +438,9 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
                       versus.get(set.setId)!.survives ? (
                         <span className="explorer-notation">Still holds against {heldLabel}</span>
                       ) : versus.get(set.setId)!.negated.length === 0 ? (
-                        // Nothing was negated, so the goal asks for more than the one Normal Summon allows.
+                        // Nothing was negated, so the goal asks for more than a shared bottleneck allows.
                         <span className="explorer-notation">
-                          Needs more than one Normal Summon, so it cannot be done in a turn
+                          Needs more than one card that shares a bottleneck, so it cannot be done in a turn
                         </span>
                       ) : (
                         <span className="versus-broken">
