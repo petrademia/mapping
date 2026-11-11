@@ -135,51 +135,76 @@ test.describe("Hand Test", () => {
     await nav(page, "Hand Test").click();
   });
 
-  test("drawing shuffles the deck and boxes the top 5 cards above the results", async ({ page }) => {
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
-    const grid = page.locator(".hand-deck-grid");
-    await expect(grid.locator(".hand-tile.in-hand")).toHaveCount(5);
-    await expect(grid.locator(".hand-tile")).toHaveCount(DEFAULT.main);
-    await expect(page.locator(".hand-total")).toContainText("5 / 5");
+  test("New Hand deals the opening hand beside the deck, which greys out what was drawn", async ({ page }) => {
+    await page.getByRole("button", { name: "New Hand" }).click();
+    const deck = page.getByRole("region", { name: "Deck" });
+    const hand = page.getByRole("region", { name: "Hand" });
+    await expect(hand.locator(".hand-tile.in-hand")).toHaveCount(5);
+    await expect(deck.locator(".hand-tile")).toHaveCount(DEFAULT.main);
+    await expect(deck.locator(".hand-tile.drawn")).toHaveCount(5);
+    await expect(page.locator(".hand-total")).toContainText("5 Cards in hand");
+    await expect(page.locator(".hand-remaining")).toContainText(`${DEFAULT.main - 5} / ${DEFAULT.main} Remaining`);
+    // The deck list above is no longer where the hand shows.
+    await expect(page.locator(".deck-grid-section .hand-tile")).toHaveCount(0);
+  });
 
-    // The shuffled order puts the drawn cards first.
-    const classes = await page.locator(".hand-deck-grid .hand-tile").evaluateAll((els) =>
-      els.map((el) => el.className),
-    );
-    expect(classes.slice(0, 5).every((name) => name.includes("in-hand"))).toBe(true);
+  test("Draw takes the chosen number of cards from the top of the deck", async ({ page }) => {
+    await page.getByRole("button", { name: "New Hand" }).click();
+    await page.getByLabel("Cards to draw").fill("3");
+    await page.getByRole("button", { name: "Draw", exact: true }).click();
+    await expect(page.locator(".hand-total")).toContainText("8 Cards in hand");
+    await expect(page.getByRole("region", { name: "Deck" }).locator(".hand-tile.drawn")).toHaveCount(8);
+    // A hand that is not the opening size still gets its results.
+    await expect(page.getByText("This hand has 8 cards; the opening hand is 5.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tested Hand" })).toBeVisible();
+  });
 
-    // The Main Deck in the middle is the grid; it is not a second copy in the panel.
-    await expect(page.locator(".hand-deck-grid")).toHaveCount(1);
-    await expect(page.locator(".deck-grid-section .hand-deck-grid")).toHaveCount(1);
+  test("Draw from an empty table starts from a fresh shuffle", async ({ page }) => {
+    await page.getByRole("button", { name: "Draw", exact: true }).click();
+    await expect(page.locator(".hand-total")).toContainText("1 Card in hand");
+  });
+
+  test("Shuffle mixes the deck again and keeps the hand", async ({ page }) => {
+    await page.getByRole("button", { name: "New Hand" }).click();
+    const ids = () =>
+      page
+        .getByRole("region", { name: "Hand" })
+        .locator(".hand-tile")
+        .evaluateAll((els) => els.map((el) => el.getAttribute("title")).sort());
+    const before = await ids();
+    await page.getByRole("button", { name: "Shuffle" }).click();
+    expect(await ids()).toEqual(before);
+    await expect(page.locator(".hand-total")).toContainText("5 Cards in hand");
   });
 
   test("a ten-card opening hand responds right away", async ({ page }) => {
     // Regression: the exact odds were enumerated hand by hand and took tens of seconds.
     const started = Date.now();
     await page.getByLabel("Opening hand").fill("10");
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(10);
     expect(Date.now() - started).toBeLessThan(4000);
   });
 
-  test("clicking tiles adds and removes cards from the hand", async ({ page }) => {
-    const grid = page.locator(".hand-deck-grid");
-    await grid.locator(".hand-tile").first().click();
-    await expect(page.locator(".hand-total")).toContainText("1 / 5");
-    await grid.locator(".hand-tile.in-hand").first().click();
-    await expect(page.locator(".hand-total")).toContainText("0 / 5");
+  test("clicking a card in the deck draws it and clicking it in the hand returns it", async ({ page }) => {
+    await page.getByRole("region", { name: "Deck" }).locator(".hand-tile").first().click();
+    await expect(page.locator(".hand-total")).toContainText("1 Card in hand");
+    await page.getByRole("region", { name: "Hand" }).locator(".hand-tile.in-hand").first().click();
+    await expect(page.locator(".hand-total")).toContainText("0 Cards in hand");
+    await expect(page.getByRole("heading", { name: "Tested Hand" })).toHaveCount(0);
   });
 
   test("Clear hand removes the tested hand", async ({ page }) => {
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.getByRole("heading", { name: "Tested Hand" })).toBeVisible();
     await page.getByRole("button", { name: "Clear hand", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Tested Hand" })).toHaveCount(0);
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(0);
+    await expect(page.locator(".hand-tile.drawn")).toHaveCount(0);
   });
 
   test("the deck tiles do not overlap", async ({ page }) => {
-    const tiles = page.locator(".hand-deck-grid li");
+    const tiles = page.getByRole("region", { name: "Deck" }).locator(".hand-deck-grid li");
     await expect(tiles.first()).toBeVisible();
     const a = (await tiles.nth(0).boundingBox())!;
     const b = (await tiles.nth(1).boundingBox())!;
@@ -212,10 +237,10 @@ test.describe("Hand Test", () => {
       await expect(page.getByText("hand count must be an integer from 1 to 1000")).toBeVisible();
     });
 
-    test("Open in Hand Test boxes that hand in the deck grid", async ({ page }) => {
+    test("Open in Hand Test puts that hand beside the deck", async ({ page }) => {
       await page.getByRole("button", { name: "Generate hands" }).click();
       await page.getByRole("button", { name: "Open in Hand Test" }).first().click();
-      await expect(page.getByRole("button", { name: "Draw Random Hand" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "New Hand" })).toBeVisible();
       await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
     });
   });
@@ -466,7 +491,7 @@ test.describe("Rank scores hands", () => {
   test("Hand Test asks for a ranking until there is one", async ({ page }) => {
     await openApp(page);
     await nav(page, "Hand Test").click();
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.getByText("Define a Hand Goal or rank your cards to score hands")).toBeVisible();
   });
 
@@ -474,7 +499,7 @@ test.describe("Rank scores hands", () => {
     await openApp(page);
     await rankFirstCardTop(page);
     await nav(page, "Hand Test").click();
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-facts li").first()).toContainText(/\d+%\s*a random hand averages \d+%/);
     await expect(page.locator(".hand-tile.in-hand .rank-badge")).toHaveCount(5);
   });
@@ -524,12 +549,12 @@ test.describe("Choosing the turn order where you test", () => {
   test("Hand Test draws six cards going second on the first turn", async ({ page }) => {
     await openApp(page);
     await nav(page, "Hand Test").click();
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
     await page.getByRole("radio", { name: /Going Second . First 6/ }).click();
     // The old hand no longer fits, so it is cleared; a new draw takes six cards.
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(0);
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(6);
   });
 
@@ -639,7 +664,7 @@ test.describe("Handtrap versus", () => {
     await page.getByRole("button", { name: "Every card" }).click();
     await nav(page, "Hand Test").click();
     await page.getByLabel("Opponent holds").selectOption({ label: "Effect Veiler" });
-    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
     await expect(page.getByLabel("Opponent holds")).toHaveValue(/.+/);
   });

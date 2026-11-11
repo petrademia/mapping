@@ -5,7 +5,8 @@ import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { ContextChips } from "./AnalysisContextSelector";
 import { Icon, PassMark } from "./IconButton";
-import { CardFrame, HandImages } from "./HandImages";
+import { CardFrame } from "./HandImages";
+import { HandBoard } from "./HandBoard";
 import { scorerWithSource } from "../lib/rankScore";
 import {
   analysisContextOf,
@@ -56,13 +57,16 @@ interface Props {
   onHandChange: (hand: TestedHand | null) => void;
   /** The shuffled order behind the drawn hand lives in the app. */
   onOrderChange: (order: number[] | null) => void;
+  /** The shuffled order of every copy in the deck, when one has been dealt. */
+  order: readonly number[] | null;
   /** Choose going first or second (and the observation point) without leaving the tab. */
   onContext: (context: import("../lib/analysisContext").AnalysisContext) => void;
 }
 
-export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, onOrderChange: setOrder, onContext }: Props) {
+export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandChange, onOrderChange: setOrder, onContext }: Props) {
   const setHand = onHandChange;
   const [opponent, setOpponent] = useState("");
+  const [drawCount, setDrawCount] = useState(1);
 
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
@@ -118,7 +122,10 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
 
   const issues = useMemo(() => {
     if (!hand) return [];
-    return validateManualHand(doc.main, hand.card_counts, sample);
+    // Any hand size is fine here; only cards the deck cannot supply are a problem.
+    return validateManualHand(doc.main, hand.card_counts, sample).filter(
+      (issue) => issue.kind !== "wrong_size",
+    );
   }, [doc.main, hand, sample]);
 
   const totalSelected = useMemo(() => {
@@ -126,11 +133,50 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
     return Object.values(hand.card_counts).reduce((sum, count) => sum + count, 0);
   }, [hand]);
 
-  // Drawing shuffles the whole deck on screen and boxes the top cards.
-  function drawRandom(): void {
+  // The shuffled order, while it is still the same deck; the built order otherwise.
+  const deckOrder = useMemo(() => {
+    const built = doc.main.flatMap((card) => Array<number>(card.quantity).fill(card.card_id));
+    const key = (ids: readonly number[]): string => [...ids].sort((x, y) => x - y).join();
+    return order && order.length === built.length && key(order) === key(built) ? order : built;
+  }, [doc.main, order]);
+
+  // New Hand shuffles the whole deck and deals the opening hand.
+  function newHand(): void {
     const shuffled = shuffleDeck(doc.main);
     setOrder(shuffled);
     setHand(handFromOrder(shuffled, Math.min(sample, shuffled.length)));
+  }
+
+  // Draw takes the next cards off the top of the deck into the hand.
+  function draw(count: number): void {
+    const base = order && deckOrder === order ? order : shuffleDeck(doc.main);
+    if (base !== order) setOrder([...base]);
+    const counts = { ...(hand?.card_counts ?? {}) };
+    const seen = new Map<number, number>();
+    let left = count;
+    for (const cardId of base) {
+      if (left <= 0) break;
+      const copy = seen.get(cardId) ?? 0;
+      seen.set(cardId, copy + 1);
+      if (copy >= (counts[cardId] ?? 0)) {
+        counts[cardId] = (counts[cardId] ?? 0) + 1;
+        left -= 1;
+      }
+    }
+    setHand({ card_counts: counts, observed_cards: totalSelected + (count - left) });
+  }
+
+  // Shuffle mixes the deck again; the cards already in the hand stay in it.
+  function reshuffle(): void {
+    setOrder(shuffleDeck(doc.main));
+  }
+
+  function setCount(cardId: number, next: number): void {
+    const counts = { ...(hand?.card_counts ?? {}) };
+    if (next <= 0) delete counts[cardId];
+    else counts[cardId] = next;
+    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    setHand(total === 0 ? null : { card_counts: counts, observed_cards: total });
   }
 
   // A goal with no conditions can match nothing, so it is left out of the results.
@@ -208,14 +254,28 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
         </label>
       ) : null}
 
-      <div className="row-actions">
-        <button type="button" onClick={drawRandom} disabled={deck === 0}>
-          <Icon name="shuffle" />
-          Draw Random Hand
-        </button>
-        <button type="button" onClick={drawRandom} disabled={!hand}>
+      <div className="row-actions hand-actions">
+        <button type="button" onClick={newHand} disabled={deck === 0}>
           <Icon name="redo" />
-          Draw Again
+          New Hand
+        </button>
+        <span className="draw-group">
+          <button type="button" onClick={() => draw(Math.max(1, drawCount))} disabled={deck === 0 || totalSelected >= deck}>
+            <Icon name="plus" />
+            Draw
+          </button>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(deck, 1)}
+            value={drawCount}
+            aria-label="Cards to draw"
+            onChange={(event) => setDrawCount(Math.max(1, Math.floor(Number(event.target.value) || 1)))}
+          />
+        </span>
+        <button type="button" onClick={reshuffle} disabled={deck === 0}>
+          <Icon name="shuffle" />
+          Shuffle
         </button>
         <button type="button" onClick={() => {
             setOrder(null);
@@ -231,10 +291,14 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
       {doc.main.length === 0 ? (
         <p className="empty">Add Main Deck cards first.</p>
       ) : (
-        <p className="note">
-          Your Main Deck on the left is shuffled and the hand is boxed. Click a
-          card there to add it to the hand or take it out.
-        </p>
+        <HandBoard
+          deck={doc.main}
+          counts={hand?.card_counts ?? {}}
+          catalog={catalog}
+          order={deckOrder}
+          rankOf={(cardId) => rankScorer?.positionOf(cardId) ?? null}
+          onCount={setCount}
+        />
       )}
 
       {issues.some((issue) => issue.kind === "over_copy_limit" || issue.kind === "not_in_main") ? (
@@ -244,22 +308,22 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
         </p>
       ) : null}
       {hand && totalSelected !== sample ? (
-        <p className="empty">
-          Complete the hand to {sample} cards to evaluate.
+        <p className="note">
+          This hand has {totalSelected} cards; the opening hand is {sample}. The
+          Hand Goal odds below are for the opening hand.
         </p>
       ) : null}
 
-      {hand && result && totalSelected === sample && issues.length === 0 ? (
+      {hand && result && issues.length === 0 ? (
         <>
           <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
-          <HandImages deck={doc.main} counts={hand.card_counts} catalog={catalog} showRoles />
           <ul className="hand-facts">
             <li>
               <span>Rank score</span>
               <strong>{rankScorer ? `${(rankScorer.score(hand.card_counts) * 100).toFixed(0)}%` : "-"}</strong>
               <small>
                 {rankScorer
-                  ? `a random hand averages ${(rankScorer.expected(sample) * 100).toFixed(0)}%${
+                  ? `a random hand averages ${(rankScorer.expected(totalSelected) * 100).toFixed(0)}%${
                       ranked?.source === "impact" ? ", by Card Impact order" : ""
                     }`
                   : "Define a Hand Goal or rank your cards to score hands"}

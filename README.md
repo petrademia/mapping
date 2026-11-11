@@ -236,12 +236,16 @@ whether one *exact* hand satisfies it. It evaluates the user's existing model
 (Hand Conditions + Hand Goals) against a single concrete hand and explains
 why each predicate passed or failed.
 
-- **Hand acquisition**: *Draw Random Hand* samples uniformly over physical
-  cards (each copy is a distinct card, so multi-copy cards are weighted
-  correctly) from the current Main Deck, sized by the current Analysis Context
-  (opening 5 / opening 5 / first 6 cards seen). *Manual selection* uses a
-  searchable stepper that enforces deck copy limits and the observed sample
-  size.
+- **Deck and hand side by side**: the Main Deck is shown as card art next to
+  the hand. *New Hand* shuffles the deck and deals the opening hand (sampled
+  uniformly over physical cards, so multi-copy cards are weighted correctly,
+  sized by the Analysis Context: opening 5 / opening 5 / first 6 cards seen).
+  *Draw* takes the number of cards you choose off the top, *Shuffle* mixes the
+  deck again and keeps the hand, and clicking a card moves it between the deck
+  (where it greys out) and the hand. A hand of any size gets results.
+- **Opponent holds**: pick a handtrap or saved pair from the Handtraps tab to
+  see which Hand Goals survive it for the hand drawn, and which cards it
+  would negate.
 - **Condition trace**: every requirement, exclusion, and distinct-card
   constraint shows PASS/FAIL. Requirements and exclusions include actual count
   and contributing cards; distinct constraints show eligible names and, when

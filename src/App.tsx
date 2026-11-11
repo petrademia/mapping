@@ -11,7 +11,6 @@ import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
 import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
 import { download, slug } from "./lib/download";
-import { scorerForDoc } from "./lib/rankScore";
 import { serializeYdk } from "./lib/ydk";
 import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
 import type { TestedHand } from "./lib/handTest";
@@ -37,7 +36,6 @@ import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
-  analysisContextOf,
   createDocument,
   sectionSize,
   setAnalysisContext,
@@ -45,7 +43,7 @@ import {
   setOpeningHandSize,
   type MappingDocument,
 } from "./lib/document";
-import { observedCards, type AnalysisContext } from "./lib/analysisContext";
+import type { AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
 type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
@@ -132,28 +130,6 @@ export function App() {
       setStatus("Loaded the default deck from default.ydk.");
     });
   };
-
-  const handSample = observedCards(analysisContextOf(view), view.analysis.opening_hand_size);
-  const handTestView =
-    workspace === "hand-test"
-      ? {
-          counts: testedHand?.card_counts ?? {},
-          sample: handSample,
-          order: testedHand ? handOrder : null,
-          rankOf: (cardId: number) =>
-            scorerForDoc(view, view.analysis.turn_order)?.positionOf(cardId) ?? null,
-          onCount: (cardId: number, next: number) => {
-            const counts = { ...(testedHand?.card_counts ?? {}) };
-            if (next <= 0) delete counts[cardId];
-            else counts[cardId] = next;
-            setTestedHand(
-              Object.keys(counts).length === 0
-                ? null
-                : { card_counts: counts, observed_cards: handSample },
-            );
-          },
-        }
-      : null;
 
   useEffect(() => {
     saveStored(doc);
@@ -330,7 +306,6 @@ export function App() {
           onFormatChange={changeFormat}
           onChange={setDoc}
           onStatus={setStatus}
-          handTest={handTestView}
         />
         <aside id={WORKSPACE_ID}>
           <nav className="context-presets workspace-nav" aria-label="Workspace">
@@ -418,6 +393,7 @@ export function App() {
               doc={view}
               catalog={catalog}
               hand={testedHand}
+              order={handOrder}
               onHandChange={setTestedHand}
               onOrderChange={setHandOrder}
               onContext={changeContext}

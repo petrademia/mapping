@@ -6,7 +6,7 @@ import {
 } from "../lib/configuration";
 import type { MappingDocument } from "../lib/document";
 import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
-import { DeckGrid, type HandTestView } from "./DeckGrid";
+import { DeckGrid } from "./DeckGrid";
 import { CardSearch } from "./CardSearch";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { deckViolations, limitLabel, type Banlist, type Format } from "../lib/banlist";
@@ -21,11 +21,9 @@ interface Props {
   onFormatChange: (format: Format) => void;
   onChange: (doc: MappingDocument) => void;
   onStatus: (message: string) => void;
-  /** Set while Hand Test is open: the Main Deck shows the shuffled hand. */
-  handTest?: HandTestView | null;
 }
 
-export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatChange, onChange, onStatus, handTest }: Props) {
+export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatChange, onChange, onStatus }: Props) {
   const active = findConfiguration(doc, doc.active_configuration_id);
   const violations = deckViolations(doc, banlist, format);
   return (
@@ -83,7 +81,6 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
         doc={doc}
         catalog={catalog}
         onChange={onChange}
-        handTest={handTest}
         extraIds={extraIds}
       />
     </div>
