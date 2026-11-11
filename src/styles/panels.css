@@ -51,7 +51,11 @@
 
 /* ---- Card editor: quantity, roles, opening quality --------------------- */
 .qty { display: flex; align-items: center; gap: var(--space-1); }
-.qty input { width: 3rem; text-align: center; }
+/* Wide enough for two digits: at 3rem the side padding left only 22px, and the
+   browser's own spin buttons took part of that, so a "3" was cut off. The + and
+   - buttons beside it do that job. */
+.qty input { width: 4rem; text-align: center; appearance: textfield; -moz-appearance: textfield; }
+.qty input::-webkit-inner-spin-button, .qty input::-webkit-outer-spin-button { appearance: none; -webkit-appearance: none; margin: 0; }
 .qty button { padding: var(--space-1) var(--space-2); }
 .qty svg { display: block; }
 .taxonomy-cell { min-width: 16rem; }

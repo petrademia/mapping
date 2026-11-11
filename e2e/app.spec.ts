@@ -285,6 +285,17 @@ test.describe("Deck view", () => {
     await expect(copies.nth(1)).toHaveAttribute("aria-label", /copy 2 of/);
   });
 
+  test("the quantity box is wide enough to show two digits", async ({ page }) => {
+    await openApp(page);
+    const main = section(page, "Main Deck");
+    await main.locator(".deck-tile").first().click();
+    const box = main.getByRole("group", { name: /^Edit / }).getByRole("spinbutton", { name: "Quantity" });
+    // The inner text area, after padding and the browser's own spin buttons, must fit "99".
+    expect(await box.evaluate((el: HTMLInputElement) => el.clientWidth)).toBeGreaterThanOrEqual(32);
+    await box.fill("99");
+    await expect(box).toHaveValue("99");
+  });
+
   test("clicking a card edits its quantity and tags underneath", async ({ page }) => {
     await openApp(page);
     const main = section(page, "Main Deck");
