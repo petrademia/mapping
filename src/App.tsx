@@ -101,9 +101,7 @@ export function App() {
   const [workspace, setWorkspace] = useState<Workspace>("profile");
   // Which Models view opens when the next-step button sends you there.
   const [modelsStart, setModelsStart] = useState<ModelsView>("groups");
-  const [status, setStatus] = useState(
-    "Local draft. Taxonomy annotations are deck-specific hypotheses.",
-  );
+  const [status, setStatus] = useState("");
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
   const view = useMemo(
     () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
