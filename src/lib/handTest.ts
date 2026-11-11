@@ -66,6 +66,32 @@ export function validateManualHand(
  * is a distinct physical card), so multi-copy cards are weighted correctly.
  * `rng` is injectable for deterministic tests; default Math.random.
  */
+/** Every physical copy of the deck as a card id, in a uniformly random order. */
+export function shuffleDeck(
+  deck: readonly MappingCard[],
+  rng: () => number = Math.random,
+): number[] {
+  const physical: number[] = [];
+  for (const card of deck) {
+    for (let i = 0; i < card.quantity; i += 1) physical.push(card.card_id);
+  }
+  for (let i = physical.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [physical[i], physical[j]] = [physical[j]!, physical[i]!];
+  }
+  return physical;
+}
+
+/** The hand a shuffled deck deals: its first `observed_cards` copies. */
+export function handFromOrder(order: readonly number[], observed_cards: number): TestedHand {
+  const card_counts: Record<number, number> = {};
+  for (let i = 0; i < observed_cards; i += 1) {
+    const id = order[i]!;
+    card_counts[id] = (card_counts[id] ?? 0) + 1;
+  }
+  return { card_counts, observed_cards };
+}
+
 export function drawRandomHand(
   deck: readonly MappingCard[],
   observed_cards: number,
@@ -75,20 +101,7 @@ export function drawRandomHand(
   if (!Number.isInteger(observed_cards) || observed_cards < 0 || observed_cards > deckSize) {
     throw new Error("hand size must fit inside deck size");
   }
-  const physical: number[] = [];
-  for (const card of deck) {
-    for (let i = 0; i < card.quantity; i += 1) physical.push(card.card_id);
-  }
-  for (let i = physical.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rng() * (i + 1));
-    [physical[i], physical[j]] = [physical[j]!, physical[i]!];
-  }
-  const card_counts: Record<number, number> = {};
-  for (let i = 0; i < observed_cards; i += 1) {
-    const id = physical[i]!;
-    card_counts[id] = (card_counts[id] ?? 0) + 1;
-  }
-  return { card_counts, observed_cards };
+  return handFromOrder(shuffleDeck(deck, rng), observed_cards);
 }
 
 /**

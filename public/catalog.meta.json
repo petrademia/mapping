@@ -4,13 +4,19 @@
   "purpose": "names-only",
   "canonical_ids": "mycard-passwords",
   "origin": "mycard-pin",
-  "sha256": "799f748b2280af459fa917f6b305345ae74814cba83594f592407eb1a3932ecf",
-  "texts": 14968,
-  "mapping_pin_commit": "8c8d2316ea42b7f79c0e2248cd74a2da2575ab9d",
-  "mapping_pin_sha256": "799f748b2280af459fa917f6b305345ae74814cba83594f592407eb1a3932ecf",
+  "sha256": "7f57ae28bb1d0b5987c8159c193c18ff820b1119a513949b1bf3cb5aa36234ef",
+  "texts": 15019,
+  "supplement": {
+    "source": "db.ygoprodeck.com/api/v7/cardinfo.php",
+    "names_added": 293,
+    "names_renamed": 77,
+    "note": "added: ids and names absent from the MyCard cdb; renamed: YGOPRODeck's current official name replaces MyCard's; not reproducible from the pin"
+  },
+  "mapping_pin_commit": "ad0a51f591421840cc549d858f35a861345b541d",
+  "mapping_pin_sha256": "7f57ae28bb1d0b5987c8159c193c18ff820b1119a513949b1bf3cb5aa36234ef",
   "yapping_pin_commit": "8f36c87c2faea4d24a6062410f9dfe0cd6848865",
   "yapping_pin_sha256": "f81958a2e0c238ddf5060482e1a2fc2c0d4a7f75917e76c388cab1a28fa43d4c",
   "matches_mapping_pin": true,
   "ahead_of_yapping_pin": true,
-  "extracted_at": "2026-08-16T11:29:20Z"
+  "extracted_at": "2026-11-10T17:56:39Z"
 }

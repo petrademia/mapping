@@ -12,10 +12,8 @@ import {
   type HandConditionSet,
 } from "../lib/handCondition";
 import {
-  analysisContextLabel,
   isOpeningHandObservation,
   observedCards,
-  sampleSizeDescription,
 } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
@@ -42,6 +40,7 @@ import {
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { ProbabilityError } from "../lib/probability";
 import { sortCheckedFirst } from "../lib/sortCheckedFirst";
+import { CardStrip, conditionCards, DeckPicker, requirementCards } from "./ModelArt";
 import { openingQualityCoverage, ROLES, type Role } from "../lib/taxonomy";
 
 const OP_LABELS: Record<CountOperator, string> = {
@@ -143,14 +142,16 @@ interface Props {
   catalog: Catalog;
   onChange: (doc: MappingDocument) => void;
   onHandSize: (size: number) => void;
+  /** Which view opens first; Groups by default. */
+  initialView?: ModelsView;
 }
 
-type ModelsView = "groups" | "conditions" | "outcomes";
+export type ModelsView = "groups" | "conditions" | "outcomes";
 
 const VIEWS: { key: ModelsView; label: string }[] = [
   { key: "groups", label: "Groups" },
   { key: "conditions", label: "Hand Conditions" },
-  { key: "outcomes", label: "Modeled Outcomes" },
+  { key: "outcomes", label: "Hand Goals" },
 ];
 
 export function ModelsPanel({
@@ -158,9 +159,9 @@ export function ModelsPanel({
   catalog,
   onChange,
   onHandSize,
+  initialView = "groups",
 }: Props) {
-  const [view, setView] = useState<ModelsView>("groups");
-  const [groupFilter, setGroupFilter] = useState("");
+  const [view, setView] = useState<ModelsView>(initialView);
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
   const context = analysisContextOf(doc);
@@ -228,7 +229,7 @@ export function ModelsPanel({
     onChange(
       upsertHandConditionSet(doc, {
         id: newId("outcome"),
-        name: "New modeled outcome",
+        name: "New hand goal",
         condition_ids: [],
         aggregation: "any",
       }),
@@ -273,14 +274,19 @@ export function ModelsPanel({
           />
         </label>
       </header>
-      <p className="note">
-        Define Groups, then reusable Hand Conditions, then combine conditions
-        into Modeled Outcomes. Everything is evaluated under{" "}
-        {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. Not combo routes,
-        resilience, or YAPPING utility.
-      </p>
-
+      <ol className="models-steps">
+        <li>
+          <strong>Groups</strong> name sets of cards, like "Handtraps".
+        </li>
+        <li>
+          <strong>Hand Conditions</strong> are rules about what a hand holds,
+          like "Nervedo and a valid S/T".
+        </li>
+        <li>
+          <strong>Hand Goals</strong> are what you want from a hand. A
+          hand matches a goal when it matches any of its Hand Conditions.
+        </li>
+      </ol>
       <nav className="context-presets models-nav" aria-label="Models">
         {VIEWS.map((entry) => (
           <button
@@ -311,8 +317,6 @@ export function ModelsPanel({
                 group={group}
                 doc={doc}
                 catalog={catalog}
-                filter={groupFilter}
-                onFilter={setGroupFilter}
                 onChange={(next) => onChange(upsertGroup(doc, next))}
                 onRemove={() => onChange(removeGroup(doc, group.id))}
               />
@@ -328,12 +332,10 @@ export function ModelsPanel({
         <>
           <h3 className="panel-subhead">Hand Conditions</h3>
           <p className="note">
-            Define card patterns that make an opening hand satisfy something you
-            care about. MAPPING evaluates each pattern across all possible
-            opening hands to calculate its exact probability. A condition's
-            name can document a strategic assertion (for example "through 1
-            Ash") while the Requires/Excludes predicate is the actual Boolean
-            rule.
+            A rule about what a hand holds. It matches when every Requires line
+            holds and no Excludes line does. MAPPING works out the exact chance
+            across all possible hands. The name is only a label ("through 1
+            Ash"); the Requires and Excludes lines are the rule.
           </p>
           {doc.hand_conditions.length === 0 ? (
             <p className="empty">No hand conditions yet.</p>
@@ -358,14 +360,13 @@ export function ModelsPanel({
 
       {view === "outcomes" ? (
         <>
-          <h3 className="panel-subhead">Modeled Outcomes</h3>
+          <h3 className="panel-subhead">Hand Goals</h3>
           <p className="note">
-            Combine Hand Conditions into outcomes you care about. An outcome is
-            satisfied when ANY selected Hand Condition matches the opening
-            hand. Overlapping matching conditions are counted once.
+            Group Hand Conditions into a goal you care about. A hand matches
+            the goal when it matches any of them.
           </p>
           {doc.hand_condition_sets.length === 0 ? (
-            <p className="empty">No modeled outcomes yet.</p>
+            <p className="empty">No hand goals yet.</p>
           ) : (
             doc.hand_condition_sets.map((set) => {
               const setSummary = analysis?.sets.find(
@@ -406,7 +407,7 @@ export function ModelsPanel({
             })
           )}
           <button type="button" onClick={addOutcome}>
-            + Add Modeled Outcome
+            + Add Hand Goal
           </button>
         </>
       ) : null}
@@ -418,29 +419,16 @@ function GroupEditor({
   group,
   doc,
   catalog,
-  filter,
-  onFilter,
   onChange,
   onRemove,
 }: {
   group: Group;
   doc: MappingDocument;
   catalog: Catalog;
-  filter: string;
-  onFilter: (value: string) => void;
   onChange: (group: Group) => void;
   onRemove: () => void;
 }) {
-  const needle = filter.trim().toLowerCase();
   const members = new Set(group.card_ids);
-  const cards = sortCheckedFirst(
-    doc.main.filter((card) => {
-      if (!needle) return true;
-      const name = displayName(card.card_id, card.name, catalog).toLowerCase();
-      return name.includes(needle) || String(card.card_id).includes(needle);
-    }),
-    (card) => members.has(card.card_id),
-  );
 
   return (
     <div className="access-block">
@@ -460,35 +448,25 @@ function GroupEditor({
         label={`Notes for ${group.name || "group"}`}
         onCommit={(notes) => onChange({ ...group, notes })}
       />
-      <input
-        type="search"
-        value={filter}
-        placeholder="Filter main deck…"
-        aria-label={`Filter cards for ${group.name}`}
-        onChange={(event) => onFilter(event.target.value)}
+      <p className="note">
+        {members.size === 0
+          ? "Click the cards that belong in this group."
+          : `${members.size} ${members.size === 1 ? "card" : "cards"} in this group. Click a card to add or remove it.`}
+      </p>
+      <DeckPicker
+        deck={doc.main}
+        catalog={catalog}
+        selected={members}
+        label={`Cards in ${group.name || "group"}`}
+        onToggle={(cardId) =>
+          onChange({
+            ...group,
+            card_ids: members.has(cardId)
+              ? group.card_ids.filter((id) => id !== cardId)
+              : [...group.card_ids, cardId],
+          })
+        }
       />
-      <ul className="group-members">
-        {cards.map((card) => {
-          const checked = members.has(card.card_id);
-          return (
-            <li key={card.card_id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => {
-                    const card_ids = checked
-                      ? group.card_ids.filter((id) => id !== card.card_id)
-                      : [...group.card_ids, card.card_id];
-                    onChange({ ...group, card_ids });
-                  }}
-                />
-                {displayName(card.card_id, card.name, catalog)} ×{card.quantity}
-              </label>
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }
@@ -614,6 +592,13 @@ function ConditionEditor({
           Delete
         </button>
       </div>
+      <CardStrip
+        cardIds={conditionCards(condition, doc)}
+        deck={doc.main}
+        catalog={catalog}
+        max={10}
+        label={`Cards ${condition.name || "this condition"} reads`}
+      />
       <EntityNotes
         value={condition.notes}
         label={`Notes for ${condition.name || "hand condition"}`}
@@ -816,7 +801,10 @@ function RequirementEditor({
   onChange: (requirement: ConditionRequirement) => void;
   onRemove: () => void;
 }) {
+  const [picking, setPicking] = useState(false);
+  const counted = requirementCards(requirement, doc);
   return (
+    <div className="requirement-block">
     <div className="condition-controls access-requirement">
       <label>
         Subject
@@ -859,25 +847,26 @@ function RequirementEditor({
       </label>
 
       {requirement.kind === "card" ? (
-        <label className="condition-card">
+        <span className="condition-card">
           Card
-          <select
-            value={requirement.card_id || ""}
-            onChange={(event) =>
-              onChange({
-                ...requirement,
-                card_id: Number(event.target.value),
-              })
+          <button
+            type="button"
+            className="requirement-card"
+            aria-expanded={picking}
+            aria-label={
+              requirement.card_id
+                ? `Card: ${displayName(requirement.card_id, doc.main.find((c) => c.card_id === requirement.card_id)?.name, catalog)}. Change`
+                : "Choose a card"
             }
+            onClick={() => setPicking((open) => !open)}
           >
-            <option value="">Select card</option>
-            {doc.main.map((card) => (
-              <option key={card.card_id} value={card.card_id}>
-                {displayName(card.card_id, card.name, catalog)} ×{card.quantity}
-              </option>
-            ))}
-          </select>
-        </label>
+            {requirement.card_id ? (
+              <CardStrip cardIds={[requirement.card_id]} deck={doc.main} catalog={catalog} />
+            ) : (
+              <span className="requirement-choose">Choose a card</span>
+            )}
+          </button>
+        </span>
       ) : null}
 
       {requirement.kind === "role" ? (
@@ -961,6 +950,28 @@ function RequirementEditor({
         Remove
       </button>
     </div>
+      {requirement.kind === "card" && picking ? (
+        <DeckPicker
+          deck={doc.main}
+          catalog={catalog}
+          selected={new Set(requirement.card_id ? [requirement.card_id] : [])}
+          label="Choose a card"
+          onToggle={(cardId) => {
+            onChange({ ...requirement, card_id: cardId });
+            setPicking(false);
+          }}
+        />
+      ) : null}
+      {requirement.kind !== "card" ? (
+        <CardStrip
+          cardIds={counted}
+          deck={doc.main}
+          catalog={catalog}
+          max={14}
+          label="Cards this counts"
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -1016,17 +1027,17 @@ function ModeledOutcomeEditor({
       <div className="access-block-head">
         <DeferredNameInput
           value={set.name}
-          placeholder="Untitled modeled outcome"
-          label="Modeled outcome name"
+          placeholder="Untitled hand goal"
+          label="Hand Goal name"
           onCommit={(name) => onSetChange({ ...set, name })}
         />
         <button type="button" className="ghost" onClick={onRemove}>
-          Delete outcome
+          Delete goal
         </button>
       </div>
       <EntityNotes
         value={set.notes}
-        label={`Notes for ${set.name || "modeled outcome"}`}
+        label={`Notes for ${set.name || "hand goal"}`}
         onCommit={(notes) => onSetChange({ ...set, notes })}
       />
       <p className="access-allof">ANY OF</p>
@@ -1052,6 +1063,12 @@ function ModeledOutcomeEditor({
                     }
                   />
                   <span className="explorer-title">{condition.name}</span>
+                  <CardStrip
+                    cardIds={conditionCards(condition, doc)}
+                    deck={doc.main}
+                    catalog={catalog}
+                    max={6}
+                  />
                   <span className="engine-member-prob">
                     {probability !== undefined
                       ? formatPercent(probability)
@@ -1174,7 +1191,7 @@ function ModeledOutcomeEditor({
             <details className="panel-details">
               <summary>Opening Quality</summary>
               <p className="explorer-notation">
-                Among hands satisfying this outcome
+                Among hands satisfy this goal
                 ({formatPercent(setSummary.union)}), by the{" "}
                 {context.turn_order === "going_first"
                   ? "Going First"
@@ -1183,7 +1200,7 @@ function ModeledOutcomeEditor({
               </p>
               {setSummary.openingQuality.undesirable[0] === null ? (
                 <p className="empty">
-                  No hands currently satisfy this modeled outcome.
+                  No hands currently satisfy this hand goal.
                 </p>
               ) : (
                 <dl className="explorer-results">
@@ -1242,8 +1259,8 @@ function ModeledOutcomeEditor({
       ) : (
         <p className="empty">
           {deck === 0
-            ? "Add main-deck cards to compute outcome probabilities."
-            : "Select at least one condition above as a member of this outcome."}
+            ? "Add main-deck cards to compute goal probabilities."
+            : "Select at least one condition above as a member of this goal."}
         </p>
       )}
     </div>

@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
-import {
-  analysisContextLabel,
-  observedCards,
-  sampleSizeDescription,
-} from "../lib/analysisContext";
+import { useMemo } from "react";
+import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
+import { ContextChips } from "./AnalysisContextSelector";
+import { PassMark } from "./IconButton";
+import { scorerWithSource } from "../lib/rankScore";
 import {
   analysisContextOf,
   sectionSize,
@@ -18,7 +17,8 @@ import {
 } from "../lib/handExplorer";
 import type { DistinctMatchEvaluation } from "../lib/distinctMatch";
 import {
-  drawRandomHand,
+  handFromOrder,
+  shuffleDeck,
   evaluateHandTest,
   exactHandProbability,
   handOpeningQualityCounts,
@@ -38,7 +38,7 @@ const QUALITY_LABELS: { key: "desirable" | "neutral" | "undesirable" | "unclassi
   { key: "desirable", label: "Desirable" },
   { key: "neutral", label: "Neutral" },
   { key: "undesirable", label: "Undesirable" },
-  { key: "unclassified", label: "Unclassified" },
+  { key: "unclassified", label: "Not set" },
 ];
 
 function formatPercent(value: number): string {
@@ -49,11 +49,17 @@ interface Props {
   doc: MappingDocument;
   catalog: Catalog;
   onHandSize: (size: number) => void;
+  /** The tested hand lives in the app so the Batch Test tab can open hands here. */
+  hand: TestedHand | null;
+  onHandChange: (hand: TestedHand | null) => void;
+  /** The shuffled order behind the drawn hand lives in the app. */
+  onOrderChange: (order: number[] | null) => void;
+  /** Choose going first or second (and the observation point) without leaving the tab. */
+  onContext: (context: import("../lib/analysisContext").AnalysisContext) => void;
 }
 
-export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
-  const [hand, setHand] = useState<TestedHand | null>(null);
-  const [filter, setFilter] = useState("");
+export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, onOrderChange: setOrder, onContext }: Props) {
+  const setHand = onHandChange;
 
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
@@ -108,28 +114,23 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
     return Object.values(hand.card_counts).reduce((sum, count) => sum + count, 0);
   }, [hand]);
 
+  // Drawing shuffles the whole deck on screen and boxes the top cards.
   function drawRandom(): void {
-    setHand(drawRandomHand(doc.main, sample));
+    const shuffled = shuffleDeck(doc.main);
+    setOrder(shuffled);
+    setHand(handFromOrder(shuffled, Math.min(sample, shuffled.length)));
   }
 
-  function setCount(cardId: number, next: number): void {
-    setHand((current) => {
-      const counts = { ...(current?.card_counts ?? {}) };
-      if (next <= 0) {
-        delete counts[cardId];
-      } else {
-        counts[cardId] = next;
-      }
-      return { card_counts: counts, observed_cards: sample };
-    });
-  }
-
-  const needle = filter.trim().toLowerCase();
-  const filteredCards = doc.main.filter((card) => {
-    if (!needle) return true;
-    const name = displayName(card.card_id, card.name, catalog).toLowerCase();
-    return name.includes(needle) || String(card.card_id).includes(needle);
-  });
+  // A goal with no conditions can match nothing, so it is left out of the results.
+  const emptyGoals = useMemo(
+    () => new Set(doc.hand_condition_sets.filter((set) => set.condition_ids.length === 0).map((set) => set.id)),
+    [doc.hand_condition_sets],
+  );
+  const ranked = useMemo(
+    () => scorerWithSource(doc, context.turn_order),
+    [doc, context.turn_order],
+  );
+  const rankScorer = ranked?.scorer ?? null;
 
   const roleCounts = useMemo(() => {
     if (!hand) return { starter: 0, extender: 0, interaction: 0 };
@@ -159,7 +160,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
   }, [doc.main, hand, context.turn_order]);
 
   return (
-    <section className="panel">
+    <section className="panel" id="hand-test-top">
       <header>
         <h2>Hand Test</h2>
         <label>
@@ -174,12 +175,12 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         </label>
       </header>
       <p className="note">
-        Evaluate one exact hand against the modeled Hand Conditions and
-        Condition Sets under {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. A PASS means the
-        human-authored model matches the hand, not that the line is verified to
-        play through interruptions. Not a simulator; YAPPING owns strategy.
+        Check hands against your Hand Conditions and Hand Goals. Hands are
+        drawn for {analysisContextLabel(context, opening)}. A check mark means
+        your model matches the hand; it does not test that the line plays out.
       </p>
+
+      <ContextChips context={context} openingHandSize={opening} onChange={onContext} />
 
       <div className="row-actions">
         <button type="button" onClick={drawRandom} disabled={deck === 0}>
@@ -188,54 +189,24 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
         <button type="button" onClick={drawRandom} disabled={!hand}>
           Draw Again
         </button>
+        <button type="button" onClick={() => {
+            setOrder(null);
+            setHand(null);
+          }}
+          disabled={!hand}
+        >
+          Clear hand
+        </button>
       </div>
 
-      <h3 className="panel-subhead">Select Manually</h3>
-      <input
-        type="search"
-        value={filter}
-        placeholder="Filter main deck…"
-        aria-label="Filter cards for manual selection"
-        onChange={(event) => setFilter(event.target.value)}
-      />
       {doc.main.length === 0 ? (
         <p className="empty">Add main-deck cards first.</p>
       ) : (
-        <ul className="hand-picker">
-          {filteredCards.map((card) => {
-            const count = hand?.card_counts[card.card_id] ?? 0;
-            const canAdd =
-              count < card.quantity && totalSelected < sample;
-            return (
-              <li key={card.card_id} className="hand-picker-row">
-                <span className="explorer-title">
-                  {displayName(card.card_id, card.name, catalog)} ×{card.quantity}
-                </span>
-                <span className="hand-stepper">
-                  <button
-                    type="button"
-                    onClick={() => setCount(card.card_id, count - 1)}
-                    disabled={count === 0}
-                  >
-                    −
-                  </button>
-                  <span className="hand-stepper-count">{count}</span>
-                  <button
-                    type="button"
-                    onClick={() => setCount(card.card_id, count + 1)}
-                    disabled={!canAdd}
-                  >
-                    +
-                  </button>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <p className="note">
+          Your Main Deck on the left is shuffled and the hand is boxed. Click a
+          card there to add it to the hand or take it out.
+        </p>
       )}
-      <p className="empty hand-total">
-        {totalSelected} / {sample} cards selected
-      </p>
 
       {issues.some((issue) => issue.kind === "over_copy_limit" || issue.kind === "not_in_main") ? (
         <p className="error">
@@ -251,25 +222,13 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
 
       {hand && result && totalSelected === sample && issues.length === 0 ? (
         <>
-          <h3 className="panel-subhead">Tested Hand</h3>
-          <ul className="hand-cards">
-            {doc.main.map((card) => {
-              const count = hand.card_counts[card.card_id] ?? 0;
-              if (count === 0) return null;
-              return (
-                <li key={card.card_id} className="hand-card">
-                  <span className="explorer-title">
-                    {displayName(card.card_id, card.name, catalog)} ×{count}
-                  </span>
-                  {card.taxonomy.roles.length > 0 ? (
-                    <span className="explorer-notation">
-                      {card.taxonomy.roles.map((role) => ROLE_LABELS[role]).join(", ")}
-                    </span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
+          <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
+          <p className="explorer-notation">
+            {rankScorer
+              ? `Rank score: ${(rankScorer.score(hand.card_counts) * 100).toFixed(0)}% (a random hand averages ${(rankScorer.expected(sample) * 100).toFixed(0)}%)`
+              : "Define a Hand Goal or rank your cards in the Rank tab to score hands."}
+            {ranked?.source === "impact" ? " Using Card Impact order until you rank your cards." : ""}
+          </p>
           <p className="explorer-notation">
             Exact composition probability:{" "}
             {exactProbability !== null ? formatPercent(exactProbability) : "—"}
@@ -296,12 +255,12 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
             </p>
           ) : null}
 
-          <h3 className="panel-subhead">Condition Sets</h3>
-          {result.sets.length === 0 ? (
-            <p className="empty">No condition sets defined.</p>
+          <h3 className="panel-subhead">Hand Goals</h3>
+          {result.sets.filter((set) => emptyGoals.has(set.setId) === false).length === 0 ? (
+            <p className="empty">No hand goals yet. Create them in Models.</p>
           ) : (
             <dl className="explorer-results">
-              {result.sets.map((set) => (
+              {result.sets.filter((set) => emptyGoals.has(set.setId) === false).map((set) => (
                 <div key={set.setId} className="explorer-row">
                   <dt>
                     <span
@@ -309,15 +268,12 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                         set.passed ? "hand-pass-title" : "hand-fail-title"
                       }
                     >
-                      {set.passed ? "✓" : "✗"} {set.name}
+                      <PassMark passed={set.passed} /> {set.name}
                     </span>
                     <span className="explorer-notation">
-                      {set.passed
-                        ? "Modeled condition satisfied"
-                        : "Modeled condition not satisfied"}{" "}
-                      · {set.satisfiedCount} / {set.memberCount} member{" "}
-                      {set.memberCount === 1 ? "condition" : "conditions"}{" "}
-                      satisfied
+                      {set.passed ? "Matched" : "Not matched"} ·{" "}
+                      {set.satisfiedCount} of {set.memberCount} Hand{" "}
+                      {set.memberCount === 1 ? "Condition" : "Conditions"}
                     </span>
                   </dt>
                   <dd>{formatPercent(
@@ -344,7 +300,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
                         evaluation.passed ? "hand-pass-title" : "hand-fail-title"
                       }
                     >
-                      {evaluation.passed ? "✓" : "✗"} {evaluation.name}
+                      <PassMark passed={evaluation.passed} /> {evaluation.name}
                     </span>
                     {population !== undefined ? (
                       <span className="explorer-notation">
@@ -393,6 +349,7 @@ export function HandTestPanel({ doc, catalog, onHandSize }: Props) {
           )}
         </>
       ) : null}
+
     </section>
   );
 }
@@ -426,7 +383,7 @@ function DistinctRow({
   return (
     <div className="predicate-row">
       <span className={evaluation.passed ? "hand-pass" : "hand-fail"}>
-        {evaluation.passed ? "✓" : "✗"}{" "}
+        <PassMark passed={evaluation.passed} />{" "}
         {evaluation.requirement_ids.map(labelFor).join(" and ")} require
         different card names
       </span>
@@ -505,7 +462,7 @@ function PredicateRow({
       }
     >
       <span className={evaluation.passed ? "hand-pass" : "hand-fail"}>
-        {evaluation.passed ? "✓" : "✗"} {text}
+        <PassMark passed={evaluation.passed} /> {text}
       </span>
       <span className="explorer-notation">actual: {evaluation.actualCount}</span>
       {contributorNames.length > 0 ? (

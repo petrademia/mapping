@@ -31,7 +31,7 @@ function tax(
  * claimed optimal tournament deck.
  */
 export const powerPatronArsMagnaDemo: MappingDocument = {
-  schema_version: 7,
+  schema_version: 9,
   name: "power_patron_ars_magna_v0",
   analysis: {
     opening_hand_size: 5,
@@ -98,7 +98,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
   hand_condition_sets: [
     {
       id: "modeled-engine-access",
-      name: "Modeled Engine Access",
+      name: "Main Hand Goal",
       condition_ids: [
         "vidolium-access",
         "pendulum-treasure-access",
@@ -109,6 +109,9 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
     },
   ],
   engine_access_set_id: "modeled-engine-access",
+  configurations: [],
+  active_configuration_id: null,
+  card_rank: { going_first: [], going_second: [] },
   main: [
     {
       card_id: 70488851,

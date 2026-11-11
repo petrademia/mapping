@@ -37,7 +37,7 @@ Role                    Opening Quality (per turn order)
 - `null` means the user has not evaluated opening quality in that context.
 - `neutral` means the user evaluated it and considers it neither desirable nor
   undesirable in that context.
-- `unclassified` (`null`) is **not** the same as `neutral`: neutral is an
+- `unclassified` (`null`, shown as **Not set** in the UI) is **not** the same as `neutral`: neutral is an
   intentional judgment.
 - Do not flatten these into one tag list. They have different meanings and constraints.
 - Annotations are **human deckbuilding hypotheses** for a specific deck/configuration: `Role(card, deck)`, not objective card properties.
@@ -121,7 +121,7 @@ YAPPING is expected to measure (not implemented here):
 | **Taxonomy** | Card-level human role hypothesis (`starter` / `extender` / `interaction`) |
 | **Hand Condition** | Hand-level user-defined Boolean predicate (ALL OF Requires AND NONE OF Excludes over Card / Role / Group predicates) |
 | **Group** | Named deck-specific set of Main Deck cards |
-| **Modeled Outcome** | User-facing interpretation formed from one or more Hand Conditions (ANY / union semantics); backed by the internal `HandConditionSet` |
+| **Hand Goal** | User-facing interpretation formed from one or more Hand Conditions (ANY / union semantics); backed by the internal `HandConditionSet` (called Modeled Outcome in earlier versions; saved files still use `hand_condition_sets`). It is a match on the opening hand, not a board state |
 | **YAPPING** | Strategic validation / game-tree outcomes |
 
 Access Conditions generalized into Hand Conditions: a condition is no longer
@@ -160,9 +160,9 @@ human-modeled hand-composition constraint, not a claim that Citrinitas is
 
 MAPPING then reports how often that hand condition occurs. It does **not** encode the Non-Finito → Citrinitas trajectory, Ash resilience, or whether two Hand Conditions are strategically independent routes (they may converge on the same choke point).
 
-### Modeled Outcomes and exact event analysis
+### Hand Goals and exact event analysis
 
-A **Modeled Outcome** combines Hand Conditions into an outcome the user cares
+A **Hand Goal** combines Hand Conditions into a goal the user cares
 about. It is satisfied when ANY selected Hand Condition matches the opening
 hand (`ANY of` the members, OR / union semantics). Example:
 
@@ -183,7 +183,7 @@ hand evaluation, and probabilities are never summed or averaged.
 
 ### Opening Quality among matching hands
 
-Each Modeled Outcome also exposes (behind an "Opening Quality" disclosure) the
+Each Hand Goal also exposes (behind an "Opening Quality" disclosure) the
 conditional Opening Quality distribution of the hands that satisfy it, under
 the current Analysis Context's turn order. With `U(H)` = number of
 Undesirable-classified physical cards drawn:
@@ -214,7 +214,7 @@ Treating each condition as an event, MAPPING also exposes:
 - multiplicity buckets `P(N = k)` that are mutually exclusive and jointly
   exhaustive (`Σ P(N = k) = 1`).
 
-**Modeled Engine Access** is just the modeled outcome with the fixed id
+**Modeled Engine Access** is just the hand goal with the fixed id
 `modeled-engine-access` (backed by an internal `HandConditionSet` - a normal
 set, not a separate mechanism). The Deck Profile reads that set. More than one
 satisfied condition is a combinatorial property of the user's definitions, not
@@ -233,7 +233,7 @@ name.
 
 Probability analysis asks *how often* a condition occurs; **Hand Test** asks
 whether one *exact* hand satisfies it. It evaluates the user's existing model
-(Hand Conditions + Modeled Outcomes) against a single concrete hand and explains
+(Hand Conditions + Hand Goals) against a single concrete hand and explains
 why each predicate passed or failed.
 
 - **Hand acquisition**: *Draw Random Hand* samples uniformly over physical
@@ -247,7 +247,7 @@ why each predicate passed or failed.
   and contributing cards; distinct constraints show eligible names and, when
   successful, the assignment. An exclusion that matches is flagged and explains
   why the condition fails.
-- **Modeled Outcomes**: each outcome shows PASS/FAIL and how many of its member
+- **Hand Goals**: each goal shows PASS/FAIL and how many of its member
   conditions the hand satisfies (`N_S(H) = Σ 1[C_i(H)]`), the single-hand
   counterpart of the multiplicity distribution. Satisfying multiple conditions
   is not evidence of independent routes.
@@ -266,18 +266,18 @@ compete with analysis results for vertical space:
 
 - **Profile** - Analysis Context, Deck Profile, Taxonomy / Annotation Analysis.
 - **Models** - a sub-navigated workspace: [Groups] [Hand Conditions]
-  [Modeled Outcomes].
+  [Hand Goals].
 - **Hand Test** - evaluate one exact hand against the model.
 
 ### Deck Profile
 
 The **Deck Profile** panel is a compact strategic summary that separates
-**modeled outcomes** from raw annotation diagnostics. It never reports a
+**hand goals** from raw annotation diagnostics. It never reports a
 single aggregate "Deck Quality" score:
 
 | Layer | What it shows |
 | --- | --- |
-| **Modeled Outcomes** | Engine Access (P(any selected engine-access condition)), Access + Interaction-tagged, Access + No Undesirable |
+| **Hand Goals** | Engine Access (P(any selected engine-access condition)), Access + Interaction-tagged, Access + No Undesirable |
 | **Access Multiplicity** | P(N ≥ 1), P(N ≥ 2), P(N ≥ 3) over the selected access conditions (not "resilience") |
 | **Conditional on Access** | P(Interaction-tagged \| Access), P(No Undesirable \| Access) |
 | **Annotation & composition analysis** (collapsed) | Opening Quality composition, Access composition, interaction-tagged cards, context comparison, and **Annotation Coverage** (x / N deck slots classified per turn order) |
@@ -293,16 +293,29 @@ evaluation.
 
 Raw taxonomy and Opening Quality annotation statistics live in
 **Taxonomy / Annotation Analysis** (role slots + opening-quality slots) and
-never compete visually with modeled outcomes.
+never compete visually with hand goals.
 
-### Coming next (not implemented)
+### Deck Configuration
 
-**Deck Configuration** will represent actual deck-list changes such as siding.
-v0 analyzes a single **Pre-Side** configuration (the document's Main Deck). A
-post-side list is a *different configuration* (which cards are in the deck), not
-a card annotation. Siding changes deck composition, not the semantic meaning of
-`undesirable`. Preserved attributes: `undesirable to draw != undesirable to
-include != should side out`.
+**Deck Configuration** represents actual deck-list changes such as siding. The
+deck list you edit is **Pre-Side**. A post-side list is a *different
+configuration* (which copies are in Main), not a card annotation. Siding
+changes deck composition, not the semantic meaning of `undesirable`. Preserved
+attributes: `undesirable to draw != undesirable to include != should side out`.
+
+- A post-side configuration only stores overrides ("N copies of this card in
+  Main", and for Extra Deck cards "N copies in Extra"). Cards without an
+  override follow Pre-Side.
+- Main cards move between Main and Side: the pool (`main + side`) per card is
+  fixed. Extra Deck monsters move between Extra and Side the same way
+  (`extra + side`), and the Extra Deck never passes 15 cards. Siding the Extra
+  Deck does not change any odds, but the exported `.ydk` and YAPPING JSON
+  follow the Post-Side list.
+- Annotations stay on the card by `card_id`; they are edited in the deck list
+  and shared by every configuration.
+- The selected configuration drives Profile, Models, Hand Test, the header
+  counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
+  all configurations.
 
 ### Analysis Context
 
@@ -359,13 +372,13 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 
 - select Analysis Context (going first/second × opening hand / first cards seen)
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
-- edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality
-- add cards by catalog name search or passcode; paste-add appends without replacing
-- define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Modeled Outcomes (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-outcome union, pairwise overlap, and multiplicity distribution
-- test one exact hand (random or manual) against all Hand Conditions and Modeled Outcomes, with per-predicate traces and population probabilities
+- edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality on Main and Side cards (Extra Deck cards are never in an opening hand, so they have no taxonomy controls)
+- add cards by catalog name search or passcode; Extra Deck monsters (Fusion, Synchro, Xyz, Link, from `public/extra-deck.json`) are routed to the Extra Deck when Main is selected, Side is never rerouted; paste-add appends without replacing
+- define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Hand Goals (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-goal union, pairwise overlap, and multiplicity distribution
+- test one exact hand (random or manual) against all Hand Conditions and Hand Goals, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes, role density, and per-context opening-quality counts
-- inspect the Deck Profile: modeled outcomes (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
-- inspect raw taxonomy density and per-context opening-quality counts separately from modeled outcomes
+- inspect the Deck Profile: hand goals (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
+- inspect raw taxonomy density and per-context opening-quality counts separately from hand goals
 - save locally (browser `localStorage` plus file download)
 - Save YDK exports the current list for Omega / external tools
 - export a YAPPING-readable archetype JSON
@@ -380,11 +393,11 @@ Client-only Vite + React + TypeScript. Vitest covers the taxonomy model, hyperge
 
 ## Schema
 
-MAPPING owns a versioned document (`schema_version: 7`):
+MAPPING owns a versioned document (`schema_version: 8`):
 
 ```json
 {
-  "schema_version": 7,
+  "schema_version": 8,
   "name": "power_patron_ars_magna_v0",
   "main": [{
     "card_id": 62962630,
@@ -432,9 +445,20 @@ MAPPING owns a versioned document (`schema_version: 7`):
     "opening_hand_size": 5,
     "turn_order": "going_first",
     "observation_point": "opening_hand"
-  }
+  },
+  "configurations": [{
+    "id": "side-1",
+    "name": "Post-Side 1",
+    "notes": "Going second vs. backrow",
+    "overrides": [{ "card_id": 62962630, "main_quantity": 1 }]
+  }],
+  "active_configuration_id": "side-1"
 }
 ```
+
+`configurations` holds post-side overrides (Main copies per card, within the
+Pre-Side `main + side` pool); `active_configuration_id: null` selects Pre-Side.
+Schema v7 documents load with no configurations.
 
 Unclassified opening quality in either context is serialized as `null`, never silently as `"neutral"`. An absent `going_first` / `going_second` key defaults to `null`.
 
@@ -474,6 +498,12 @@ Dev server: http://localhost:51173 (pinned in `vite.config.ts`; see `~/Projects/
 npm test
 npm run typecheck
 npm run build
-`npm run extract-catalog` downloads MAPPING's pinned MyCard commit (`8c8d231`, recorded in `scripts/extract-catalog.py`) into `.cache/` and writes `public/catalog.json`. That pin can be newer than `yapping/tools/fetch_cards_db.sh`. Provenance is `public/catalog.meta.json`. Unknown ids still display as `#<id>`.
+`npm run extract-catalog` downloads MAPPING's pinned MyCard commit (recorded in `scripts/extract-catalog.py`, currently `ad0a51f`) into `.cache/`, verifies its SHA256, and writes `public/catalog.json`. That pin can be newer than `yapping/tools/fetch_cards_db.sh`. Provenance is `public/catalog.meta.json`. Unknown ids still display as `#<id>`.
 
-The first-run demo is **Power Patron Ars Magna** (`power_patron_ars_magna_v0`), with Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access). Use **Load Elfnote** for the Elfnote Ars Magna demo (`elfnote_ars_magna_v0`), which highlights Regina multi-role tags and Rhapsodia as interaction + undesirable. The Power Patron demo shows a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable).
+To pick up new sets, run `npm run extract-catalog -- --latest`. It resolves the newest upstream commit that touched the en-US `cards.cdb`, rewrites the pin and hash in the script, and regenerates the catalog. Review the diff and commit it.
+
+MyCard's English data can lag behind new sets (its newest en-US commit was 22 Sep 2026 when this was checked). Add `--with-ygoprodeck` to also name cards the MyCard cdb does not have yet, using YGOPRODeck's API. It only adds ids and names that are absent from MyCard, and `catalog.meta.json` records how many. That step reads a live API, so it is not reproducible from the pin alone.
+
+**Card images** are optional and local. `npm run fetch-images -- --demo [deck.ydk ...]` downloads small images for the card ids found in the files you name into `public/cards/` and writes `public/cards/index.json`. The image host (YGOPRODeck) asks users to download each image once rather than hotlink it, so the script is throttled, skips existing files, and stops on HTTP 403/429. `public/cards/` is gitignored; cards without an image show an empty placeholder box.
+
+On first run (no saved draft in the browser) the app loads `public/default.ydk`; replace that file to change the starting deck. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.

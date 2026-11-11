@@ -364,11 +364,22 @@ export function forEachHandComposition(
 }
 
 export function compareHandConditions(
-  deck: readonly MappingCard[],
+  fullDeck: readonly MappingCard[],
   handSize: number,
   comparison: ProbabilityComparison,
   groups: GroupMembership = new Map(),
 ): ProbabilityResult {
+  const deck = compressDeck(
+    fullDeck,
+    [
+      {
+        id: "a",
+        name: "a",
+        requirements: [comparison.conditionA, comparison.conditionB],
+      },
+    ],
+    groups,
+  );
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
   if (
     !Number.isInteger(handSize) ||
@@ -523,6 +534,225 @@ export function pairKey(aId: string, bId: string): string {
 }
 
 /**
+ * What a condition can tell about a card: the card itself (only when one names
+ * it), its Groups, Roles and Opening Quality. Cards with equal keys are
+ * interchangeable in every probability.
+ */
+export function cardClassKey(
+  card: MappingCard,
+  named: ReadonlySet<number>,
+  groups: GroupMembership,
+  turnOrder?: "going_first" | "going_second",
+): string {
+  const memberOf = [...groups]
+    .filter(([, members]) => members.has(card.card_id))
+    .map(([id]) => id)
+    .sort();
+  return JSON.stringify([
+    named.has(card.card_id) ? card.card_id : null,
+    memberOf,
+    [...card.taxonomy.roles].sort(),
+    turnOrder ? openingQualityForTurn(card.taxonomy.opening_quality, turnOrder) : null,
+  ]);
+}
+
+/**
+ * Merge cards that no condition can tell apart into one row with the summed
+ * quantity. Two cards are interchangeable when they share every property the
+ * conditions can read: the card itself (only when a condition names it), its
+ * Groups, its Roles and its Opening Quality. Merging is exact, because the
+ * weight of a merged row is C(total, k), which is the sum over every way to
+ * split k between its members (Vandermonde). It turns the enumeration from one
+ * dimension per card into one per distinct kind of card, which is what makes
+ * larger opening hands tractable. Distinct-match constraints read card
+ * identity, so any condition that uses one keeps the full deck.
+ */
+export function compressDeck(
+  deck: readonly MappingCard[],
+  conditions: readonly HandConditionLike[],
+  groups: GroupMembership,
+  turnOrder?: "going_first" | "going_second",
+): MappingCard[] {
+  if (conditions.some((condition) => (condition.distinct_constraints ?? []).length > 0)) {
+    return [...deck];
+  }
+  const named = new Set<number>();
+  for (const condition of conditions) {
+    for (const predicate of [...condition.requirements, ...(condition.excludes ?? [])]) {
+      if (predicate.kind === "card") named.add(predicate.card_id);
+    }
+  }
+  const classes = new Map<string, MappingCard>();
+  for (const card of deck) {
+    const key = cardClassKey(card, named, groups, turnOrder);
+    const existing = classes.get(key);
+    classes.set(
+      key,
+      existing ? { ...existing, quantity: existing.quantity + card.quantity } : { ...card },
+    );
+  }
+  return [...classes.values()];
+}
+
+interface Subject {
+  kind: "card" | "role" | "group";
+  key: string;
+  /** Counts at or above this are indistinguishable to every predicate. */
+  cap: number;
+}
+
+/**
+ * Exact analysis without listing hands. Conditions only read how many cards of
+ * each named card, Role or Group are in the hand, and the analysis only needs
+ * the Undesirable and Desirable counts up to 2. Each count is capped just above
+ * the largest number any predicate compares it with, so a state is a short
+ * vector of capped counts, and a dynamic program over the deck rows carries the
+ * exact number of ways to reach every state. Work grows with the number of
+ * distinct states, not with the number of hands, so a ten-card hand costs about
+ * the same as a five-card hand.
+ */
+export function countedAnalysis(
+  deck: readonly MappingCard[],
+  handSize: number,
+  conditions: readonly HandConditionLike[],
+  groups: GroupMembership,
+  turnOrder: "going_first" | "going_second" | undefined,
+  record: (holds: readonly boolean[], weight: bigint, undesirable: number, desirable: number) => void,
+): void {
+  const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
+  if (
+    !Number.isInteger(handSize) ||
+    handSize < 0 ||
+    deck.some((card) => !Number.isInteger(card.quantity) || card.quantity < 1)
+  ) {
+    throw new ProbabilityError("invalid deck or hand size for enumeration");
+  }
+  if (handSize > deckSize) {
+    throw new ProbabilityError("hand_size must fit inside deck_size");
+  }
+  const subjects: Subject[] = [];
+  const subjectIndex = new Map<string, number>();
+  const predicates = (condition: HandConditionLike) => [
+    ...condition.requirements,
+    ...(condition.excludes ?? []),
+  ];
+  const subjectKey = (predicate: ConditionRequirement) =>
+    predicate.kind === "card"
+      ? `card:${predicate.card_id}`
+      : predicate.kind === "role"
+        ? `role:${predicate.role}`
+        : `group:${predicate.group_id}`;
+  for (const condition of conditions) {
+    for (const predicate of predicates(condition)) {
+      const key = subjectKey(predicate);
+      const need = Math.max(1, predicate.count + 1);
+      const existing = subjectIndex.get(key);
+      if (existing === undefined) {
+        subjectIndex.set(key, subjects.length);
+        subjects.push({ kind: predicate.kind, key, cap: need });
+      } else {
+        subjects[existing]!.cap = Math.max(subjects[existing]!.cap, need);
+      }
+    }
+  }
+
+  // Digits of a state: cards taken, one per subject, then Undesirable and Desirable (cap 2).
+  const radix = [
+    handSize + 1,
+    ...subjects.map((subject) => subject.cap + 1),
+    ...(turnOrder ? [3, 3] : []),
+  ];
+  const digits = radix.length;
+  const qualityStart = 1 + subjects.length;
+
+  const decode = (key: number): number[] => {
+    const out = new Array<number>(digits);
+    let rest = key;
+    for (let i = 0; i < digits; i += 1) {
+      out[i] = rest % radix[i]!;
+      rest = Math.floor(rest / radix[i]!);
+    }
+    return out;
+  };
+  const encode = (values: readonly number[]): number => {
+    let key = 0;
+    for (let i = digits - 1; i >= 0; i -= 1) key = key * radix[i]! + values[i]!;
+    return key;
+  };
+
+  const rowContribution = (card: MappingCard): number[] => {
+    const add = new Array<number>(digits).fill(0);
+    subjects.forEach((subject, i) => {
+      const [kind, ...rest] = subject.key.split(":");
+      const value = rest.join(":");
+      const applies =
+        kind === "card"
+          ? card.card_id === Number(value)
+          : kind === "role"
+            ? card.taxonomy.roles.includes(value as Role)
+            : (groups.get(value)?.has(card.card_id) ?? false);
+      if (applies) add[1 + i] = 1;
+    });
+    if (turnOrder) {
+      const quality = openingQualityForTurn(card.taxonomy.opening_quality, turnOrder);
+      if (quality === "undesirable") add[qualityStart] = 1;
+      if (quality === "desirable") add[qualityStart + 1] = 1;
+    }
+    return add;
+  };
+
+  const suffix = new Array<number>(deck.length + 1).fill(0);
+  for (let i = deck.length - 1; i >= 0; i -= 1) suffix[i] = suffix[i + 1]! + deck[i]!.quantity;
+
+  let states = new Map<number, bigint>([[0, 1n]]);
+  deck.forEach((card, row) => {
+    const add = rowContribution(card);
+    const ways = Array.from({ length: card.quantity + 1 }, (_, k) =>
+      combinations(card.quantity, k),
+    );
+    const next = new Map<number, bigint>();
+    for (const [key, weight] of states) {
+      const values = decode(key);
+      for (let take = 0; take <= card.quantity; take += 1) {
+        const taken = values[0]! + take;
+        if (taken > handSize) break;
+        if (handSize - taken > suffix[row + 1]!) continue;
+        const moved = new Array<number>(digits);
+        moved[0] = taken;
+        for (let d = 1; d < digits; d += 1) {
+          const cap = radix[d]! - 1;
+          moved[d] = Math.min(cap, values[d]! + add[d]! * take);
+        }
+        const nextKey = encode(moved);
+        next.set(nextKey, (next.get(nextKey) ?? 0n) + weight * ways[take]!);
+      }
+    }
+    states = next;
+  });
+
+  const countOf = (predicate: ConditionRequirement, values: readonly number[]): number => {
+    const index = subjectIndex.get(subjectKey(predicate));
+    return index === undefined ? 0 : values[1 + index]!;
+  };
+  for (const [key, weight] of states) {
+    const values = decode(key);
+    if (values[0] !== handSize) continue;
+    const holds = conditions.map(
+      (condition) =>
+        condition.requirements.length > 0 &&
+        condition.requirements.every((p) => matchesCount(countOf(p, values), p.op, p.count)) &&
+        !(condition.excludes ?? []).some((p) => matchesCount(countOf(p, values), p.op, p.count)),
+    );
+    record(
+      holds,
+      weight,
+      turnOrder ? values[qualityStart]! : 0,
+      turnOrder ? values[qualityStart + 1]! : 0,
+    );
+  }
+}
+
+/**
  * Exact analysis of Hand Conditions and Condition Sets in one enumeration
  * pass. For each hand composition, every condition is evaluated once; the
  * satisfied set drives per-condition weights, per-set union/multiplicity
@@ -534,13 +764,17 @@ export function pairKey(aId: string, bId: string): string {
  * counts under that turn order's annotation).
  */
 export function analyzeHandConditions(
-  deck: readonly MappingCard[],
+  fullDeck: readonly MappingCard[],
   handSize: number,
   conditions: readonly HandConditionLike[],
   sets: readonly HandConditionSetLike[],
   groups: GroupMembership = new Map(),
   turnOrder?: "going_first" | "going_second",
+  /** `compress: false` and `enumerate: true` force the slow reference path, for tests. */
+  options: { compress?: boolean; enumerate?: boolean } = {},
 ): HandEventAnalysis {
+  const deck =
+    options.compress === false ? fullDeck : compressDeck(fullDeck, conditions, groups, turnOrder);
   const deckSize = deck.reduce((sum, card) => sum + card.quantity, 0);
   if (
     !Number.isInteger(handSize) ||
@@ -595,54 +829,69 @@ export function analyzeHandConditions(
     return totalCount;
   }
 
-  if (total > 0n) {
+  /** Fold one outcome (which conditions hold, and the quality counts) into the totals. */
+  function record(
+    holds: readonly boolean[],
+    weight: bigint,
+    undesirable: number,
+    desirable: number,
+  ): void {
+    for (let i = 0; i < conditions.length; i += 1) {
+      if (holds[i]) conditionWeights[i] = conditionWeights[i]! + weight;
+    }
+
+    const satisfied: number[] = [];
+    for (let i = 0; i < holds.length; i += 1) {
+      if (holds[i]) satisfied.push(i);
+    }
+    if (satisfied.length >= 2) {
+      for (let a = 0; a < satisfied.length; a += 1) {
+        for (let b = a + 1; b < satisfied.length; b += 1) {
+          const key = pairKey(
+            conditions[satisfied[a]!]!.id,
+            conditions[satisfied[b]!]!.id,
+          );
+          pairWeights.set(key, (pairWeights.get(key) ?? 0n) + weight);
+        }
+      }
+    }
+
+    for (let s = 0; s < setSpecs.length; s += 1) {
+      let count = 0;
+      for (const index of setMembers[s]!) {
+        if (holds[index]) count += 1;
+      }
+      if (count > 0) setUnionWeights[s] = setUnionWeights[s]! + weight;
+      setBucketWeights[s]![count] = setBucketWeights[s]![count]! + weight;
+      if (count > 0 && turnOrder) {
+        const bucket = undesirable >= 2 ? 2 : undesirable;
+        setUndesirableWeights[s]![bucket] =
+          setUndesirableWeights[s]![bucket]! + weight;
+        if (desirable >= 1) {
+          setDesirableGe1Weights[s] = setDesirableGe1Weights[s]! + weight;
+        }
+        if (desirable >= 2) {
+          setDesirableGe2Weights[s] = setDesirableGe2Weights[s]! + weight;
+        }
+      }
+    }
+  }
+
+  const usesDistinct = conditions.some(
+    (condition) => (condition.distinct_constraints ?? []).length > 0,
+  );
+  if (total > 0n && (usesDistinct || options.enumerate)) {
+    // Distinct-match constraints read card identity, so enumerate every composition.
     forEachHandComposition(deck, handSize, (hand, weight) => {
-      const holds = conditions.map((condition) =>
-        handConditionHolds(hand, deck, condition, groups),
+      record(
+        conditions.map((condition) => handConditionHolds(hand, deck, condition, groups)),
+        weight,
+        countQuality(hand, "undesirable"),
+        countQuality(hand, "desirable"),
       );
-      for (let i = 0; i < conditions.length; i += 1) {
-        if (holds[i]) conditionWeights[i] = conditionWeights[i]! + weight;
-      }
-
-      const satisfied: number[] = [];
-      for (let i = 0; i < holds.length; i += 1) {
-        if (holds[i]) satisfied.push(i);
-      }
-      if (satisfied.length >= 2) {
-        for (let a = 0; a < satisfied.length; a += 1) {
-          for (let b = a + 1; b < satisfied.length; b += 1) {
-            const key = pairKey(
-              conditions[satisfied[a]!]!.id,
-              conditions[satisfied[b]!]!.id,
-            );
-            pairWeights.set(key, (pairWeights.get(key) ?? 0n) + weight);
-          }
-        }
-      }
-
-      const undesirable = countQuality(hand, "undesirable");
-      const desirable = countQuality(hand, "desirable");
-
-      for (let s = 0; s < setSpecs.length; s += 1) {
-        let count = 0;
-        for (const index of setMembers[s]!) {
-          if (holds[index]) count += 1;
-        }
-        if (count > 0) setUnionWeights[s] = setUnionWeights[s]! + weight;
-        setBucketWeights[s]![count] = setBucketWeights[s]![count]! + weight;
-        if (count > 0 && turnOrder) {
-          const bucket = undesirable >= 2 ? 2 : undesirable;
-          setUndesirableWeights[s]![bucket] =
-            setUndesirableWeights[s]![bucket]! + weight;
-          if (desirable >= 1) {
-            setDesirableGe1Weights[s] = setDesirableGe1Weights[s]! + weight;
-          }
-          if (desirable >= 2) {
-            setDesirableGe2Weights[s] = setDesirableGe2Weights[s]! + weight;
-          }
-        }
-      }
     });
+  } else if (total > 0n) {
+    countedAnalysis(deck, handSize, conditions, groups, turnOrder, record);
   }
 
   const overlaps = new Map<string, PairOverlap>();
