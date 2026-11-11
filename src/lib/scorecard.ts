@@ -3,6 +3,7 @@ import { sectionSize, type MappingDocument } from "./document";
 import { groupsToMembership, type HandCondition, type HandConditionSet } from "./handCondition";
 import { analyzeHandConditions } from "./handExplorer";
 import { analyzeVersus, scenariosFor } from "./handtrapVersus";
+import type { Handtrap } from "./handtrap";
 import { openingQualityForTurn } from "./taxonomy";
 
 /**
@@ -49,6 +50,9 @@ export const DEFAULT_SETTINGS: ScorecardSettings = { ...DEFAULT_WEIGHTS, brickTo
 /** The brick curve is measured for 0 up to this many bricks. */
 export const BRICK_CURVE_MAX = 3;
 
+/** The interruption curve is measured for 0 up to this many interruptions. */
+export const INTERRUPTION_CURVE_MAX = 3;
+
 /** The two situations measured: the opening hand going first, the first-turn hand going second. */
 export const TURN_CONTEXTS: Record<"first" | "second", AnalysisContext> = {
   first: { turn_order: "going_first", observation_point: "opening_hand" },
@@ -86,6 +90,11 @@ export interface TurnScore {
   /** The handtraps of that worst scenario. */
   worstScenarioIds: string[];
   scenarios: ScenarioSurvival[];
+  /**
+   * P(the goal still holds) after 0, 1, 2 .. INTERRUPTION_CURVE_MAX interruptions, each
+   * stopping any one card in hand, worst case. Index 0 is Opens. Empty if it could not be computed.
+   */
+  interruptions: number[];
   /** P(at least one Interaction card); null when no card has the role. */
   interaction: number | null;
   /** Weighted mean of the numbers that exist; null when no weight is left. */
@@ -272,6 +281,30 @@ function turnScore(
     }
   }
 
+  // How many interruptions the goal can take, with no handtrap defined: each one
+  // stops any one card in your hand, and the opponent picks the card that hurts most.
+  // A hand with one route ends its turn on the first; two independent routes take one.
+  let interruptions: number[] = [];
+  const everyCard: Handtrap = {
+    id: "__interruption",
+    name: "Any interruption",
+    hits: doc.main.map((card) => card.card_id),
+  };
+  const curve = analyzeVersus(
+    { ...scoped, handtraps: [...scoped.handtraps, everyCard] },
+    Array.from({ length: INTERRUPTION_CURVE_MAX }, (_, index) => ({
+      id: `__interruptions-${index + 1}`,
+      label: `${index + 1} ${index === 0 ? "interruption" : "interruptions"}`,
+      handtrapIds: Array<string>(index + 1).fill(everyCard.id),
+    })),
+  );
+  if (!("error" in curve)) {
+    interruptions = [
+      opens,
+      ...curve.scenarios.map((result) => result.goals.find((item) => item.setId === goal.id)?.probability ?? 0),
+    ];
+  }
+
   const interactionCopies = doc.main.reduce(
     (sum, card) => sum + (card.taxonomy.roles.includes("interaction") ? card.quantity : 0),
     0,
@@ -294,6 +327,7 @@ function turnScore(
     worstScenario,
     worstScenarioIds,
     scenarios,
+    interruptions,
     interaction,
     combined: combine({ opens, clean, resilient, interaction }, settings),
     notes,

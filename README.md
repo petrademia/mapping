@@ -297,6 +297,14 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
   case over the handtraps and pairs in the Handtraps tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
+- **Interruption curve** - hands that still meet the Hand Goal after 0, 1, 2 and 3
+  interruptions, where each interruption stops any one card in hand and the
+  opponent picks the one that hurts most. It needs no handtrap defined. A hand
+  with one route ends its turn on the first interruption; two independent
+  routes (for example two starters that do not need each other) take one, not
+  two. The Scorecard also shows the share of hands that meet the goal with only
+  one route. A second copy of a card counts as a backup here, so it overstates
+  a card that needs the Normal Summon.
 - The Profile view opens with **Quality at a glance**: one combined number for
   going first and one for going second, the weakest measured number in each,
   and what is not measured yet and how to measure it. It is a summary of the

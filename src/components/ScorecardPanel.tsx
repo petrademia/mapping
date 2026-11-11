@@ -207,6 +207,56 @@ export function ScorecardPanel({ doc }: Props) {
             </>
           ) : null}
 
+          {result.first.interruptions.length > 0 ? (
+            <>
+              <h3 className="panel-subhead">How many interruptions can it take?</h3>
+              <p className="note">
+                Hands that still meet the Hand Goal after this many interruptions. Each
+                interruption stops any one card in your hand, and the opponent picks the
+                card that hurts most, so no handtrap needs to be defined. A hand with one
+                route ends its turn on the first interruption. Two independent routes,
+                such as two starters that do not need each other, take one.
+              </p>
+              <table className="compare-table scorecard-curve" aria-label="Interruption curve">
+                <thead>
+                  <tr>
+                    <th scope="col">After</th>
+                    {result.first.interruptions.map((_, k) => (
+                      <th key={k} scope="col">
+                        {k}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Going first", result.first],
+                    ["Going second", result.second],
+                  ].map(([label, turn]) => (
+                    <tr key={label as string}>
+                      <th scope="row">{label as string}</th>
+                      {(turn as TurnScore).interruptions.map((value, k) => (
+                        <td key={k} className="num">
+                          {percent(value)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {result.second.interruptions.length > 1 ? (
+                <p className="note">
+                  Meet the goal with only one route, so one interruption ends the turn:{" "}
+                  <strong>{percent(result.first.interruptions[0]! - result.first.interruptions[1]!)}</strong>{" "}
+                  going first,{" "}
+                  <strong>{percent(result.second.interruptions[0]! - result.second.interruptions[1]!)}</strong>{" "}
+                  going second. A second copy of the same card counts as a backup here, which is
+                  not true for a card that needs the Normal Summon.
+                </p>
+              ) : null}
+            </>
+          ) : null}
+
           {result.first.scenarios.length > 1 ? (
             <details className="panel-details">
               <summary>Resilience by opponent hand</summary>

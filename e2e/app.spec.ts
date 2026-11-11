@@ -748,6 +748,14 @@ test.describe("Handtrap versus", () => {
       value(await read(first, "Opens").innerText()),
     );
 
+    // The interruption curve needs no handtrap: Opens, then fewer hands after each interruption.
+    const curve = card.getByRole("table", { name: "Interruption curve" });
+    const firstRow = (await curve.getByRole("row", { name: /Going first/ }).locator("td").allInnerTexts()).map(value);
+    expect(firstRow).toHaveLength(4);
+    expect(firstRow[0]).toBeCloseTo(value(await read(first, "Opens").innerText()), 1);
+    for (let k = 1; k < firstRow.length; k += 1) expect(firstRow[k]!).toBeLessThanOrEqual(firstRow[k - 1]!);
+    await expect(card.getByText(/one interruption ends the turn/)).toBeVisible();
+
     // Nothing else can be measured yet, and the card says why.
     await expect(card.getByText("Add a handtrap in the Handtraps tab to measure resilience.")).toBeVisible();
     await expect(card.getByText(/No card has the Interaction role/)).toBeVisible();
@@ -796,6 +804,7 @@ test.describe("Handtrap versus", () => {
     await expect(first.getByRole("status")).toHaveText(/^\d+\.\d%$/);
     await expect(second.getByRole("status")).toHaveText(/^\d+\.\d%$/);
     await expect(first.getByText(/^Weakest:/)).toBeVisible();
+    await expect(first.getByText(/^After one interruption: \d+\.\d%$/)).toBeVisible();
     // Nothing else is modelled yet, so it says how to measure the rest.
     await expect(summary.getByText(/Not measured yet: .*Resilient, to measure it add a handtrap/)).toBeVisible();
 

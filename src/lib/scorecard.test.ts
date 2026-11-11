@@ -148,6 +148,43 @@ describe("scorecard", () => {
   });
 });
 
+describe("the interruption curve", () => {
+  const sevenths = (curve: number[], of: number) => curve.map((p) => Math.round(p * of));
+
+  it("a single one-card route ends the turn on the first interruption unless a spare copy backs it", () => {
+    const card = ok(scorecard(doc(), "g"));
+    // Going first (56 hands): the goal needs card 1; surviving k interruptions needs k+1 copies of it.
+    expect(sevenths(card.first.interruptions, 56)).toEqual([55, 40, 10, 0]);
+    // Going second (28 hands).
+    expect(sevenths(card.second.interruptions, 28)).toEqual([28, 25, 10, 0]);
+    // Index 0 is Opens.
+    expect(card.first.interruptions[0]).toBeCloseTo(card.first.opens, 12);
+    // Hands that meet the goal but end on one interruption: 55 - 40 of 56.
+    expect(Math.round((card.first.interruptions[0]! - card.first.interruptions[1]!) * 56)).toBe(15);
+  });
+
+  it("two independent one-card routes take one interruption but not two", () => {
+    const two = {
+      ...doc(),
+      hand_conditions: [
+        { id: "c", name: "card 1 alone", requirements: [{ kind: "card", card_id: 1, op: "gte", count: 1 }], excludes: [] },
+        { id: "c3", name: "card 3 alone", requirements: [{ kind: "card", card_id: 3, op: "gte", count: 1 }], excludes: [] },
+      ],
+      hand_condition_sets: [{ id: "g", name: "Goal", condition_ids: ["c", "c3"], aggregation: "any" }],
+    } as unknown as MappingDocument;
+    const card = ok(scorecard(two, "g"));
+    // Five route cards and three blanks: a five-card hand always holds two or more route cards.
+    expect(sevenths(card.first.interruptions, 56)).toEqual([56, 56, 46, 16]);
+    expect(sevenths(card.second.interruptions, 28)).toEqual([28, 28, 28, 18]);
+  });
+
+  it("needs no handtrap to be defined", () => {
+    const card = ok(scorecard(doc({ handtrap: false }), "g"));
+    expect(card.first.resilient).toBeNull();
+    expect(sevenths(card.first.interruptions, 56)).toEqual([55, 40, 10, 0]);
+  });
+});
+
 describe("the summary helpers", () => {
   it("name the lowest measured number and what could not be measured", () => {
     const card = ok(scorecard(doc(), "g"));

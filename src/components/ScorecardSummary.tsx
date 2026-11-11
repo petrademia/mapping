@@ -22,6 +22,11 @@ function Tile({ title, turn }: { title: string; turn: TurnScore }) {
       <p className="outcome-primary" role="status">
         {turn.combined === null ? "-" : percent(turn.combined)}
       </p>
+      {turn.interruptions.length > 1 ? (
+        <p className="summary-weakest">
+          After one interruption: <strong>{percent(turn.interruptions[1]!)}</strong>
+        </p>
+      ) : null}
       <p className="summary-weakest">
         {low ? (
           <>
