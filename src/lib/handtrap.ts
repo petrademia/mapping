@@ -32,6 +32,56 @@ export const COMMON_HANDTRAPS: readonly { card_id: number; name: string }[] = [
   { card_id: 73642296, name: "Ghost Belle & Haunted Mansion" },
 ];
 
+/**
+ * Something the opponent goes for when they use a handtrap: one of your cards, or a
+ * Group (for example every route that ends at Medius's effect). The list is in the order
+ * they prefer; a handtrap still only stops what it can stop (its `hits`).
+ */
+export type HitTarget =
+  | { kind: "card"; card_id: number }
+  | { kind: "group"; group_id: string };
+
+export const sameHitTarget = (a: HitTarget, b: HitTarget): boolean =>
+  a.kind === "card" && b.kind === "card"
+    ? a.card_id === b.card_id
+    : a.kind === "group" && b.kind === "group" && a.group_id === b.group_id;
+
+/** Tolerant parse for saved files: unknown Groups and repeats are dropped, order is kept. */
+export function parseHitPriority(raw: unknown, groupIds: ReadonlySet<string>): HitTarget[] {
+  if (!Array.isArray(raw)) return [];
+  const out: HitTarget[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const item = entry as Record<string, unknown>;
+    let target: HitTarget | null = null;
+    if (item.kind === "card" && Number.isInteger(item.card_id) && (item.card_id as number) > 0) {
+      target = { kind: "card", card_id: item.card_id as number };
+    } else if (item.kind === "group" && typeof item.group_id === "string" && groupIds.has(item.group_id)) {
+      target = { kind: "group", group_id: item.group_id };
+    }
+    if (target && !out.some((existing) => sameHitTarget(existing, target!))) out.push(target);
+  }
+  return out;
+}
+
+export function addHitTarget(doc: MappingDocument, target: HitTarget): MappingDocument {
+  if (doc.hit_priority.some((existing) => sameHitTarget(existing, target))) return doc;
+  return { ...doc, hit_priority: [...doc.hit_priority, target] };
+}
+
+export function removeHitTarget(doc: MappingDocument, index: number): MappingDocument {
+  return { ...doc, hit_priority: doc.hit_priority.filter((_, at) => at !== index) };
+}
+
+/** Move a target up (-1) or down (+1) the order. */
+export function moveHitTarget(doc: MappingDocument, index: number, delta: -1 | 1): MappingDocument {
+  const to = index + delta;
+  if (to < 0 || to >= doc.hit_priority.length) return doc;
+  const next = [...doc.hit_priority];
+  [next[index], next[to]] = [next[to]!, next[index]!];
+  return { ...doc, hit_priority: next };
+}
+
 export function newHandtrap(name: string, card_id?: number): Handtrap {
   return {
     id: newId("handtrap"),

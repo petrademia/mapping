@@ -25,6 +25,12 @@ function Tile({ title, turn }: { title: string; turn: TurnScore }) {
       {turn.interruptions.length > 1 ? (
         <p className="summary-weakest">
           After one interruption: <strong>{percent(turn.interruptions[1]!)}</strong>
+          {turn.interruptionsPriority.length > 1 ? (
+            <>
+              {" "}
+              ({percent(turn.interruptionsPriority[1]!)} if they follow your list)
+            </>
+          ) : null}
         </p>
       ) : null}
       <p className="summary-weakest">

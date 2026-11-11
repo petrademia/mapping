@@ -21,7 +21,7 @@ import {
   type SidingConfiguration,
 } from "./configuration";
 import { emptyRank, parseCardRank, type CardRank } from "./cardRank";
-import { parseHandtraps, parsePairs, type Handtrap, type HandtrapPair } from "./handtrap";
+import { parseHandtraps, parseHitPriority, parsePairs, type Handtrap, type HandtrapPair, type HitTarget } from "./handtrap";
 import {
   EMPTY_TAXONOMY,
   mergeTaxonomies,
@@ -78,6 +78,12 @@ export interface MappingDocument {
    * the first when it is stopped. The handtrap analysis takes this into account.
    */
   choke_point_group_ids: string[];
+  /**
+   * What the opponent goes for first when they use a handtrap, in order: your cards or
+   * Groups. A handtrap still only stops what it can stop. Empty = no preference, and the
+   * opponent is only ever assumed to hit the card that hurts most.
+   */
+  hit_priority: HitTarget[];
   analysis: MappingAnalysis;
   /**
    * Post-side configurations. The main/extra/side lists above are Pre-Side.
@@ -156,6 +162,7 @@ export function createDocument(name: string): MappingDocument {
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
     choke_point_group_ids: [],
+    hit_priority: [],
     analysis: defaultAnalysis(),
     configurations: [],
     active_configuration_id: null,
@@ -362,6 +369,7 @@ export function clearModeledOutcomes(doc: MappingDocument): MappingDocument {
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
     choke_point_group_ids: [],
+    hit_priority: [],
   };
 }
 
@@ -499,6 +507,7 @@ export function removeGroup(
     ...doc,
     groups: doc.groups.filter((group) => group.id !== groupId),
     choke_point_group_ids: doc.choke_point_group_ids.filter((id) => id !== groupId),
+    hit_priority: doc.hit_priority.filter((target) => target.kind !== "group" || target.group_id !== groupId),
     hand_conditions: doc.hand_conditions.map((condition) =>
       normalizeHandCondition({
         ...condition,
@@ -771,6 +780,7 @@ export function parseMappingJson(text: string): MappingDocument {
   }
   if (knownGroup(data.normal_summon_group_id)) chokeIds.add(data.normal_summon_group_id);
   const chokePointGroupIds = [...chokeIds];
+  const hitPriority = parseHitPriority(data.hit_priority, new Set(groups.map((group) => group.id)));
   const rawConditions = data.hand_conditions ?? data.access_conditions;
   const hand_conditions = Array.isArray(rawConditions)
     ? rawConditions.map(parseHandCondition)
@@ -831,6 +841,7 @@ export function parseMappingJson(text: string): MappingDocument {
       hand_condition_sets: [...withoutDefault, engineSet],
       engine_access_set_id: ENGINE_ACCESS_SET_ID,
       choke_point_group_ids: chokePointGroupIds,
+      hit_priority: hitPriority,
       analysis: parsedAnalysis,
       configurations,
       active_configuration_id: activeId,
@@ -862,6 +873,7 @@ export function parseMappingJson(text: string): MappingDocument {
     hand_condition_sets,
     engine_access_set_id: engineAccessId,
     choke_point_group_ids: chokePointGroupIds,
+    hit_priority: hitPriority,
     analysis: parsedAnalysis,
     configurations,
     active_configuration_id: activeId,
@@ -911,6 +923,7 @@ export function serializeMapping(doc: MappingDocument): string {
     })),
     engine_access_set_id: doc.engine_access_set_id,
     choke_point_group_ids: [...doc.choke_point_group_ids],
+    hit_priority: doc.hit_priority.map((target) => ({ ...target })),
     analysis: doc.analysis,
     configurations: doc.configurations.map((config) => ({
       id: config.id,

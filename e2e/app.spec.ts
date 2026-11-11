@@ -863,6 +863,49 @@ test.describe("Handtrap versus", () => {
     ).toHaveText(average);
   });
 
+  test("the priority list is edited in the Handtraps tab and shown in the Scorecard", async ({ page }) => {
+    await openApp(page);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+
+    const editor = page.getByRole("region", { name: "Who the opponent goes for" });
+    await expect(editor.getByText(/No list yet/)).toBeVisible();
+    // Without a list the Scorecard only has the worst case.
+    await nav(page, "Scorecard").click();
+    const curve = page.getByRole("table", { name: "Interruption curve" });
+    await expect(curve.getByRole("row", { name: /if they follow your list/ })).toHaveCount(0);
+
+    await nav(page, "Handtraps").click();
+    const add = editor.getByLabel("Add a card to the priority list");
+    await add.selectOption({ index: 1 });
+    await add.selectOption({ index: 1 }); // a listed card leaves the menu, so this is the next one
+    const items = editor.getByRole("list", { name: "Priority list" }).locator("li");
+    await expect(items).toHaveCount(2);
+    const names = await editor.locator(".priority-name").allInnerTexts();
+    await editor.getByRole("button", { name: `Move ${names[1]} up` }).click();
+    await expect(editor.locator(".priority-name")).toHaveText([names[1]!, names[0]!]);
+
+    // The Scorecard now shows the opponent who follows the list, next to the worst case.
+    await nav(page, "Scorecard").click();
+    await expect(curve.getByRole("row", { name: /Going first, if they follow your list/ })).toBeVisible();
+    await expect(curve.getByRole("row", { name: /Going second, if they follow your list/ })).toBeVisible();
+    const row = async (name: RegExp) =>
+      (await curve.getByRole("row", { name }).locator("td").allInnerTexts()).map((text) => Number.parseFloat(text));
+    const worst = await row(/^Going first(?!,)/);
+    const followed = await row(/Going first, if they follow your list/);
+    expect(followed).toHaveLength(worst.length);
+    expect(followed[0]).toBeCloseTo(worst[0]!, 2); // both start from Opens
+
+    // It is saved with the deck, and removing the entries takes the rows away again.
+    await page.reload();
+    await nav(page, "Handtraps").click();
+    await expect(editor.locator(".priority-name")).toHaveText([names[1]!, names[0]!]);
+    await editor.getByRole("button", { name: `Remove ${names[1]} from the list` }).click();
+    await editor.getByRole("button", { name: `Remove ${names[0]} from the list` }).click();
+    await expect(editor.getByText(/No list yet/)).toBeVisible();
+  });
+
   test("handtraps are saved with the deck", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
@@ -949,7 +992,17 @@ test.describe("Models are card art", () => {
 test.describe("Sorting the deck sections", () => {
   const main = (page: Page) =>
     page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
-  const titles = (page: Page) => main(page).locator(".deck-tile").evaluateAll((els) => els.map((el) => el.getAttribute("title")));
+  const rawTitles = (page: Page) =>
+    main(page).locator(".deck-tile").evaluateAll((els) => els.map((el) => el.getAttribute("title")));
+  // A tile is titled "#<passcode>" until the card names have loaded, which happens after the
+  // deck itself appears. Read the titles only once every tile has its name, or the order moves
+  // under the test when the machine is busy.
+  const titles = async (page: Page) => {
+    await expect
+      .poll(async () => (await rawTitles(page)).some((title) => /^#\d+$/.test(title ?? "")))
+      .toBe(false);
+    return rawTitles(page);
+  };
 
   test("sorting by name orders the section and leaves the deck alone", async ({ page }) => {
     await openApp(page);

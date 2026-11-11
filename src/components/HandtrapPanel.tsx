@@ -17,6 +17,7 @@ import {
 } from "../lib/handtrap";
 import { analyzeVersus, type GoalSurvival } from "../lib/handtrapVersus";
 import { CardFrame } from "./HandImages";
+import { HitPriorityEditor } from "./HitPriorityEditor";
 import { DeckPicker } from "./ModelArt";
 
 interface Props {
@@ -265,6 +266,8 @@ export function HandtrapPanel({ doc, catalog, onChange }: Props) {
           <HandtrapBlock key={handtrap.id} doc={doc} catalog={catalog} handtrap={handtrap} onChange={onChange} />
         ))
       )}
+
+      <HitPriorityEditor doc={doc} catalog={catalog} onChange={onChange} />
 
       <h3 className="panel-subhead">Pairs the opponent holds together</h3>
       {doc.handtraps.length === 0 ? (

@@ -110,6 +110,7 @@ export const powerPatronArsMagnaDemo: MappingDocument = {
   ],
   engine_access_set_id: "modeled-engine-access",
   choke_point_group_ids: [],
+  hit_priority: [],
   configurations: [],
   active_configuration_id: null,
   card_rank: { going_first: [], going_second: [] },

@@ -110,9 +110,19 @@ function withChokePoints(
   return false;
 }
 
+/**
+ * Who the opponent is.
+ * - "worst_case": every handtrap is used on the card that hurts you most, or not at all.
+ * - "priority": every handtrap goes to the first card or Group of the document's
+ *   `hit_priority` list that it can stop and that is in your hand, whether or not that
+ *   breaks your plan. When none is in reach, that handtrap falls back to the worst case.
+ */
+export type OpponentModel = "worst_case" | "priority";
+
 export function analyzeVersus(
   doc: MappingDocument,
   scenarios: readonly VersusScenario[] = scenariosFor(doc),
+  options: { opponent?: OpponentModel } = {},
 ): VersusOutcome {
   const context = analysisContextOf(doc);
   const sample = observedCards(context, doc.analysis.opening_hand_size);
@@ -141,6 +151,11 @@ export function analyzeVersus(
   const handtrapById = new Map(doc.handtraps.map((h) => [h.id, h]));
   const groups = new Map<string, ReadonlySet<number>>(groupsToMembership(doc.groups));
   for (const id of used) groups.set(`__hits:${id}`, new Set(handtrapById.get(id)?.hits ?? []));
+  // What the opponent goes for, as hidden Groups too, so a listed card stays a row of its own.
+  const priority = options.opponent === "priority" ? doc.hit_priority : [];
+  priority.forEach((target, index) => {
+    if (target.kind === "card") groups.set(`__prio:${index}`, new Set([target.card_id]));
+  });
 
   const allConditions = goals.flatMap((goal) => goal.members);
   const deck = compressDeck(doc.main, allConditions, groups);
@@ -152,6 +167,12 @@ export function analyzeVersus(
       deck.flatMap((card, row) => (targets.has(card.card_id) ? [row] : [])),
     );
   }
+  const targetRows = priority
+    .map((target, index) => {
+      const members = target.kind === "card" ? groups.get(`__prio:${index}`)! : (groups.get(target.group_id) ?? new Set<number>());
+      return deck.flatMap((card, row) => (members.has(card.card_id) ? [row] : []));
+    })
+    .filter((rows) => rows.length > 0);
 
   // Cards that share a bottleneck: each Group is already part of what tells rows apart.
   const chokeRows = chokePointRows(doc, deck);
@@ -163,11 +184,26 @@ export function analyzeVersus(
   const holds = (hand: readonly number[], goal: number): boolean =>
     goals[goal]!.members.some((condition) => handConditionHolds(hand, deck, condition, groups));
 
-  // True when the goal still holds however the opponent uses the handtraps from `at` on.
+  // True when the goal still holds against the opponent from handtrap `at` on.
   function survives(hand: number[], goal: number, traps: readonly string[], at: number): boolean {
     if (at === traps.length) return holds(hand, goal);
-    if (!survives(hand, goal, traps, at + 1)) return false; // doing nothing is an option
-    for (const row of hitRows.get(traps[at]!) ?? []) {
+    const capable = hitRows.get(traps[at]!) ?? [];
+    // The first listed target this handtrap can stop and that you hold: it goes there.
+    for (const rows of targetRows) {
+      const reachable = rows.filter((row) => capable.includes(row) && hand[row]! > 0);
+      if (reachable.length === 0) continue;
+      // A card is one row. For a Group you choose which of its cards is the one stopped.
+      for (const row of reachable) {
+        hand[row]! -= 1;
+        const ok = survives(hand, goal, traps, at + 1);
+        hand[row]! += 1;
+        if (ok) return true;
+      }
+      return false;
+    }
+    // Nothing listed in reach: the worst case, the card that hurts most or no card at all.
+    if (!survives(hand, goal, traps, at + 1)) return false;
+    for (const row of capable) {
       if (hand[row]! <= 0) continue;
       hand[row]! -= 1;
       const ok = survives(hand, goal, traps, at + 1);

@@ -230,12 +230,18 @@ export function ScorecardPanel({ doc }: Props) {
                 </thead>
                 <tbody>
                   {[
-                    ["Going first", result.first],
-                    ["Going second", result.second],
-                  ].map(([label, turn]) => (
+                    ["Going first", result.first.interruptions],
+                    ["Going second", result.second.interruptions],
+                    ...(result.first.interruptionsPriority.length > 0
+                      ? [
+                          ["Going first, if they follow your list", result.first.interruptionsPriority],
+                          ["Going second, if they follow your list", result.second.interruptionsPriority],
+                        ]
+                      : []),
+                  ].map(([label, values]) => (
                     <tr key={label as string}>
                       <th scope="row">{label as string}</th>
-                      {(turn as TurnScore).interruptions.map((value, k) => (
+                      {(values as number[]).map((value, k) => (
                         <td key={k} className="num">
                           {percent(value)}
                         </td>
@@ -244,6 +250,14 @@ export function ScorecardPanel({ doc }: Props) {
                   ))}
                 </tbody>
               </table>
+              {result.first.interruptionsPriority.length > 0 ? (
+                <p className="note">
+                  The last two rows assume the opponent uses each handtrap on the first card or Group
+                  of your priority list (set in the Handtraps tab) that it can stop and you hold,
+                  whether or not that breaks your plan. The first two rows assume they always stop
+                  the card that hurts most, so the true figure is somewhere between.
+                </p>
+              ) : null}
               {result.second.interruptions.length > 1 ? (
                 <p className="note">
                   Meet the goal with only one route, so one interruption ends the turn:{" "}

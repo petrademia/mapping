@@ -178,6 +178,26 @@ describe("the interruption curve", () => {
     expect(sevenths(card.second.interruptions, 28)).toEqual([28, 28, 28, 18]);
   });
 
+  it("shows the curve for an opponent who goes for your list, next to the worst case", () => {
+    expect(ok(scorecard(doc(), "g")).first.interruptionsPriority).toEqual([]); // no list, nothing to show
+    // Card 3 is bait: listed before the real target, card 1.
+    const listed = {
+      ...doc(),
+      hit_priority: [{ kind: "card", card_id: 3 }, { kind: "card", card_id: 1 }],
+    } as unknown as MappingDocument;
+    const card = ok(scorecard(listed, "g"));
+    // Going first: any hand holding card 3 spends the handtrap on it, so 55 of 56 survive one (40 in the worst case).
+    expect(sevenths(card.first.interruptionsPriority, 56).slice(0, 2)).toEqual([55, 55]);
+    expect(sevenths(card.first.interruptions, 56).slice(0, 2)).toEqual([55, 40]);
+    // Going second: every six-card hand survives one (25 of 28 in the worst case).
+    expect(sevenths(card.second.interruptionsPriority, 28).slice(0, 2)).toEqual([28, 28]);
+    expect(card.first.interruptionsPriority.length).toBe(card.first.interruptions.length);
+    // Resilient (against your own handtrap, which stops card 1 only) is also shown for that opponent.
+    expect(card.first.resilientPriority).not.toBeNull();
+    // It never changes the combined number, which stays the worst case.
+    expect(card.first.combined).toBeCloseTo(ok(scorecard(doc(), "g")).first.combined!, 12);
+  });
+
   it("needs no handtrap to be defined", () => {
     const card = ok(scorecard(doc({ handtrap: false }), "g"));
     expect(card.first.resilient).toBeNull();

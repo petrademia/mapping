@@ -64,6 +64,13 @@
 .taxonomy-label { font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .roles, .opening-quality { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 /* Read from the Hand Conditions: shown like tags but not clickable. */
+/* The order the opponent goes for your cards. */
+.hit-priority { margin: var(--space-3) 0; }
+.priority-list { display: grid; gap: var(--space-1); margin: var(--space-2) 0; padding: 0; list-style: none; }
+.priority-list li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.priority-rank { min-width: 1.4rem; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); }
+.priority-name { flex: 1; min-width: 0; font-size: var(--text-sm); }
+.priority-actions { display: inline-flex; gap: var(--space-1); }
 .derived-labels { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); margin: var(--space-1) 0 0; font-size: var(--text-xs); color: var(--muted); }
 .derived-chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-2); border: 1px dashed var(--line); border-radius: var(--radius-pill); color: var(--ink); }
 .derived-chip::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--swatch, var(--muted)); }

@@ -95,6 +95,13 @@ export interface TurnScore {
    * stopping any one card in hand, worst case. Index 0 is Opens. Empty if it could not be computed.
    */
   interruptions: number[];
+  /**
+   * The same curve when the opponent goes for the cards on the document's `hit_priority`
+   * list first. Empty when there is no list. Not part of the combined number.
+   */
+  interruptionsPriority: number[];
+  /** Resilient when the opponent follows the list; null without a list or a handtrap. */
+  resilientPriority: number | null;
   /** P(at least one Interaction card); null when no card has the role. */
   interaction: number | null;
   /** Weighted mean of the numbers that exist; null when no weight is left. */
@@ -284,25 +291,43 @@ function turnScore(
   // How many interruptions the goal can take, with no handtrap defined: each one
   // stops any one card in your hand, and the opponent picks the card that hurts most.
   // A hand with one route ends its turn on the first; two independent routes take one.
-  let interruptions: number[] = [];
   const everyCard: Handtrap = {
     id: "__interruption",
     name: "Any interruption",
     hits: doc.main.map((card) => card.card_id),
   };
-  const curve = analyzeVersus(
-    { ...scoped, handtraps: [...scoped.handtraps, everyCard] },
-    Array.from({ length: INTERRUPTION_CURVE_MAX }, (_, index) => ({
-      id: `__interruptions-${index + 1}`,
-      label: `${index + 1} ${index === 0 ? "interruption" : "interruptions"}`,
-      handtrapIds: Array<string>(index + 1).fill(everyCard.id),
-    })),
-  );
-  if (!("error" in curve)) {
-    interruptions = [
+  const curveFor = (opponent: "worst_case" | "priority"): number[] => {
+    const curve = analyzeVersus(
+      { ...scoped, handtraps: [...scoped.handtraps, everyCard] },
+      Array.from({ length: INTERRUPTION_CURVE_MAX }, (_, index) => ({
+        id: `__interruptions-${index + 1}`,
+        label: `${index + 1} ${index === 0 ? "interruption" : "interruptions"}`,
+        handtrapIds: Array<string>(index + 1).fill(everyCard.id),
+      })),
+      { opponent },
+    );
+    if ("error" in curve) return [];
+    return [
       opens,
       ...curve.scenarios.map((result) => result.goals.find((item) => item.setId === goal.id)?.probability ?? 0),
     ];
+  };
+  const interruptions = curveFor("worst_case");
+
+  // The same, for an opponent who goes for the cards on your priority list first.
+  let interruptionsPriority: number[] = [];
+  let resilientPriority: number | null = null;
+  if (doc.hit_priority.length > 0) {
+    interruptionsPriority = curveFor("priority");
+    if (scenarioList.length > 0) {
+      const followed = analyzeVersus(scoped, scenarioList, { opponent: "priority" });
+      if (!("error" in followed)) {
+        const lows = followed.scenarios
+          .map((result) => result.goals.find((item) => item.setId === goal.id)?.probability)
+          .filter((value): value is number => value !== undefined);
+        resilientPriority = lows.length > 0 ? Math.min(...lows) : null;
+      }
+    }
   }
 
   const interactionCopies = doc.main.reduce(
@@ -328,6 +353,8 @@ function turnScore(
     worstScenarioIds,
     scenarios,
     interruptions,
+    interruptionsPriority,
+    resilientPriority,
     interaction,
     combined: combine({ opens, clean, resilient, interaction }, settings),
     notes,

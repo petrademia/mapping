@@ -388,6 +388,17 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   opponent always chooses the copy that hurts the goal most, or does nothing
   when that is better for them, so every number is the worst case.
 - A pair applies two negations, one per handtrap, each on its own copy.
+- **Who the opponent goes for.** A handtrap's own list says which of your cards
+  it can stop. In the Handtraps tab you can also give an ordered priority list
+  of cards or Groups the opponent tends to use a handtrap on first (for example
+  "every route that ends at Medius's effect", then Terminus, then Curtain). Each
+  handtrap then goes to the first listed target it can stop and you hold,
+  whether or not that breaks your plan; a card that is not listed is never hit,
+  and a handtrap with nothing listed in reach falls back to the worst case. For
+  a Group target you choose which of its cards is the one stopped, unless the
+  Group is a choke point. This does not replace the worst case: the Scorecard's
+  interruption table shows both opponents, and neither changes the combined
+  number. A card ranked above the real target and cheap to lose is bait.
 - **Choke points.** Some cards share one bottleneck: your one Normal Summon a
   turn, or a once-per-turn effect that several routes all run through (for
   example Tinia, Corruption, Finite and Citrinitas all end at one Citrinitas
