@@ -65,6 +65,36 @@ export function scenariosFor(doc: MappingDocument): VersusScenario[] {
   ];
 }
 
+/** The cards that each need your one Normal Summon a turn (the document's Normal Summon Group). */
+function normalSummonCards(doc: MappingDocument): ReadonlySet<number> {
+  const group = doc.normal_summon_group_id
+    ? doc.groups.find((entry) => entry.id === doc.normal_summon_group_id)
+    : undefined;
+  return new Set(group?.card_ids ?? []);
+}
+
+/**
+ * Runs `test` as if only one card that needs the Normal Summon could be used: you
+ * choose which one (or none) before the opponent answers, and succeed when any
+ * choice passes. `rows` are the hand positions of those cards. The hand is put back.
+ */
+function withNormalSummon(hand: number[], rows: readonly number[], test: () => boolean): boolean {
+  const present = rows.filter((row) => hand[row]! > 0);
+  if (present.length === 0) return test();
+  const saved = rows.map((row) => hand[row]!);
+  for (const choice of [...present, -1]) {
+    rows.forEach((row) => {
+      hand[row] = row === choice ? 1 : 0;
+    });
+    const ok = test();
+    rows.forEach((row, index) => {
+      hand[row] = saved[index]!;
+    });
+    if (ok) return true;
+  }
+  return false;
+}
+
 export function analyzeVersus(
   doc: MappingDocument,
   scenarios: readonly VersusScenario[] = scenariosFor(doc),
@@ -108,6 +138,10 @@ export function analyzeVersus(
     );
   }
 
+  // Cards that share the Normal Summon: the Group is already part of what tells rows apart.
+  const normalSummon = normalSummonCards(doc);
+  const normalSummonRows = deck.flatMap((card, row) => (normalSummon.has(card.card_id) ? [row] : []));
+
   const baseline = goals.map(() => 0n);
   const survived = scenarios.map(() => goals.map(() => 0n));
   const total = combinations(deckSize, sample);
@@ -138,7 +172,10 @@ export function analyzeVersus(
     if (!base.some(Boolean)) return;
     scenarios.forEach((scenario, index) => {
       base.forEach((passes, goal) => {
-        if (passes && survives(hand, goal, scenario.handtrapIds, 0)) {
+        if (
+          passes &&
+          withNormalSummon(hand, normalSummonRows, () => survives(hand, goal, scenario.handtrapIds, 0))
+        ) {
           survived[index]![goal] = survived[index]![goal]! + weight;
         }
       });
@@ -210,6 +247,30 @@ export function handVersus(
     return null;
   }
 
+  // You choose which card that needs the Normal Summon to use, then the opponent
+  // answers: the goal is broken only when every choice can be broken.
+  const normalSummon = normalSummonCards(doc);
+  const normalSummonRows = deck.flatMap((card, row) => (normalSummon.has(card.card_id) ? [row] : []));
+  function breakChoosing(members: readonly HandConditionLike[]): number[] | null {
+    const present = normalSummonRows.filter((row) => hand[row]! > 0);
+    if (present.length === 0) return breakWith(members, 0);
+    const saved = normalSummonRows.map((row) => hand[row]!);
+    let shown: number[] | null = null;
+    for (const choice of [...present, -1]) {
+      normalSummonRows.forEach((row) => {
+        hand[row] = row === choice ? 1 : 0;
+      });
+      const result = breakWith(members, 0);
+      normalSummonRows.forEach((row, index) => {
+        hand[row] = saved[index]!;
+      });
+      if (result === null) return null; // this choice survives every answer
+      // Show a break that names cards, when there is one.
+      if (shown === null || (shown.length === 0 && result.length > 0)) shown = result;
+    }
+    return shown;
+  }
+
   return doc.hand_condition_sets
     .map((set) => ({
       set,
@@ -220,7 +281,7 @@ export function handVersus(
     .filter((goal) => goal.members.length > 0)
     .map(({ set, members }) => {
       const base = holds(members);
-      const broken = base ? breakWith(members, 0) : null;
+      const broken = base ? breakChoosing(members) : null;
       return {
         setId: set.id,
         name: set.name,

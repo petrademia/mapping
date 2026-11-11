@@ -192,7 +192,11 @@ export function ModelsPanel({
                 group={group}
                 doc={doc}
                 catalog={catalog}
+                normalSummon={doc.normal_summon_group_id === group.id}
                 onChange={(next) => onChange(upsertGroup(doc, next))}
+                onNormalSummon={(on) =>
+                  onChange({ ...doc, normal_summon_group_id: on ? group.id : null })
+                }
                 onRemove={() => onChange(removeGroup(doc, group.id))}
               />
             ))

@@ -120,6 +120,9 @@
 .condition-card input[type="search"] { margin-bottom: var(--space-1); }
 .engine-members { display: grid; gap: var(--space-1); margin: 0 0 var(--space-2); padding: 0; list-style: none; }
 .engine-member { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.check-row { display: flex; align-items: flex-start; gap: var(--space-2); margin: var(--space-2) 0; font-size: var(--text-sm); }
+.check-row input { margin-top: 0.2rem; }
+.check-row small { display: block; color: var(--muted); font-size: var(--text-xs); }
 .engine-member-prob { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-sm); }
 .distinct-constraint { margin: var(--space-2) 0; padding: var(--space-2); border-left: 2px solid var(--line); }
 .distinct-requirement-list { display: grid; gap: var(--space-1); margin: var(--space-1) 0 var(--space-2); padding: 0; list-style: none; }

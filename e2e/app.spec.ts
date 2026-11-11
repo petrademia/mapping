@@ -798,6 +798,28 @@ test.describe("Models are card art", () => {
   const view = (page: Page, name: string) =>
     page.getByRole("navigation", { name: "Models" }).getByRole("button", { name });
 
+  test("only one Group can use the Normal Summon, and the choice is remembered", async ({ page }) => {
+    await view(page, "Groups").click();
+    await page.getByRole("button", { name: "+ Add group" }).click();
+    await page.getByRole("button", { name: "+ Add group" }).click();
+    const boxes = page.getByRole("checkbox", { name: /Uses the Normal Summon/ });
+    await expect(boxes).toHaveCount(2);
+    await boxes.nth(0).check();
+    await expect(boxes.nth(0)).toBeChecked();
+    // Choosing the other Group takes it over: there is only one Normal Summon a turn.
+    await boxes.nth(1).check();
+    await expect(boxes.nth(1)).toBeChecked();
+    await expect(boxes.nth(0)).not.toBeChecked();
+
+    await page.reload();
+    await nav(page, "Models").click();
+    await view(page, "Groups").click();
+    await expect(boxes.nth(1)).toBeChecked();
+    await expect(boxes.nth(0)).not.toBeChecked();
+    await boxes.nth(1).uncheck();
+    await expect(boxes.nth(1)).not.toBeChecked();
+  });
+
   test("a Group is built by clicking cards in the Main Deck", async ({ page }) => {
     await view(page, "Groups").click();
     await page.getByRole("button", { name: "+ Add group" }).click();

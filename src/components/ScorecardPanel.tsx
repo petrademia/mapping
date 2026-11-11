@@ -304,7 +304,9 @@ export function ScorecardPanel({ doc }: Props) {
               </li>
               <li>
                 Resilient only removes cards from your hand. It does not model a handtrap
-                that stops a later step of your combo, or a card that stops handtraps.
+                that stops a later step of your combo, or a card that stops handtraps. It
+                counts the one Normal Summon a turn only for the Group you marked "Uses the
+                Normal Summon" in Models; otherwise a second copy is treated as a backup.
               </li>
               <li>
                 Interaction counts cards you marked with the Interaction role, whether or

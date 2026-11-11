@@ -8,13 +8,19 @@ export function GroupEditor({
   group,
   doc,
   catalog,
+  normalSummon,
   onChange,
+  onNormalSummon,
   onRemove,
 }: {
   group: Group;
   doc: MappingDocument;
   catalog: Catalog;
+  /** This is the Group of cards that each need the Normal Summon. */
+  normalSummon: boolean;
   onChange: (group: Group) => void;
+  /** Only one Group can be the Normal Summon Group; choosing this one replaces another. */
+  onNormalSummon: (on: boolean) => void;
   onRemove: () => void;
 }) {
   const members = new Set(group.card_ids);
@@ -37,6 +43,20 @@ export function GroupEditor({
         label={`Notes for ${group.name || "group"}`}
         onCommit={(notes) => onChange({ ...group, notes })}
       />
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={normalSummon}
+          onChange={(event) => onNormalSummon(event.target.checked)}
+        />
+        <span>
+          Uses the Normal Summon
+          <small>
+            Each card here needs your one Normal Summon a turn, so only one can be
+            used. The handtrap analysis counts a second copy as no backup.
+          </small>
+        </span>
+      </label>
       <p className="note">
         {members.size === 0
           ? "Click the cards that belong in this group."

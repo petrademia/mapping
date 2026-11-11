@@ -359,6 +359,13 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   opponent always chooses the copy that hurts the goal most, or does nothing
   when that is better for them, so every number is the worst case.
 - A pair applies two negations, one per handtrap, each on its own copy.
+- **One Normal Summon a turn.** In Models, Groups, mark one Group as "Uses the
+  Normal Summon" and list the cards that each need it (for example Medius the
+  Pure and The Great Gallant Bandit). You can use only one of them a turn, so a
+  second copy is no backup for the one that was stopped, and a goal that needs
+  two of them at once cannot be met. You choose which one to use, then the
+  opponent answers, and a goal survives when some choice survives every answer.
+  Without a marked Group, copies back each other up as before.
 - Results are exact over every possible hand (same method as Hand Goals): for
   each goal, the chance it holds and survives, with the exact hand count and
   the drop in points against no handtrap.

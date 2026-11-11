@@ -90,6 +90,7 @@ export const elfnoteArsMagnaDemo: MappingDocument = {
     },
   ],
   engine_access_set_id: "modeled-engine-access",
+  normal_summon_group_id: null,
   configurations: [],
   active_configuration_id: null,
   card_rank: { going_first: [], going_second: [] },

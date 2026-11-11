@@ -71,6 +71,12 @@ export interface MappingDocument {
   hand_condition_sets: HandConditionSet[];
   /** id of the HandConditionSet that defines Modeled Engine Access. */
   engine_access_set_id: string | null;
+  /**
+   * id of the Group of cards that each need your one Normal Summon a turn (for
+   * example Medius the Pure and The Great Gallant Bandit). Only one of them can
+   * be used in a turn, which the handtrap analysis takes into account. null = none.
+   */
+  normal_summon_group_id: string | null;
   analysis: MappingAnalysis;
   /**
    * Post-side configurations. The main/extra/side lists above are Pre-Side.
@@ -148,6 +154,7 @@ export function createDocument(name: string): MappingDocument {
       },
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
+    normal_summon_group_id: null,
     analysis: defaultAnalysis(),
     configurations: [],
     active_configuration_id: null,
@@ -353,6 +360,7 @@ export function clearModeledOutcomes(doc: MappingDocument): MappingDocument {
       },
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
+    normal_summon_group_id: null,
   };
 }
 
@@ -489,6 +497,7 @@ export function removeGroup(
   return {
     ...doc,
     groups: doc.groups.filter((group) => group.id !== groupId),
+    normal_summon_group_id: doc.normal_summon_group_id === groupId ? null : doc.normal_summon_group_id,
     hand_conditions: doc.hand_conditions.map((condition) =>
       normalizeHandCondition({
         ...condition,
@@ -751,6 +760,12 @@ export function parseMappingJson(text: string): MappingDocument {
   });
   const rawGroups = data.groups ?? data.access_groups;
   const groups = Array.isArray(rawGroups) ? rawGroups.map(parseGroup) : [];
+  // Files from before this field, or one naming a Group that is gone, have none.
+  const normalSummonGroupId =
+    typeof data.normal_summon_group_id === "string" &&
+    groups.some((group) => group.id === data.normal_summon_group_id)
+      ? data.normal_summon_group_id
+      : null;
   const rawConditions = data.hand_conditions ?? data.access_conditions;
   const hand_conditions = Array.isArray(rawConditions)
     ? rawConditions.map(parseHandCondition)
@@ -810,6 +825,7 @@ export function parseMappingJson(text: string): MappingDocument {
       hand_conditions,
       hand_condition_sets: [...withoutDefault, engineSet],
       engine_access_set_id: ENGINE_ACCESS_SET_ID,
+      normal_summon_group_id: normalSummonGroupId,
       analysis: parsedAnalysis,
       configurations,
       active_configuration_id: activeId,
@@ -840,6 +856,7 @@ export function parseMappingJson(text: string): MappingDocument {
     hand_conditions,
     hand_condition_sets,
     engine_access_set_id: engineAccessId,
+    normal_summon_group_id: normalSummonGroupId,
     analysis: parsedAnalysis,
     configurations,
     active_configuration_id: activeId,
@@ -888,6 +905,7 @@ export function serializeMapping(doc: MappingDocument): string {
       aggregation: set.aggregation,
     })),
     engine_access_set_id: doc.engine_access_set_id,
+    normal_summon_group_id: doc.normal_summon_group_id,
     analysis: doc.analysis,
     configurations: doc.configurations.map((config) => ({
       id: config.id,
