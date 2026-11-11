@@ -1,22 +1,34 @@
 import { describe, expect, it } from "vitest";
 import { createDocument, type MappingDocument } from "./document";
-import { atLeastOne, combine, DEFAULT_WEIGHTS, scorableGoals, scorecard } from "./scorecard";
+import { parseSettings } from "./scorecardWeights";
+import {
+  atLeastOne,
+  combine,
+  DEFAULT_SETTINGS,
+  DEFAULT_WEIGHTS,
+  scorableGoals,
+  scorecard,
+  type Scorecard,
+} from "./scorecard";
 
-const plain = { roles: [], opening_quality: { going_first: null, going_second: null } };
-const interaction = { roles: ["interaction"], opening_quality: { going_first: null, going_second: null } };
+const none = { going_first: null, going_second: null } as const;
+const plain = { roles: [], opening_quality: none };
+const interaction = { roles: ["interaction"], opening_quality: none };
+const brick = { roles: [], opening_quality: { going_first: "undesirable", going_second: "undesirable" } };
 
 /**
- * 8 cards, a five-card hand, so 56 possible hands.
- * Card 1 (x3) is the goal, card 2 (x3) is filler, card 3 (x2) is Interaction.
+ * 8 cards. Going first measures a five-card hand (56 hands), going second a
+ * six-card hand (28 hands).
+ * Card 1 (x3) is the goal, card 2 (x3) is a brick, card 3 (x2) is Interaction.
  * One handtrap stops card 1.
  */
-function doc(options: { handtrap?: boolean; interactionRole?: boolean } = {}): MappingDocument {
-  const { handtrap = true, interactionRole = true } = options;
+function doc(options: { handtrap?: boolean; interactionRole?: boolean; bricks?: boolean } = {}): MappingDocument {
+  const { handtrap = true, interactionRole = true, bricks = true } = options;
   return {
     ...createDocument("t"),
     main: [
       { card_id: 1, quantity: 3, taxonomy: plain },
-      { card_id: 2, quantity: 3, taxonomy: plain },
+      { card_id: 2, quantity: 3, taxonomy: bricks ? brick : plain },
       { card_id: 3, quantity: 2, taxonomy: interactionRole ? interaction : plain },
     ],
     hand_conditions: [
@@ -27,7 +39,7 @@ function doc(options: { handtrap?: boolean; interactionRole?: boolean } = {}): M
   } as unknown as MappingDocument;
 }
 
-function ok(result: ReturnType<typeof scorecard>) {
+function ok(result: ReturnType<typeof scorecard>): Scorecard {
   if ("error" in result) throw new Error(result.error);
   return result;
 }
@@ -41,38 +53,76 @@ describe("atLeastOne", () => {
 });
 
 describe("scorecard", () => {
-  it("measures opens, resilient and interaction exactly", () => {
+  it("measures going first on a five-card hand and going second on six, exactly", () => {
     const card = ok(scorecard(doc(), "g"));
-    expect(card.sample).toBe(5);
-    expect(card.opens).toBeCloseTo(55 / 56, 12); // only the hand with no copy of card 1 fails
-    expect(card.resilient).toBeCloseTo(40 / 56, 12); // the handtrap breaks every hand with one copy
-    expect(card.worstScenario).toBe("Veiler");
-    expect(card.interaction).toBeCloseTo(50 / 56, 12);
-    expect(card.combined).toBeCloseTo((55 + 40 + 50) / (3 * 56), 12);
+    expect(card.first.sample).toBe(5);
+    expect(card.second.sample).toBe(6);
+
+    expect(card.first.opens).toBeCloseTo(55 / 56, 12); // only the hand with no copy of card 1 fails
+    expect(card.first.resilient).toBeCloseTo(40 / 56, 12); // the handtrap breaks every one-copy hand
+    expect(card.first.interaction).toBeCloseTo(50 / 56, 12);
+
+    expect(card.second.opens).toBe(1); // six cards must include card 1
+    expect(card.second.resilient).toBeCloseTo(25 / 28, 12);
+    expect(card.second.interaction).toBeCloseTo(27 / 28, 12);
+    expect(card.first.worstScenario).toBe("Veiler");
+  });
+
+  it("measures how many bricks a hand may hold and still meet the goal", () => {
+    const card = ok(scorecard(doc(), "g"));
+    // Going first: no brick 1 hand, up to one 16, up to two 46, up to three 55 of 56.
+    expect(card.first.brickCurve.map((p) => Math.round(p * 56))).toEqual([1, 16, 46, 55]);
+    // Going second: six cards cannot avoid every brick (only five other cards).
+    expect(card.second.brickCurve.map((p) => Math.round(p * 28))).toEqual([0, 3, 18, 28]);
+    // The default tolerance is one brick.
+    expect(card.first.clean).toBeCloseTo(16 / 56, 12);
+    expect(card.second.clean).toBeCloseTo(3 / 28, 12);
+    // Raising the tolerance can only help.
+    const loose = ok(scorecard(doc(), "g", { ...DEFAULT_SETTINGS, brickTolerance: 3 }));
+    expect(loose.first.clean).toBeCloseTo(55 / 56, 12);
+    expect(loose.first.clean!).toBeGreaterThan(card.first.clean!);
+  });
+
+  it("counts the slots by Opening Quality for each turn order", () => {
+    const slots = ok(scorecard(doc(), "g")).first.slots;
+    expect(slots).toEqual({ desirable: 0, neutral: 0, undesirable: 3, unset: 5 });
   });
 
   it("combines by the weights, and a zero weight drops that number", () => {
-    const card = ok(scorecard(doc(), "g", { opens: 2, resilient: 0, interaction: 1 }));
-    expect(card.combined).toBeCloseTo((2 * (55 / 56) + 50 / 56) / 3, 12);
-    expect(card.usedWeights).toEqual({ opens: 2, interaction: 1 });
+    const card = ok(scorecard(doc(), "g"));
+    const first = (55 / 56 + 16 / 56 + 40 / 56 + 50 / 56) / 4;
+    expect(card.first.combined).toBeCloseTo(first, 12);
+    const second = (1 + 3 / 28 + 25 / 28 + 27 / 28) / 4;
+    expect(card.second.combined).toBeCloseTo(second, 12);
+    expect(card.overall).toBeCloseTo((first + second) / 2, 12);
+
+    const onlyFirst = ok(scorecard(doc(), "g", { ...DEFAULT_SETTINGS, second: 0, clean: 0, resilient: 0, interaction: 0 }));
+    expect(onlyFirst.overall).toBeCloseTo(55 / 56, 12);
   });
 
   it("leaves out what it cannot measure instead of counting it as zero", () => {
     const noTraps = ok(scorecard(doc({ handtrap: false }), "g"));
-    expect(noTraps.resilient).toBeNull();
-    expect(noTraps.notes.join(" ")).toMatch(/Handtraps tab/);
-    expect(noTraps.combined).toBeCloseTo((55 / 56 + 50 / 56) / 2, 12);
+    expect(noTraps.first.resilient).toBeNull();
+    expect(noTraps.first.notes.join(" ")).toMatch(/Handtraps tab/);
 
     const noRole = ok(scorecard(doc({ interactionRole: false }), "g"));
-    expect(noRole.interaction).toBeNull();
-    expect(noRole.notes.join(" ")).toMatch(/Interaction role/);
+    expect(noRole.first.interaction).toBeNull();
+    expect(noRole.first.notes.join(" ")).toMatch(/Interaction role/);
 
-    const neither = ok(scorecard(doc({ handtrap: false, interactionRole: false }), "g"));
-    expect(neither.combined).toBeCloseTo(55 / 56, 12);
+    const noBricks = ok(scorecard(doc({ bricks: false }), "g"));
+    expect(noBricks.first.clean).toBeNull();
+    expect(noBricks.first.brickCurve).toEqual([]);
+    expect(noBricks.first.notes.join(" ")).toMatch(/Undesirable/);
+
+    const nothing = ok(scorecard(doc({ handtrap: false, interactionRole: false, bricks: false }), "g"));
+    expect(nothing.first.combined).toBeCloseTo(55 / 56, 12);
   });
 
   it("returns null when every weight is zero", () => {
-    expect(ok(scorecard(doc(), "g", { opens: 0, resilient: 0, interaction: 0 })).combined).toBeNull();
+    const zero = { opens: 0, clean: 0, resilient: 0, interaction: 0, first: 1, second: 1, brickTolerance: 1 };
+    const card = ok(scorecard(doc(), "g", zero));
+    expect(card.first.combined).toBeNull();
+    expect(card.overall).toBeNull();
   });
 
   it("falls back to the first scorable goal and explains an empty deck or goal", () => {
@@ -91,14 +141,23 @@ describe("scorecard", () => {
       handtraps: [...base.handtraps, { id: "h2", name: "Harmless", hits: [2] }],
     } as MappingDocument;
     const card = ok(scorecard(two, "g"));
-    expect(card.scenarios.map((s) => s.label)).toEqual(["Veiler", "Harmless"]);
-    expect(card.resilient).toBeCloseTo(40 / 56, 12);
-    expect(card.worstScenario).toBe("Veiler");
+    expect(card.first.scenarios.map((s) => s.label)).toEqual(["Veiler", "Harmless"]);
+    expect(card.first.resilient).toBeCloseTo(40 / 56, 12);
   });
 });
 
-describe("combine", () => {
+describe("combine and settings", () => {
   it("is a weighted mean over the numbers that exist", () => {
-    expect(combine({ opens: 0.5, resilient: null, interaction: 1 }, DEFAULT_WEIGHTS).combined).toBeCloseTo(0.75, 12);
+    expect(combine({ opens: 0.5, clean: null, resilient: null, interaction: 1 }, DEFAULT_WEIGHTS)).toBeCloseTo(0.75, 12);
+  });
+
+  it("falls back to the defaults for anything stored that is not valid", () => {
+    expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
+    expect(parseSettings("not json")).toEqual(DEFAULT_SETTINGS);
+    expect(parseSettings(JSON.stringify({ opens: 5, brickTolerance: 2, clean: -1, first: 99 }))).toEqual({
+      ...DEFAULT_SETTINGS,
+      opens: 5,
+      brickTolerance: 2,
+    });
   });
 });

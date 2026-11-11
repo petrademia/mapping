@@ -5,6 +5,7 @@ import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { ComparePanel } from "./components/ComparePanel";
+import { ScorecardPanel } from "./components/ScorecardPanel";
 import { HandtrapPanel } from "./components/HandtrapPanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
@@ -46,10 +47,11 @@ import {
 import type { AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
+type Workspace = "profile" | "scorecard" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
 
 const WORKSPACE_LABELS: Record<Workspace, string> = {
   profile: "Profile",
+  scorecard: "Scorecard",
   models: "Models",
   "hand-test": "Hand Test",
   batch: "Batch Test",
@@ -64,7 +66,7 @@ type Step = "define" | "test" | "analyze";
 const STEPS: { key: Step; label: string; workspaces: Workspace[] }[] = [
   { key: "define", label: "Define", workspaces: ["models", "handtraps", "rank"] },
   { key: "test", label: "Test", workspaces: ["hand-test", "batch"] },
-  { key: "analyze", label: "Analyze", workspaces: ["profile", "compare"] },
+  { key: "analyze", label: "Analyze", workspaces: ["profile", "scorecard", "compare"] },
 ];
 
 const stepOf = (workspace: Workspace): (typeof STEPS)[number] =>
@@ -455,6 +457,8 @@ export function App() {
           {workspace === "handtraps" ? (
             <HandtrapPanel doc={view} catalog={catalog} onChange={changeView} />
           ) : null}
+
+          {workspace === "scorecard" ? <ScorecardPanel doc={view} /> : null}
 
           {workspace === "compare" ? (
             <ComparePanel

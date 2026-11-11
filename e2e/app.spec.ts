@@ -30,6 +30,7 @@ const STEP_OF: Record<string, string> = {
   "Hand Test": "Test",
   "Batch Test": "Test",
   Profile: "Analyze",
+  Scorecard: "Analyze",
   Compare: "Analyze",
 };
 
@@ -705,6 +706,67 @@ test.describe("Handtrap versus", () => {
     await expect(marked.first()).toHaveAccessibleName(/negated by the opponent/);
     await opponent.getByRole("button", { name: "Clear opponent" }).click();
     await expect(marked).toHaveCount(0);
+  });
+
+  test("the scorecard measures going first and going second, and follows the weights", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Scorecard").click();
+    await expect(page.getByText("Define a Hand Goal with at least one Hand Condition first.")).toBeVisible();
+
+    await withGoal(page);
+    await nav(page, "Scorecard").click();
+    const card = page.locator(".scorecard");
+    const first = card.getByRole("region", { name: "Going first" });
+    const second = card.getByRole("region", { name: "Going second" });
+    await expect(first.getByText("5 cards")).toBeVisible();
+    await expect(second.getByText("6 cards")).toBeVisible();
+
+    const read = (turn: typeof first, label: string) =>
+      turn.locator(".scorecard-rows > div").filter({ hasText: label }).locator("strong");
+    const value = (text: string) => Number.parseFloat(text);
+    await expect(read(first, "Opens")).toHaveText(/^\d+\.\d{2}%$/);
+    await expect(read(second, "Opens")).toHaveText(/^\d+\.\d{2}%$/);
+    // Six cards reach the goal at least as often as five.
+    expect(value(await read(second, "Opens").innerText())).toBeGreaterThanOrEqual(
+      value(await read(first, "Opens").innerText()),
+    );
+
+    // Nothing else can be measured yet, and the card says why.
+    await expect(card.getByText("Add a handtrap in the Handtraps tab to measure resilience.")).toBeVisible();
+    await expect(card.getByText(/No card has the Interaction role/)).toBeVisible();
+    await expect(card.getByText(/No card is marked Undesirable for going first/)).toBeVisible();
+    await expect(first.locator(".scorecard-combined .outcome-primary")).toHaveText(
+      await read(first, "Opens").innerText(),
+    );
+
+    await nav(page, "Handtraps").click();
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Scorecard").click();
+    await expect(read(first, "Resilient")).toHaveText(/^\d+\.\d{2}%$/);
+    expect(value(await read(first, "Resilient").innerText())).toBeLessThan(
+      value(await read(first, "Opens").innerText()),
+    );
+
+    // Each turn's combined number is the mean of what was measured; overall is the mean of the two turns.
+    const combined = async (turn: typeof first) =>
+      value(await turn.locator(".scorecard-combined .outcome-primary").innerText());
+    const meanFirst =
+      (value(await read(first, "Opens").innerText()) + value(await read(first, "Resilient").innerText())) / 2;
+    expect(Math.abs((await combined(first)) - meanFirst)).toBeLessThan(0.011);
+    const overall = value(
+      await card.getByRole("status", { name: "Overall" }).locator(".outcome-primary").innerText(),
+    );
+    expect(Math.abs(overall - ((await combined(first)) + (await combined(second))) / 2)).toBeLessThan(0.011);
+
+    // A zero weight drops that number; the weights are remembered.
+    await card.getByRole("spinbutton", { name: "Resilient" }).fill("0");
+    await expect(first.locator(".scorecard-combined .outcome-primary")).toHaveText(
+      await read(first, "Opens").innerText(),
+    );
+    await page.reload();
+    await nav(page, "Scorecard").click();
+    await expect(page.locator(".scorecard").getByRole("spinbutton", { name: "Resilient" })).toHaveValue("0");
   });
 
   test("handtraps are saved with the deck", async ({ page }) => {

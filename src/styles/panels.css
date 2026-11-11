@@ -248,3 +248,30 @@
 .mini-cards li { width: 34px; }
 .versus-broken { display: grid; gap: var(--space-1); }
 
+
+/* Scorecard */
+.scorecard-combined { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); margin: var(--space-3) 0; }
+.scorecard-combined .outcome-primary { margin: 0; }
+.scorecard-rows { display: grid; gap: var(--space-3); margin: 0 0 var(--space-3); }
+.scorecard-rows > div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--space-2); align-items: start; }
+.scorecard-rows dt { font-weight: 600; }
+.scorecard-rows dd { display: grid; gap: var(--space-1); margin: 0; }
+.scorecard-rows strong { font-family: var(--font-mono); font-size: var(--text-md); font-weight: 500; }
+.scorecard-rows small { color: var(--muted); font-size: var(--text-xs); }
+.meter { display: block; height: 0.5rem; overflow: hidden; border-radius: var(--radius-pill); background: var(--sunken); }
+.meter > span { display: block; height: 100%; background: var(--accent); }
+.scorecard-weights { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.scorecard-weights label { display: grid; gap: var(--space-1); }
+.scorecard-weights input, .scorecard-weights select { width: 100%; }
+.scorecard-assumptions { margin: var(--space-2) 0 0; padding-left: var(--space-5); color: var(--muted); font-size: var(--text-sm); }
+.scorecard-overall { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); margin: var(--space-3) 0; }
+.scorecard-overall .outcome-primary { margin: 0; }
+.scorecard-turns { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); margin-bottom: var(--space-3); }
+.scorecard-turn { min-width: 0; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.scorecard-turn .panel-subhead { margin-top: 0; }
+.scorecard-turn .scorecard-combined { margin: var(--space-1) 0 var(--space-3); }
+.scorecard-turn .scorecard-rows > div { grid-template-columns: 5.5rem minmax(0, 1fr); }
+.scorecard-slots { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--text-xs); color: var(--muted); }
+.scorecard-slots span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.scorecard-slots span::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--c); }
+.scorecard-curve td.on { font-weight: 600; color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }

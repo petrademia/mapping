@@ -275,7 +275,25 @@ editors never compete with analysis results for vertical space:
 - **Test** - try hands. **Hand Test** evaluates one exact hand against the
   model, with the opponent's handtraps; **Batch Test** deals many.
 - **Analyze** - read the results. **Profile** (Analysis Context, Deck Profile,
-  Card Impact, roles) and **Compare**.
+  Card Impact, roles), **Scorecard** and **Compare**.
+
+The **Scorecard** measures one Hand Goal going first (the five-card opening
+hand) and going second (six cards, after the first draw), in terms of how the
+Main Deck's slots are spent. All numbers are exact over every possible hand:
+
+- **Opens** - hands that meet the Hand Goal.
+- **Clean** - hands that meet it holding at most N bricks, where a brick is a
+  card whose Opening Quality for that turn order is Undesirable. The table
+  under it shows 0 to 3 bricks, so you can see how many bricks the deck can
+  carry before the goal suffers.
+- **Resilient** - hands that still meet it after the opponent's handtraps, worst
+  case over the handtraps and pairs in the Handtraps tab.
+- **Interaction** - hands with at least one card marked with the Interaction role.
+- A slot mix per turn order (desirable, neutral, bricks, not set), and a
+  combined number per turn order and overall. The combined numbers are weighted
+  means; the weights are yours (kept in this browser), and a number that cannot
+  be measured, or has weight 0, is left out. They measure how reliably you reach
+  your plan, not how often you win.
 
 The app opens on Profile, whose next-step card points to Define. Returning to a
 step puts you back on the workspace you last used in it.
