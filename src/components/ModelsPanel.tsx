@@ -338,7 +338,7 @@ export function ModelsPanel({
             Ash"); the Requires and Excludes lines are the rule.
           </p>
           {doc.hand_conditions.length === 0 ? (
-            <p className="empty">No hand conditions yet.</p>
+            <p className="empty">No Hand Conditions yet.</p>
           ) : (
             doc.hand_conditions.map((condition) => (
               <ConditionEditor
@@ -366,7 +366,7 @@ export function ModelsPanel({
             the goal when it matches any of them.
           </p>
           {doc.hand_condition_sets.length === 0 ? (
-            <p className="empty">No hand goals yet.</p>
+            <p className="empty">No Hand Goals yet.</p>
           ) : (
             doc.hand_condition_sets.map((set) => {
               const setSummary = analysis?.sets.find(
@@ -1259,7 +1259,7 @@ function ModeledOutcomeEditor({
       ) : (
         <p className="empty">
           {deck === 0
-            ? "Add main-deck cards to compute goal probabilities."
+            ? "Add Main Deck cards to compute goal probabilities."
             : "Select at least one condition above as a member of this goal."}
         </p>
       )}

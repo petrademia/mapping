@@ -200,7 +200,7 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
       </div>
 
       {doc.main.length === 0 ? (
-        <p className="empty">Add main-deck cards first.</p>
+        <p className="empty">Add Main Deck cards first.</p>
       ) : (
         <p className="note">
           Your Main Deck on the left is shuffled and the hand is boxed. Click a
@@ -257,7 +257,7 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
 
           <h3 className="panel-subhead">Hand Goals</h3>
           {result.sets.filter((set) => emptyGoals.has(set.setId) === false).length === 0 ? (
-            <p className="empty">No hand goals yet. Create them in Models.</p>
+            <p className="empty">No Hand Goals yet. Create them in Models.</p>
           ) : (
             <dl className="explorer-results">
               {result.sets.filter((set) => emptyGoals.has(set.setId) === false).map((set) => (
@@ -286,7 +286,7 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
 
           <h3 className="panel-subhead">Hand Conditions</h3>
           {result.conditions.length === 0 ? (
-            <p className="empty">No hand conditions defined.</p>
+            <p className="empty">No Hand Conditions defined.</p>
           ) : (
             result.conditions.map((evaluation) => {
               const population = analysis?.conditions.find(
