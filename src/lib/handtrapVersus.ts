@@ -160,3 +160,73 @@ export function analyzeVersus(
     scenarios: scenarios.map((scenario, index) => ({ scenario, goals: rows(survived[index]!) })),
   };
 }
+
+export interface HandVersusGoal {
+  setId: string;
+  name: string;
+  /** The goal holds for the hand as drawn. */
+  holds: boolean;
+  /** It still holds however the opponent uses the handtraps. */
+  survives: boolean;
+  /** When it does not survive: the cards the opponent negates to break it. */
+  negated: number[];
+}
+
+/**
+ * One drawn hand against the handtraps in `handtrapIds`: for each Hand Goal,
+ * whether it holds and, if the opponent can break it, which cards they hit.
+ */
+export function handVersus(
+  doc: MappingDocument,
+  cardCounts: Readonly<Record<number, number>>,
+  handtrapIds: readonly string[],
+): HandVersusGoal[] {
+  const deck = doc.main;
+  const groups = new Map<string, ReadonlySet<number>>(groupsToMembership(doc.groups));
+  for (const handtrap of doc.handtraps) {
+    groups.set(`__hits:${handtrap.id}`, new Set(handtrap.hits));
+  }
+  const conditionById = new Map(doc.hand_conditions.map((c) => [c.id, c]));
+  const hand = deck.map((card) => cardCounts[card.card_id] ?? 0);
+  const handtrapById = new Map(doc.handtraps.map((h) => [h.id, h]));
+
+  const holds = (members: readonly HandConditionLike[]): boolean =>
+    members.some((condition) => handConditionHolds(hand, deck, condition, groups));
+
+  // The cards to negate that break the goal, or null when it always survives.
+  function breakWith(members: readonly HandConditionLike[], at: number): number[] | null {
+    if (at === handtrapIds.length) return holds(members) ? null : [];
+    const idle = breakWith(members, at + 1); // doing nothing is an option
+    if (idle) return idle;
+    const hits = handtrapById.get(handtrapIds[at]!)?.hits ?? [];
+    for (const cardId of hits) {
+      const row = deck.findIndex((card) => card.card_id === cardId);
+      if (row < 0 || hand[row]! <= 0) continue;
+      hand[row]! -= 1;
+      const rest = breakWith(members, at + 1);
+      hand[row]! += 1;
+      if (rest) return [cardId, ...rest];
+    }
+    return null;
+  }
+
+  return doc.hand_condition_sets
+    .map((set) => ({
+      set,
+      members: [...new Set(set.condition_ids)]
+        .map((id) => conditionById.get(id))
+        .filter((c): c is NonNullable<typeof c> => c !== undefined) as HandConditionLike[],
+    }))
+    .filter((goal) => goal.members.length > 0)
+    .map(({ set, members }) => {
+      const base = holds(members);
+      const broken = base ? breakWith(members, 0) : null;
+      return {
+        setId: set.id,
+        name: set.name,
+        holds: base,
+        survives: base && broken === null,
+        negated: broken ?? [],
+      };
+    });
+}

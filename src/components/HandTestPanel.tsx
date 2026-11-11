@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { handVersus, scenariosFor } from "../lib/handtrapVersus";
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
@@ -60,6 +61,7 @@ interface Props {
 
 export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, onOrderChange: setOrder, onContext }: Props) {
   const setHand = onHandChange;
+  const [opponent, setOpponent] = useState("");
 
   const deck = sectionSize(doc.main);
   const opening = doc.analysis.opening_hand_size;
@@ -103,6 +105,15 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
   }, [analysisKey, hand]);
+
+  // The opponent's handtraps, from the Handtraps tab: one handtrap or a saved pair.
+  const scenarios = useMemo(() => scenariosFor(doc), [doc.handtraps, doc.handtrap_pairs]);
+  const scenario = scenarios.find((entry) => entry.id === opponent) ?? null;
+  const versus = useMemo(() => {
+    if (!hand || !scenario) return null;
+    return new Map(handVersus(doc, hand.card_counts, scenario.handtrapIds).map((goal) => [goal.setId, goal]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the doc parts the result reads
+  }, [hand, scenario, doc.main, doc.groups, doc.hand_conditions, doc.hand_condition_sets, doc.handtraps]);
 
   const issues = useMemo(() => {
     if (!hand) return [];
@@ -181,6 +192,20 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
       </p>
 
       <ContextChips context={context} openingHandSize={opening} onChange={onContext} />
+
+      {scenarios.length > 0 ? (
+        <label>
+          Opponent holds
+          <select value={scenario?.id ?? ""} onChange={(event) => setOpponent(event.target.value)}>
+            <option value="">Nothing</option>
+            {scenarios.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       <div className="row-actions">
         <button type="button" onClick={drawRandom} disabled={deck === 0}>
@@ -275,6 +300,16 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
                       {set.satisfiedCount} of {set.memberCount} Hand{" "}
                       {set.memberCount === 1 ? "Condition" : "Conditions"}
                     </span>
+                    {scenario && set.passed && versus?.get(set.setId) ? (
+                      <span className="explorer-notation">
+                        {versus.get(set.setId)!.survives
+                          ? `Still holds against ${scenario.label}`
+                          : `Broken by ${scenario.label}: ${versus
+                              .get(set.setId)!
+                              .negated.map((id) => displayName(id, undefined, catalog))
+                              .join(" and ")} negated`}
+                      </span>
+                    ) : null}
                   </dt>
                   <dd>{formatPercent(
                     analysis?.sets.find((row) => row.id === set.setId)?.union ?? 0,

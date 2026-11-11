@@ -615,6 +615,21 @@ test.describe("Handtrap versus", () => {
     await expect(page.getByRole("list", { name: "Saved pairs" })).toHaveCount(0);
   });
 
+  test("Hand Test lets the opponent hold a handtrap from the Handtraps tab", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Hand Test").click();
+    // Nothing to choose until a handtrap exists.
+    await expect(page.getByLabel("Opponent holds")).toHaveCount(0);
+    await withGoal(page);
+    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
+    await page.getByRole("button", { name: "Every card" }).click();
+    await nav(page, "Hand Test").click();
+    await page.getByLabel("Opponent holds").selectOption({ label: "Effect Veiler" });
+    await page.getByRole("button", { name: "Draw Random Hand" }).click();
+    await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
+    await expect(page.getByLabel("Opponent holds")).toHaveValue(/.+/);
+  });
+
   test("handtraps are saved with the deck", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
