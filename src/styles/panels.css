@@ -237,3 +237,16 @@
 .handtrap-picker { margin-top: var(--space-2); }
 .handtrap-picker summary { min-height: var(--control-h); display: flex; align-items: center; color: var(--accent-strong); font-weight: 500; cursor: pointer; }
 
+/* Hand Test: the drawn hand as art, facts as tiles, cards as small art. */
+.hand-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-2); margin: var(--space-3) 0; padding: 0; list-style: none; }
+.hand-facts li { display: grid; align-content: start; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.hand-facts li > span:first-child { font-size: var(--text-2xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.hand-facts strong { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 400; }
+.hand-facts small { font-size: var(--text-xs); color: var(--muted); }
+.hand-facts .role-counts { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-family: var(--font-sans); font-size: var(--text-sm); font-weight: 600; }
+.role-counts span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.role-counts span::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--c); }
+.mini-cards { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.mini-cards li { width: 34px; }
+.versus-broken { display: grid; gap: var(--space-1); }
+

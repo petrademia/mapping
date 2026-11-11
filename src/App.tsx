@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "./lib/theme";
+import { Icon, IconButton } from "./components/IconButton";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
@@ -102,6 +104,7 @@ export function App() {
   // Which Models view opens when the next-step button sends you there.
   const [modelsStart, setModelsStart] = useState<ModelsView>("groups");
   const [status, setStatus] = useState("");
+  const [theme, setTheme] = useTheme();
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
   const view = useMemo(
     () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
@@ -191,6 +194,24 @@ export function App() {
             Annotate Role and Opening Quality hypotheses per deck card, inspect
             composition, then export configuration for YAPPING.
           </p>
+          <div className="theme-switch" role="group" aria-label="Color theme">
+            {(
+              [
+                ["system", "device", "Match the device"],
+                ["light", "sun", "Light theme"],
+                ["dark", "moon", "Dark theme"],
+              ] as const
+            ).map(([option, icon, label]) => (
+              <IconButton
+                key={option}
+                icon={icon}
+                label={label}
+                aria-pressed={theme === option}
+                className={theme === option ? "on" : ""}
+                onClick={() => setTheme(option)}
+              />
+            ))}
+          </div>
         </div>
         <div className="deck-meta">
           <label>
@@ -216,6 +237,7 @@ export function App() {
                 setStatus("Started an empty deck.");
               }}
             >
+              <Icon name="file" />
               New deck
             </button>
             <ClearButton
@@ -265,6 +287,7 @@ export function App() {
                 setStatus("Saved YDK");
               }}
             >
+              <Icon name="download" />
               Save YDK
             </button>
           </div>

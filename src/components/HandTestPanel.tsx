@@ -4,7 +4,8 @@ import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { ContextChips } from "./AnalysisContextSelector";
-import { PassMark } from "./IconButton";
+import { Icon, PassMark } from "./IconButton";
+import { CardFrame, HandImages } from "./HandImages";
 import { scorerWithSource } from "../lib/rankScore";
 import {
   analysisContextOf,
@@ -209,9 +210,11 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
 
       <div className="row-actions">
         <button type="button" onClick={drawRandom} disabled={deck === 0}>
+          <Icon name="shuffle" />
           Draw Random Hand
         </button>
         <button type="button" onClick={drawRandom} disabled={!hand}>
+          <Icon name="redo" />
           Draw Again
         </button>
         <button type="button" onClick={() => {
@@ -220,6 +223,7 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
           }}
           disabled={!hand}
         >
+          <Icon name="x" />
           Clear hand
         </button>
       </div>
@@ -248,37 +252,48 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
       {hand && result && totalSelected === sample && issues.length === 0 ? (
         <>
           <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
-          <p className="explorer-notation">
-            {rankScorer
-              ? `Rank score: ${(rankScorer.score(hand.card_counts) * 100).toFixed(0)}% (a random hand averages ${(rankScorer.expected(sample) * 100).toFixed(0)}%)`
-              : "Define a Hand Goal or rank your cards in the Rank tab to score hands."}
-            {ranked?.source === "impact" ? " Using Card Impact order until you rank your cards." : ""}
-          </p>
-          <p className="explorer-notation">
-            Exact composition probability:{" "}
-            {exactProbability !== null ? formatPercent(exactProbability) : "—"}
-          </p>
-          <p className="explorer-notation">
-            Role counts (raw taxonomy, one card can count in several):{" "}
-            {ROLES.map(
-              (role) => `${ROLE_LABELS[role]} ${roleCounts[role]}`,
-            ).join(" · ")}
-          </p>
-          {qualityCounts ? (
-            <p className="explorer-notation">
-              Opening Quality ({context.turn_order === "going_first" ? "Going First" : "Going Second"}):{" "}
-              {QUALITY_LABELS.map(
-                (entry) =>
-                  `${entry.label} ${qualityCounts[entry.key]}${
-                    qualityCounts.contributors[entry.key].length > 0
-                      ? ` (${qualityCounts.contributors[entry.key]
-                          .map((id) => displayName(id, undefined, catalog))
-                          .join(", ")})`
-                      : ""
-                  }`,
-              ).join(" · ")}
-            </p>
-          ) : null}
+          <HandImages deck={doc.main} counts={hand.card_counts} catalog={catalog} showRoles />
+          <ul className="hand-facts">
+            <li>
+              <span>Rank score</span>
+              <strong>{rankScorer ? `${(rankScorer.score(hand.card_counts) * 100).toFixed(0)}%` : "-"}</strong>
+              <small>
+                {rankScorer
+                  ? `a random hand averages ${(rankScorer.expected(sample) * 100).toFixed(0)}%${
+                      ranked?.source === "impact" ? ", by Card Impact order" : ""
+                    }`
+                  : "Define a Hand Goal or rank your cards to score hands"}
+              </small>
+            </li>
+            <li>
+              <span>This exact hand</span>
+              <strong>{exactProbability !== null ? formatPercent(exactProbability) : "-"}</strong>
+              <small>chance of drawing exactly these cards</small>
+            </li>
+            <li>
+              <span>Roles</span>
+              <strong className="role-counts">
+                {ROLES.map((role) => (
+                  <span key={role} style={{ "--c": `var(--${role})` } as React.CSSProperties}>
+                    {ROLE_LABELS[role]} {roleCounts[role]}
+                  </span>
+                ))}
+              </strong>
+              <small>one card can count in several</small>
+            </li>
+            {qualityCounts ? (
+              <li>
+                <span>Opening Quality, {context.turn_order === "going_first" ? "Going First" : "Going Second"}</span>
+                <strong className="role-counts">
+                  {QUALITY_LABELS.map((entry) => (
+                    <span key={entry.key} style={{ "--c": `var(--${entry.key})` } as React.CSSProperties}>
+                      {entry.label} {qualityCounts[entry.key]}
+                    </span>
+                  ))}
+                </strong>
+              </li>
+            ) : null}
+          </ul>
 
           <h3 className="panel-subhead">Hand Goals</h3>
           {result.sets.filter((set) => emptyGoals.has(set.setId) === false).length === 0 ? (
@@ -301,14 +316,14 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, onHandChange, on
                       {set.memberCount === 1 ? "Condition" : "Conditions"}
                     </span>
                     {scenario && set.passed && versus?.get(set.setId) ? (
-                      <span className="explorer-notation">
-                        {versus.get(set.setId)!.survives
-                          ? `Still holds against ${scenario.label}`
-                          : `Broken by ${scenario.label}: ${versus
-                              .get(set.setId)!
-                              .negated.map((id) => displayName(id, undefined, catalog))
-                              .join(" and ")} negated`}
-                      </span>
+                      versus.get(set.setId)!.survives ? (
+                        <span className="explorer-notation">Still holds against {scenario.label}</span>
+                      ) : (
+                        <span className="versus-broken">
+                          <span className="explorer-notation">Broken by {scenario.label}, negating</span>
+                          <MiniCards ids={versus.get(set.setId)!.negated} catalog={catalog} label="Negated cards" />
+                        </span>
+                      )
                     ) : null}
                   </dt>
                   <dd>{formatPercent(
@@ -452,6 +467,23 @@ function DistinctRow({
   );
 }
 
+/** A row of small card art; names show on hover and are read out. */
+function MiniCards({ ids, catalog, label }: { ids: readonly number[]; catalog: Catalog; label: string }) {
+  return (
+    <ul className="mini-cards" aria-label={label}>
+      {ids.map((id, index) => {
+        const name = displayName(id, undefined, catalog);
+        return (
+          <li key={`${id}-${index}`} title={name}>
+            <CardFrame cardId={id} name={name} />
+            <span className="visually-hidden">{name}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function PredicateRow({
   evaluation,
   catalog,
@@ -471,9 +503,6 @@ function PredicateRow({
         ? ROLE_LABELS[predicate.role]
         : doc.groups.find((group) => group.id === predicate.group_id)?.name ??
           predicate.group_id;
-  const contributorNames = evaluation.contributors.map((cardId) =>
-    displayName(cardId, undefined, catalog),
-  );
   const opLabel =
     predicate.op === "eq"
       ? "="
@@ -500,10 +529,8 @@ function PredicateRow({
         <PassMark passed={evaluation.passed} /> {text}
       </span>
       <span className="explorer-notation">actual: {evaluation.actualCount}</span>
-      {contributorNames.length > 0 ? (
-        <span className="explorer-notation">
-          contributing: {contributorNames.join(", ")}
-        </span>
+      {evaluation.contributors.length > 0 ? (
+        <MiniCards ids={evaluation.contributors} catalog={catalog} label="Contributing cards" />
       ) : null}
       {exclusion && evaluation.passed ? (
         <span className="explorer-notation hand-exclusion-reason">

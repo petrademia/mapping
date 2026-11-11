@@ -467,7 +467,7 @@ test.describe("Rank scores hands", () => {
     await openApp(page);
     await nav(page, "Hand Test").click();
     await page.getByRole("button", { name: "Draw Random Hand" }).click();
-    await expect(page.getByText("Define a Hand Goal or rank your cards in the Rank tab to score hands.")).toBeVisible();
+    await expect(page.getByText("Define a Hand Goal or rank your cards to score hands")).toBeVisible();
   });
 
   test("a ranked deck scores the hand and badges each card with its rank", async ({ page }) => {
@@ -475,7 +475,7 @@ test.describe("Rank scores hands", () => {
     await rankFirstCardTop(page);
     await nav(page, "Hand Test").click();
     await page.getByRole("button", { name: "Draw Random Hand" }).click();
-    await expect(page.getByText(/^Rank score: \d+% \(a random hand averages \d+%\)/)).toBeVisible();
+    await expect(page.locator(".hand-facts li").first()).toContainText(/\d+%\s*a random hand averages \d+%/);
     await expect(page.locator(".hand-tile.in-hand .rank-badge")).toHaveCount(5);
   });
 
@@ -542,6 +542,20 @@ test.describe("Choosing the turn order where you test", () => {
     // The choice is shared: Hand Test shows the same one.
     await nav(page, "Hand Test").click();
     await expect(page.getByRole("radio", { name: /Going Second . Opening 5/ })).toBeChecked();
+  });
+});
+
+test.describe("Light and dark theme", () => {
+  test("the icon switch changes the theme and keeps it after a reload", async ({ page }) => {
+    await openApp(page);
+    const html = page.locator("html");
+    await page.getByRole("button", { name: "Dark theme" }).click();
+    await expect(html).toHaveAttribute("data-theme", "dark");
+    await expect(page.getByRole("button", { name: "Dark theme" })).toHaveAttribute("aria-pressed", "true");
+    await page.reload();
+    await expect(html).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("button", { name: "Light theme" }).click();
+    await expect(html).toHaveAttribute("data-theme", "light");
   });
 });
 

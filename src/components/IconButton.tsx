@@ -1,8 +1,27 @@
 import type { ButtonHTMLAttributes } from "react";
 
-export type IconName = "trash" | "minus" | "plus" | "check" | "x" | "grip" | "up" | "down";
+export type IconName =
+  | "trash" | "minus" | "plus" | "check" | "x" | "grip" | "up" | "down"
+  | "sun" | "moon" | "device" | "shuffle" | "download" | "upload" | "file" | "save" | "redo";
 
 const PATHS: Record<IconName, string[]> = {
+  sun: [
+    "M8 5.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5",
+    "M8 1.5V3", "M8 13v1.5", "M1.5 8H3", "M13 8h1.5",
+    "M3.4 3.4l1 1", "M11.6 11.6l1 1", "M3.4 12.6l1-1", "M11.6 4.4l1-1",
+  ],
+  moon: ["M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"],
+  // A screen: follow the device.
+  device: ["M2 3.5h12v8H2z", "M6 14h4", "M8 11.5V14"],
+  shuffle: [
+    "M2 4.5h2.5c3 0 4 7 7 7H13", "M11.5 9.5l1.5 2-1.5 2",
+    "M2 11.5h2.5c1 0 1.8-1 2.5-2", "M9 6c.6-.9 1.2-1.5 2.5-1.5H13", "M11.5 2.5l1.5 2-1.5 2",
+  ],
+  download: ["M8 2.5v7", "M5 7l3 3 3-3", "M3 13h10"],
+  upload: ["M8 10.5v-7", "M5 6l3-3 3 3", "M3 13h10"],
+  file: ["M4 2h5l3 3v9H4z", "M9 2v3h3"],
+  save: ["M3 3h8l2 2v8H3z", "M5.5 3v3h4V3", "M5.5 13V9.5h5V13"],
+  redo: ["M13 8a5 5 0 1 1-1.5-3.5", "M13 2.5v3h-3"],
   // Lid, body and two ribs.
   trash: [
     "M3 5h10",
