@@ -1182,11 +1182,14 @@ test.describe("Card Rank", () => {
   test("lays the cards out as a grid, not a column of wrapped text", async ({ page }) => {
     // Regression: the lists once sat in a narrow column and names wrapped letter by letter.
     const tiles = region(page, "Going First").locator(".rank-tile");
-    const a = (await tiles.nth(0).boundingBox())!;
-    const b = (await tiles.nth(1).boundingBox())!;
-    expect(Math.abs(a.y - b.y)).toBeLessThan(2); // side by side on one row
-    expect(b.x).toBeGreaterThan(a.x);
-    expect(a.width).toBeLessThan(100);
+    // Read the geometry again until the layout has settled (card art loading moves tiles at first).
+    await expect(async () => {
+      const a = (await tiles.nth(0).boundingBox())!;
+      const b = (await tiles.nth(1).boundingBox())!;
+      expect(Math.abs(a.y - b.y)).toBeLessThan(2); // side by side on one row
+      expect(b.x).toBeGreaterThan(a.x);
+      expect(a.width).toBeLessThan(100);
+    }).toPass();
     await expect(region(page, "Going First").locator(".rank-name")).toHaveCount(0);
   });
 
