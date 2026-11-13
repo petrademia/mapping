@@ -34,7 +34,7 @@ h1 {
 [data-role="starter"] { --swatch: var(--starter); }
 [data-role="extender"] { --swatch: var(--extender); }
 [data-role="interaction"] { --swatch: var(--interaction); }
-[data-role="lasting"], [data-role="lasting_second"] { --swatch: var(--interaction); }
+[data-role="lingering"], [data-role="lingering_second"] { --swatch: var(--interaction); }
 [data-quality="desirable"] { --swatch: var(--desirable); }
 [data-quality="neutral"] { --swatch: var(--neutral); }
 [data-quality="undesirable"] { --swatch: var(--undesirable); }

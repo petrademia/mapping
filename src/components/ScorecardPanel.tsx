@@ -16,14 +16,14 @@ interface Props {
   doc: MappingDocument;
 }
 
-type WeightKey = "opens" | "clean" | "resilient" | "interaction" | "lasting" | "first" | "second";
+type WeightKey = "opens" | "clean" | "resilient" | "interaction" | "lingering" | "first" | "second";
 
 const NUMBER_WEIGHTS: { key: WeightKey; label: string }[] = [
   { key: "opens", label: "Opens" },
   { key: "clean", label: "Clean" },
   { key: "resilient", label: "Resilient" },
   { key: "interaction", label: "Interaction" },
-  { key: "lasting", label: "Lasting" },
+  { key: "lingering", label: "Lingering" },
 ];
 
 function Meter({ value, label }: { value: number; label: string }) {
@@ -98,10 +98,10 @@ function Turn({ title, turn, tolerance }: { title: string; turn: TurnScore; tole
           missing="no card has the role"
         />
         <Row
-          label="Lasting"
-          value={turn.lasting}
-          note={`hands with a lasting handtrap that works ${turn.turnOrder === "going_second" ? "going second" : "going first"}; not counted unless you give it a weight`}
-          missing="no card is marked as lasting disruption"
+          label="Lingering"
+          value={turn.lingering}
+          note={`hands with a lingering handtrap that works ${turn.turnOrder === "going_second" ? "going second" : "going first"}; not counted unless you give it a weight`}
+          missing="no card is marked as lingering disruption"
         />
       </dl>
       <p className="scorecard-slots">
@@ -401,11 +401,13 @@ export function ScorecardPanel({ doc }: Props) {
                 not they are in your Hand Goal.
               </li>
               <li>
-                Lasting counts cards marked Lasting disruption (an effect that stays on for the
+                Lingering counts cards marked Lingering disruption (a handtrap whose effect stays on for the
                 opponent's whole turn, such as Droll &amp; Lock Bird) in both turn orders, and cards
-                marked Lasting disruption, going second (Mulcharmy, which need you to control no
-                cards) only going second. It says how often you hold one, not how much it hurts
-                the opponent. It has weight 0 until you set one.
+                marked Lingering disruption, going second (Mulcharmy, which need you to control no
+                cards) only going second. A lingering handtrap keeps taxing the opponent all turn,
+                so they tend to end on a smaller board than after a one-shot handtrap; that is your
+                judgement, and the weight is where you put it. The number only says how often you
+                hold one. It has weight 0 until you set one.
               </li>
               <li>These measure how reliably you reach your plan, not how often you win.</li>
             </ul>

@@ -42,23 +42,23 @@ export function RoleEditor({ roles, onChange, derived }: Props) {
         </button>
         <button
           type="button"
-          className={roles.includes("lasting") ? "chip on" : "chip"}
-          data-role="lasting"
-          aria-pressed={roles.includes("lasting")}
-          title="Stays on for the opponent's whole turn, in either turn order (Droll & Lock Bird)"
-          onClick={() => onChange(toggleRole(roles, "lasting"))}
+          className={roles.includes("lingering") ? "chip on" : "chip"}
+          data-role="lingering"
+          aria-pressed={roles.includes("lingering")}
+          title="A lingering handtrap: its effect taxes or blocks the opponent all turn, so they go on with a smaller board (Droll & Lock Bird). Works in either turn order"
+          onClick={() => onChange(toggleRole(roles, "lingering"))}
         >
-          Lasting
+          Lingering
         </button>
         <button
           type="button"
-          className={roles.includes("lasting_second") ? "chip on" : "chip"}
-          data-role="lasting_second"
-          aria-pressed={roles.includes("lasting_second")}
-          title="Stays on for the opponent's whole turn, but only works going second (Mulcharmy: you must control no cards)"
-          onClick={() => onChange(toggleRole(roles, "lasting_second"))}
+          className={roles.includes("lingering_second") ? "chip on" : "chip"}
+          data-role="lingering_second"
+          aria-pressed={roles.includes("lingering_second")}
+          title="A lingering handtrap that only works going second, because you must control no cards (Mulcharmy). It taxes the opponent all turn"
+          onClick={() => onChange(toggleRole(roles, "lingering_second"))}
         >
-          Lasting, going second
+          Lingering, going second
         </button>
       </div>
       {derived ? (

@@ -1,11 +1,11 @@
 /** Taxonomy v0: two independent dimensions on deck cards (human hypotheses). */
 
 /**
- * `lasting` is a handtrap whose effect stays on for the opponent's whole turn (Droll &
- * Lock Bird); `lasting_second` is one that only works going second, because it needs you
+ * `lingering` is a handtrap whose effect stays on for the opponent's whole turn (Droll &
+ * Lock Bird); `lingering_second` is one that only works going second, because it needs you
  * to control no cards (Mulcharmy). Both are separate from `interaction`, which stops one play.
  */
-export const ROLES = ["starter", "extender", "interaction", "lasting", "lasting_second"] as const;
+export const ROLES = ["starter", "extender", "interaction", "lingering", "lingering_second"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const OPENING_QUALITIES = [
@@ -193,8 +193,8 @@ export function roleDensity(
     starter: 0,
     extender: 0,
     interaction: 0,
-    lasting: 0,
-    lasting_second: 0,
+    lingering: 0,
+    lingering_second: 0,
   };
   for (const card of cards) {
     for (const role of uniqueRoles(card.taxonomy.roles)) {

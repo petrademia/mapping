@@ -106,19 +106,19 @@ export function rateHand(
     });
   }
 
-  if (turn.lasting !== null) {
+  if (turn.lingering !== null) {
     let inHand = 0;
     for (const card of doc.main) {
       const roles = card.taxonomy.roles;
       const usable =
-        roles.includes("lasting") || (turn.turnOrder === "going_second" && roles.includes("lasting_second"));
+        roles.includes("lingering") || (turn.turnOrder === "going_second" && roles.includes("lingering_second"));
       if (usable) inHand += counts[card.card_id] ?? 0;
     }
     checks.push({
-      key: "lasting",
-      label: COMPONENT_LABELS.lasting,
+      key: "lingering",
+      label: COMPONENT_LABELS.lingering,
       passed: inHand > 0,
-      detail: `${inHand} lasting ${inHand === 1 ? "handtrap" : "handtraps"} in hand`,
+      detail: `${inHand} lingering ${inHand === 1 ? "handtrap" : "handtraps"} in hand`,
     });
   }
 

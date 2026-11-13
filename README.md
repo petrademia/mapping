@@ -93,7 +93,7 @@ Opening Quality:   Going First:  neutral
 - An **extender** is needed together with another card (two or more requirements, or two copies of one card). A card can be both.
 - A **brick** is in none of your routes and is not an Interaction card. Opening Quality you set by hand always wins; derived bricks only fill in where it is not set.
 - Role requirements, exclusions and requirements that only ask for fewer cards are ignored when deriving.
-- **Interaction** is the main role you tag, and **Lasting disruption** (both turn orders) and **Lasting disruption, going second** are the other two. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
+- **Interaction** is the main role you tag, and **Lingering disruption** (both turn orders) and **Lingering disruption, going second** are the other two. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
 - Nothing derived is saved: it is how the workspaces and the YAPPING export see the deck. The card editor shows the derived labels read-only.
 
 ### Opening quality definitions (hypotheses)
@@ -306,12 +306,14 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
   case over the handtraps and pairs in the Handtraps tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
-- **Lasting** - hands with at least one lasting handtrap that works in that turn
-  order. A lasting handtrap keeps its effect on for the opponent's whole turn (Droll
-  & Lock Bird) instead of stopping one play. Mark it "Lasting disruption" to count it in
-  both turn orders, or "Lasting disruption, going second" to count it only going
+- **Lingering** - hands with at least one lingering handtrap that works in that turn
+  order. A lingering handtrap keeps its effect on for the opponent's whole turn (Droll
+  & Lock Bird) instead of stopping one play, so the opponent tends to end on a smaller
+  board. Mark it "Lingering disruption" to count it in
+  both turn orders, or "Lingering disruption, going second" to count it only going
   second (Mulcharmy, which need you to control no cards). It says how often you hold
-  one, not how much it hurts the opponent, and it has weight 0 until you set one, so
+  one, not how much it hurts the opponent. How much more it counts than a one-shot
+  handtrap is your judgement, set with its weight, which is 0 until you set one, so
   the combined numbers do not change by default. It is never the weakest part and
   is not reported as missing.
 - **1 to 2 and 1 to 3 handtraps** - two extra columns on the interruption table:
