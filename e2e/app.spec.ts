@@ -951,6 +951,22 @@ test.describe("Models are card art", () => {
     await expect(boxes.nth(1)).toBeChecked();
   });
 
+  test("a Hand Condition can be marked as still working after one interruption, and it is remembered", async ({ page }) => {
+    await view(page, "Hand Conditions").click();
+    await page.getByRole("button", { name: "+ Add Hand Condition" }).click();
+    const box = page.getByRole("checkbox", { name: /Still works after one interruption/ });
+    await expect(box).not.toBeChecked();
+    await box.check();
+    await expect(box).toBeChecked();
+
+    await page.reload();
+    await nav(page, "Models").click();
+    await view(page, "Hand Conditions").click();
+    await expect(box).toBeChecked();
+    await box.uncheck();
+    await expect(box).not.toBeChecked();
+  });
+
   test("a Group is built by clicking cards in the Main Deck", async ({ page }) => {
     await view(page, "Groups").click();
     await page.getByRole("button", { name: "+ Add group" }).click();

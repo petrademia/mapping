@@ -42,6 +42,12 @@ export interface HandCondition {
   excludes: ConditionRequirement[];
   /** Optional distinct-by-card-name constraints over presence (`≥ 1`) requirements. */
   distinct_constraints?: DistinctMatchConstraint[];
+  /**
+   * The line has a second path, so it still finishes when the opponent stops one card
+   * or effect. Used only by the handtrap and interruption numbers, and only for a
+   * single stop; two stops are worked out as usual. Omitted when off.
+   */
+  survives_one_interruption?: boolean;
 }
 
 export type ConditionRequirementDraft = ConditionRequirement;
@@ -184,6 +190,7 @@ export function normalizeHandCondition(raw: HandCondition): HandCondition {
     requirements,
     excludes,
     distinct_constraints,
+    ...(raw.survives_one_interruption === true ? { survives_one_interruption: true } : {}),
   };
   return notes === undefined ? base : { ...base, notes };
 }
@@ -298,6 +305,7 @@ export function parseHandCondition(raw: unknown): HandCondition {
     requirements,
     excludes,
     distinct_constraints,
+    survives_one_interruption: record.survives_one_interruption === true,
   });
 }
 

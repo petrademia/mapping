@@ -220,11 +220,20 @@ export function analyzeVersus(
       if (passes) baseline[goal] = baseline[goal]! + weight;
     });
     if (!base.some(Boolean)) return;
+    // A line marked as having a second path finishes through one stop, whatever is hit.
+    const insulated = goals.map((goal) =>
+      goal.members.some(
+        (condition) =>
+          condition.survives_one_interruption === true &&
+          handConditionHolds(hand, deck, condition, groups),
+      ),
+    );
     scenarios.forEach((scenario, index) => {
       base.forEach((passes, goal) => {
         if (
           passes &&
-          withChokePoints(hand, chokeRows, () => survives(hand, goal, scenario.handtrapIds, 0))
+          ((scenario.handtrapIds.length <= 1 && insulated[goal]) ||
+            withChokePoints(hand, chokeRows, () => survives(hand, goal, scenario.handtrapIds, 0)))
         ) {
           survived[index]![goal] = survived[index]![goal]! + weight;
         }
@@ -332,7 +341,14 @@ export function handVersus(
     .filter((goal) => goal.members.length > 0)
     .map(({ set, members }) => {
       const base = holds(members);
-      const broken = base ? breakChoosing(members) : null;
+      const insulated =
+        handtrapIds.length <= 1 &&
+        members.some(
+          (condition) =>
+            condition.survives_one_interruption === true &&
+            handConditionHolds(hand, deck, condition, groups),
+        );
+      const broken = base && !insulated ? breakChoosing(members) : null;
       return {
         setId: set.id,
         name: set.name,

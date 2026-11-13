@@ -169,6 +169,8 @@ export interface HandConditionLike {
   excludes?: readonly ConditionRequirement[];
   /** Optional distinct-by-card-name constraints over presence requirements. */
   distinct_constraints?: readonly DistinctMatchConstraint[];
+  /** Still finishes when the opponent stops one card or effect (handtrap numbers only). */
+  survives_one_interruption?: boolean;
 }
 
 /**

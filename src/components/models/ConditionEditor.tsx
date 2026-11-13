@@ -142,6 +142,23 @@ export function ConditionEditor({
         label={`Notes for ${condition.name || "hand condition"}`}
         onCommit={(notes) => onChange({ ...condition, notes })}
       />
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={condition.survives_one_interruption === true}
+          onChange={(event) =>
+            onChange({ ...condition, survives_one_interruption: event.target.checked })
+          }
+        />
+        <span>
+          Still works after one interruption
+          <small>
+            The line has a second path, so it finishes when the opponent stops one
+            card or effect, whichever they pick. It does not count against two
+            stops. Use it only for a line you tested.
+          </small>
+        </span>
+      </label>
       <p className="access-allof">Requires</p>
       {condition.requirements.length === 0 ? (
         <p className="empty">Add at least one requirement.</p>

@@ -415,6 +415,15 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   and a goal survives when some choice survives every answer. Without a marked
   Group, copies and routes back each other up as before. Files saved with the
   earlier single "Normal Summon Group" are read as one marked Group.
+- **Still works after one interruption.** A line you tested that has a second
+  path (for example Graflare with an Artmage Spell that stays on the field)
+  can be marked on its Hand Condition in Models, Hand Conditions. A hand that
+  meets a marked condition counts as surviving a single stop, whichever card
+  or effect the opponent picks, in the handtrap numbers, the Scorecard
+  interruption table and the Hand test. It does not help against two stops or
+  two handtraps, which are worked out as usual. The model cannot check your
+  claim, so mark only lines you tested. Saved as `survives_one_interruption`
+  on the condition and left out when off.
 - Results are exact over every possible hand (same method as Hand Goals): for
   each goal, the chance it holds and survives, with the exact hand count and
   the drop in points against no handtrap.
