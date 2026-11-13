@@ -122,7 +122,7 @@ describe("scorecard", () => {
   });
 
   it("returns null when every weight is zero", () => {
-    const zero = { opens: 0, clean: 0, resilient: 0, interaction: 0, first: 1, second: 1, brickTolerance: 1 };
+    const zero = { opens: 0, clean: 0, resilient: 0, interaction: 0, lasting: 0, first: 1, second: 1, brickTolerance: 1 };
     const card = ok(scorecard(doc(), "g", zero));
     expect(card.first.combined).toBeNull();
     expect(card.overall).toBeNull();

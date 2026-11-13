@@ -17,6 +17,8 @@ import { openingQualityForTurn } from "./taxonomy";
  *   what buys room for high-power cards that are dead in some hands.
  * - Resilient: how often it still meets it after the opponent's handtraps, worst case.
  * - Interaction: how often a hand holds at least one Interaction card.
+ * - Lasting: how often a hand holds at least one lasting handtrap that works in this turn
+ *   order. Counted only when you give it a weight.
  *
  * Everything is exact. The combined numbers are weighted means, so they only
  * mean what the weights you choose make them mean.
@@ -26,6 +28,8 @@ export interface ScorecardWeights {
   clean: number;
   resilient: number;
   interaction: number;
+  /** Off by default: the headline stays the same until you choose to count it. */
+  lasting: number;
   /** How much going first and going second each count toward the overall number. */
   first: number;
   second: number;
@@ -36,6 +40,7 @@ export const DEFAULT_WEIGHTS: ScorecardWeights = {
   clean: 1,
   resilient: 1,
   interaction: 1,
+  lasting: 0,
   first: 1,
   second: 1,
 };
@@ -115,6 +120,8 @@ export interface TurnScore {
   resilientPriority: number | null;
   /** P(at least one Interaction card); null when no card has the role. */
   interaction: number | null;
+  /** P(at least one lasting handtrap usable this turn order); null when none is usable. */
+  lasting: number | null;
   /** Weighted mean of the numbers that exist; null when no weight is left. */
   combined: number | null;
   notes: string[];
@@ -139,14 +146,19 @@ export const COMPONENT_LABELS = {
   clean: "Clean",
   resilient: "Resilient",
   interaction: "Interaction",
+  lasting: "Lasting",
 } as const;
 
 export type ComponentKey = keyof typeof COMPONENT_LABELS;
 
+/** Extra measures: shown, but not the weakest part and not reported as missing. */
+const OPTIONAL_KEYS: readonly ComponentKey[] = ["lasting"];
+const CORE_KEYS = (Object.keys(COMPONENT_LABELS) as ComponentKey[]).filter((key) => !OPTIONAL_KEYS.includes(key));
+
 /** The measured number that is lowest for a turn order: the place to look first. */
 export function weakest(turn: TurnScore): { key: ComponentKey; value: number } | null {
   let low: { key: ComponentKey; value: number } | null = null;
-  for (const key of Object.keys(COMPONENT_LABELS) as ComponentKey[]) {
+  for (const key of CORE_KEYS) {
     const value = turn[key];
     if (value !== null && (low === null || value < low.value)) low = { key, value };
   }
@@ -155,7 +167,7 @@ export function weakest(turn: TurnScore): { key: ComponentKey; value: number } |
 
 /** The numbers that could not be measured for a turn order. */
 export function unmeasured(turn: TurnScore): ComponentKey[] {
-  return (Object.keys(COMPONENT_LABELS) as ComponentKey[]).filter((key) => turn[key] === null);
+  return CORE_KEYS.filter((key) => turn[key] === null);
 }
 
 /** The Hand Goals that can be scored: those with at least one Hand Condition. */
@@ -174,7 +186,16 @@ export function atLeastOne(deck: number, special: number, sample: number): numbe
   return 1 - none;
 }
 
-const NUMBER_KEYS = ["opens", "clean", "resilient", "interaction"] as const;
+const NUMBER_KEYS = ["opens", "clean", "resilient", "interaction", "lasting"] as const;
+
+/** Lasting handtraps that work in a turn order: "both" ones, plus "going second only" ones going second. */
+export function lastingCopies(doc: MappingDocument, turnOrder: TurnOrder): number {
+  return doc.main.reduce((sum, card) => {
+    const roles = card.taxonomy.roles;
+    const usable = roles.includes("lasting") || (turnOrder === "going_second" && roles.includes("lasting_second"));
+    return usable ? sum + card.quantity : sum;
+  }, 0);
+}
 
 /** A weighted mean over the numbers that exist and have weight; null when none do. */
 export function combine(
@@ -351,6 +372,8 @@ function turnScore(
   } else {
     interaction = atLeastOne(mainSize, interactionCopies, sample);
   }
+  const lastingInDeck = lastingCopies(doc, turnOrder);
+  const lasting = lastingInDeck === 0 ? null : atLeastOne(mainSize, lastingInDeck, sample);
 
   return {
     turnOrder,
@@ -367,7 +390,8 @@ function turnScore(
     interruptionsPriority,
     resilientPriority,
     interaction,
-    combined: combine({ opens, clean, resilient, interaction }, settings),
+    lasting,
+    combined: combine({ opens, clean, resilient, interaction, lasting }, settings),
     notes,
   };
 }

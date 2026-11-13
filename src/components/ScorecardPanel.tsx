@@ -16,13 +16,14 @@ interface Props {
   doc: MappingDocument;
 }
 
-type WeightKey = "opens" | "clean" | "resilient" | "interaction" | "first" | "second";
+type WeightKey = "opens" | "clean" | "resilient" | "interaction" | "lasting" | "first" | "second";
 
 const NUMBER_WEIGHTS: { key: WeightKey; label: string }[] = [
   { key: "opens", label: "Opens" },
   { key: "clean", label: "Clean" },
   { key: "resilient", label: "Resilient" },
   { key: "interaction", label: "Interaction" },
+  { key: "lasting", label: "Lasting" },
 ];
 
 function Meter({ value, label }: { value: number; label: string }) {
@@ -95,6 +96,12 @@ function Turn({ title, turn, tolerance }: { title: string; turn: TurnScore; tole
           value={turn.interaction}
           note="hands with at least one Interaction card"
           missing="no card has the role"
+        />
+        <Row
+          label="Lasting"
+          value={turn.lasting}
+          note={`hands with a lasting handtrap that works ${turn.turnOrder === "going_second" ? "going second" : "going first"}; not counted unless you give it a weight`}
+          missing="no card is marked as lasting disruption"
         />
       </dl>
       <p className="scorecard-slots">
@@ -392,6 +399,13 @@ export function ScorecardPanel({ doc }: Props) {
               <li>
                 Interaction counts cards you marked with the Interaction role, whether or
                 not they are in your Hand Goal.
+              </li>
+              <li>
+                Lasting counts cards marked Lasting disruption (an effect that stays on for the
+                opponent's whole turn, such as Droll &amp; Lock Bird) in both turn orders, and cards
+                marked Lasting disruption, going second (Mulcharmy, which need you to control no
+                cards) only going second. It says how often you hold one, not how much it hurts
+                the opponent. It has weight 0 until you set one.
               </li>
               <li>These measure how reliably you reach your plan, not how often you win.</li>
             </ul>

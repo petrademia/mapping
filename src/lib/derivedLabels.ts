@@ -11,7 +11,7 @@ import { ROLES, type Role } from "./taxonomy";
  *   needing one card). Any card of a Group requirement counts.
  * - **Extender**: a card a condition needs together with another card (two or
  *   more requirements, or one copy and more). A card can be both.
- * - **Brick**: a card in none of your routes that is not an Interaction card.
+ * - **Brick**: a card in none of your routes that is not an Interaction or Lasting card.
  *   Going first or second it is dead for the Hand Goals. Opening Quality you set
  *   by hand always wins.
  *
@@ -81,7 +81,8 @@ export function deriveLabels(doc: MappingDocument): Map<number, DerivedLabels> {
   }
   for (const card of doc.main) {
     const label = labels.get(card.card_id)!;
-    label.brick = !label.starter && !label.extender && !card.taxonomy.roles.includes("interaction");
+    const disrupts = card.taxonomy.roles.some((role) => role === "interaction" || role === "lasting" || role === "lasting_second");
+    label.brick = !label.starter && !label.extender && !disrupts;
   }
   return labels;
 }
@@ -101,7 +102,8 @@ export function withDerivedLabels(doc: MappingDocument): MappingDocument {
     if (!label) return card;
     const roles: Role[] = ROLES.filter(
       (role) =>
-        (role === "interaction" && card.taxonomy.roles.includes("interaction")) ||
+        ((role === "interaction" || role === "lasting" || role === "lasting_second") &&
+          card.taxonomy.roles.includes(role)) ||
         (role === "starter" && label.starter) ||
         (role === "extender" && label.extender),
     );

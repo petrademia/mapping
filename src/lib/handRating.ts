@@ -106,6 +106,22 @@ export function rateHand(
     });
   }
 
+  if (turn.lasting !== null) {
+    let inHand = 0;
+    for (const card of doc.main) {
+      const roles = card.taxonomy.roles;
+      const usable =
+        roles.includes("lasting") || (turn.turnOrder === "going_second" && roles.includes("lasting_second"));
+      if (usable) inHand += counts[card.card_id] ?? 0;
+    }
+    checks.push({
+      key: "lasting",
+      label: COMPONENT_LABELS.lasting,
+      passed: inHand > 0,
+      detail: `${inHand} lasting ${inHand === 1 ? "handtrap" : "handtraps"} in hand`,
+    });
+  }
+
   const numbers: Partial<Record<ComponentKey, number | null>> = {};
   for (const check of checks) numbers[check.key] = check.passed === null ? null : check.passed ? 1 : 0;
   return { checks, score: combine(numbers, settings), deckAverage: turn.combined };

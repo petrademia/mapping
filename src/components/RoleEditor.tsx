@@ -40,6 +40,26 @@ export function RoleEditor({ roles, onChange, derived }: Props) {
         >
           Interaction
         </button>
+        <button
+          type="button"
+          className={roles.includes("lasting") ? "chip on" : "chip"}
+          data-role="lasting"
+          aria-pressed={roles.includes("lasting")}
+          title="Stays on for the opponent's whole turn, in either turn order (Droll & Lock Bird)"
+          onClick={() => onChange(toggleRole(roles, "lasting"))}
+        >
+          Lasting
+        </button>
+        <button
+          type="button"
+          className={roles.includes("lasting_second") ? "chip on" : "chip"}
+          data-role="lasting_second"
+          aria-pressed={roles.includes("lasting_second")}
+          title="Stays on for the opponent's whole turn, but only works going second (Mulcharmy: you must control no cards)"
+          onClick={() => onChange(toggleRole(roles, "lasting_second"))}
+        >
+          Lasting, going second
+        </button>
       </div>
       {derived ? (
         <p className="derived-labels" aria-label="Read from your Hand Conditions">

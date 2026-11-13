@@ -17,6 +17,7 @@ export function parseSettings(raw: string | null): ScorecardSettings {
       clean: read("clean", 10),
       resilient: read("resilient", 10),
       interaction: read("interaction", 10),
+      lasting: read("lasting", 10),
       first: read("first", 10),
       second: read("second", 10),
       brickTolerance: read("brickTolerance", BRICK_CURVE_MAX),
