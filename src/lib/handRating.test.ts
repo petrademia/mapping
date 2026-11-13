@@ -98,12 +98,30 @@ describe("rateHand", () => {
   });
 });
 
+function withLingering(d: MappingDocument): MappingDocument {
+  return {
+    ...d,
+    main: d.main.map((c) =>
+      c.card_id === 2
+        ? { ...c, taxonomy: { ...c.taxonomy, roles: [...c.taxonomy.roles, "lingering" as const] } }
+        : c.card_id === 3
+          ? { ...c, taxonomy: { ...c.taxonomy, roles: [...c.taxonomy.roles, "lingering_second" as const] } }
+          : c,
+    ),
+  };
+}
+
 describe("the average hand rating is the deck's number", () => {
   const cases: [string, MappingDocument, ScorecardSettings][] = [
     ["everything measured", doc(), DEFAULT_SETTINGS],
     ["uneven weights", doc(), { ...DEFAULT_SETTINGS, opens: 3, clean: 1, resilient: 2, interaction: 5, brickTolerance: 2 }],
     ["no handtraps or bricks", doc({ handtrap: false, bricks: false }), DEFAULT_SETTINGS],
     ["no Interaction role", doc({ interactionRole: false }), { ...DEFAULT_SETTINGS, brickTolerance: 0 }],
+    [
+      "lingering handtraps counted as 2 points, 3 needed",
+      withLingering(doc()),
+      { ...DEFAULT_SETTINGS, lingering: 2, lingeringWorth: 2, disruptionNeeded: 3 },
+    ],
   ];
   for (const [label, d, settings] of cases) {
     it(`${label}, going first (5 cards) and going second (6 cards)`, () => {

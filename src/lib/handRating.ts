@@ -107,18 +107,23 @@ export function rateHand(
   }
 
   if (turn.lingering !== null) {
-    let inHand = 0;
+    let oneShot = 0;
+    let lingeringInHand = 0;
     for (const card of doc.main) {
       const roles = card.taxonomy.roles;
-      const usable =
-        roles.includes("lingering") || (turn.turnOrder === "going_second" && roles.includes("lingering_second"));
-      if (usable) inHand += counts[card.card_id] ?? 0;
+      const copies = counts[card.card_id] ?? 0;
+      if (roles.includes("lingering") || (turn.turnOrder === "going_second" && roles.includes("lingering_second"))) {
+        lingeringInHand += copies;
+      } else if (roles.includes("interaction")) {
+        oneShot += copies;
+      }
     }
+    const points = oneShot + settings.lingeringWorth * lingeringInHand;
     checks.push({
       key: "lingering",
       label: COMPONENT_LABELS.lingering,
-      passed: inHand > 0,
-      detail: `${inHand} lingering ${inHand === 1 ? "handtrap" : "handtraps"} in hand`,
+      passed: points >= settings.disruptionNeeded,
+      detail: `${points} disruption ${points === 1 ? "point" : "points"} in hand (${oneShot} one-shot, ${lingeringInHand} lingering), needs ${settings.disruptionNeeded}`,
     });
   }
 

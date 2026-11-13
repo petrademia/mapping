@@ -27,7 +27,7 @@ function build(): MappingDocument {
   } as unknown as MappingDocument;
 }
 
-const only = { opens: 0, clean: 0, resilient: 0, interaction: 0, lingering: 1, first: 1, second: 1, brickTolerance: 1 };
+const only = { ...DEFAULT_SETTINGS, opens: 0, clean: 0, resilient: 0, interaction: 0, lingering: 1 };
 
 function ok(result: ReturnType<typeof scorecard>): Scorecard {
   if ("error" in result) throw new Error(result.error);
@@ -71,6 +71,30 @@ describe("lingering disruption", () => {
     const bare = build();
     bare.main = bare.main.map((c) => ({ ...c, taxonomy: tax([]) }));
     expect(unmeasured(ok(scorecard(bare, "g", DEFAULT_SETTINGS)).first)).not.toContain("lingering");
+  });
+
+  it("counts a lingering card as more points than a one-shot Interaction card", () => {
+    // 10 cards: two one-shot Interaction (A), one lingering (B), one route card, six that do nothing.
+    const doc: MappingDocument = {
+      ...build(),
+      main: [
+        { card_id: 1, quantity: 1, taxonomy: tax([]) },
+        { card_id: 2, quantity: 1, taxonomy: tax(["lingering"]) },
+        { card_id: 3, quantity: 2, taxonomy: tax(["interaction"]) },
+        { card_id: 4, quantity: 6, taxonomy: tax([]) },
+      ],
+    };
+    const at = (worth: number, needed: number) =>
+      ok(scorecard(doc, "g", { ...only, lingeringWorth: worth, disruptionNeeded: needed }));
+    // Worth 2, 2 needed: the lingering card alone (126 of 252 hands of five hold it), or both
+    // one-shot cards without it (C(7,3) = 35 of the 126 that do not): 161 / 252.
+    expect(at(2, 2).first.lingering).toBeCloseTo(161 / 252, 12);
+    // Going second, six cards: 126 hold it, and 35 of the 84 without it hold both: 161 / 210.
+    expect(at(2, 2).second.lingering).toBeCloseTo(161 / 210, 12);
+    // One point is enough: any of the three, 252 minus C(7,5) = 21 with none: 231 / 252.
+    expect(at(2, 1).first.lingering).toBeCloseTo(231 / 252, 12);
+    // Worth 1, 2 needed: two of the three: 3 * C(7,3) + C(7,2) = 126 of 252.
+    expect(at(1, 2).first.lingering).toBeCloseTo(126 / 252, 12);
   });
 
   it("keeps a lingering card from counting as a brick", () => {

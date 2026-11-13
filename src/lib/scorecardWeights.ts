@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BRICK_CURVE_MAX, DEFAULT_SETTINGS, type ScorecardSettings } from "./scorecard";
+import { BRICK_CURVE_MAX, DEFAULT_SETTINGS, MAX_DISRUPTION_POINTS, type ScorecardSettings } from "./scorecard";
 
 const KEY = "mapping.scorecard.settings";
 
@@ -12,6 +12,10 @@ export function parseSettings(raw: string | null): ScorecardSettings {
       const n = value[key];
       return typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= max ? n : DEFAULT_SETTINGS[key];
     };
+    const atLeast1 = (key: "lingeringWorth" | "disruptionNeeded"): number => {
+      const n = value[key];
+      return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= MAX_DISRUPTION_POINTS ? n : DEFAULT_SETTINGS[key];
+    };
     return {
       opens: read("opens", 10),
       clean: read("clean", 10),
@@ -21,6 +25,8 @@ export function parseSettings(raw: string | null): ScorecardSettings {
       first: read("first", 10),
       second: read("second", 10),
       brickTolerance: read("brickTolerance", BRICK_CURVE_MAX),
+      lingeringWorth: atLeast1("lingeringWorth"),
+      disruptionNeeded: atLeast1("disruptionNeeded"),
     };
   } catch {
     return DEFAULT_SETTINGS;

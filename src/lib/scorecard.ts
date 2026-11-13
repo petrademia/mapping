@@ -17,8 +17,10 @@ import { openingQualityForTurn } from "./taxonomy";
  *   what buys room for high-power cards that are dead in some hands.
  * - Resilient: how often it still meets it after the opponent's handtraps, worst case.
  * - Interaction: how often a hand holds at least one Interaction card.
- * - Lingering: how often a hand holds at least one lingering handtrap that works in this turn
- *   order. Counted only when you give it a weight.
+ * - Lingering: how often a hand holds enough disruption points. A one-shot Interaction card is
+ *   worth 1 point and a lingering handtrap that works in this turn order is worth `lingeringWorth`,
+ *   because it keeps taxing the opponent all turn. The hand needs `disruptionNeeded` points.
+ *   Counted only when you give it a weight.
  *
  * Everything is exact. The combined numbers are weighted means, so they only
  * mean what the weights you choose make them mean.
@@ -48,9 +50,21 @@ export const DEFAULT_WEIGHTS: ScorecardWeights = {
 export interface ScorecardSettings extends ScorecardWeights {
   /** Bricks a hand may hold and still count as clean (0 to BRICK_CURVE_MAX). */
   brickTolerance: number;
+  /** Points one lingering handtrap is worth; a one-shot Interaction card is worth 1. */
+  lingeringWorth: number;
+  /** Points a hand needs to count as disrupting. */
+  disruptionNeeded: number;
 }
 
-export const DEFAULT_SETTINGS: ScorecardSettings = { ...DEFAULT_WEIGHTS, brickTolerance: 1 };
+export const DEFAULT_SETTINGS: ScorecardSettings = {
+  ...DEFAULT_WEIGHTS,
+  brickTolerance: 1,
+  lingeringWorth: 2,
+  disruptionNeeded: 2,
+};
+
+/** The most points a lingering handtrap can be worth, and a hand can be asked for. */
+export const MAX_DISRUPTION_POINTS = 6;
 
 /** The brick curve is measured for 0 up to this many bricks. */
 export const BRICK_CURVE_MAX = 3;
@@ -120,7 +134,7 @@ export interface TurnScore {
   resilientPriority: number | null;
   /** P(at least one Interaction card); null when no card has the role. */
   interaction: number | null;
-  /** P(at least one lingering handtrap usable this turn order); null when none is usable. */
+  /** P(disruption points >= the number needed); null when no lingering handtrap is usable this turn order. */
   lingering: number | null;
   /** Weighted mean of the numbers that exist; null when no weight is left. */
   combined: number | null;
@@ -146,7 +160,7 @@ export const COMPONENT_LABELS = {
   clean: "Clean",
   resilient: "Resilient",
   interaction: "Interaction",
-  lingering: "Lingering",
+  lingering: "Disruption",
 } as const;
 
 export type ComponentKey = keyof typeof COMPONENT_LABELS;
@@ -188,13 +202,56 @@ export function atLeastOne(deck: number, special: number, sample: number): numbe
 
 const NUMBER_KEYS = ["opens", "clean", "resilient", "interaction", "lingering"] as const;
 
-/** Lingering handtraps that work in a turn order: "both" ones, plus "going second only" ones going second. */
-export function lingeringCopies(doc: MappingDocument, turnOrder: TurnOrder): number {
-  return doc.main.reduce((sum, card) => {
+/**
+ * The disruption cards that work in a turn order: lingering handtraps (the "both" ones, plus the
+ * "going second only" ones going second) and one-shot Interaction cards, which exclude any card
+ * that is already counted as lingering.
+ */
+export function disruptionCards(doc: MappingDocument, turnOrder: TurnOrder): { oneShot: number; lingering: number } {
+  let oneShot = 0;
+  let lingering = 0;
+  for (const card of doc.main) {
     const roles = card.taxonomy.roles;
-    const usable = roles.includes("lingering") || (turnOrder === "going_second" && roles.includes("lingering_second"));
-    return usable ? sum + card.quantity : sum;
-  }, 0);
+    if (roles.includes("lingering") || (turnOrder === "going_second" && roles.includes("lingering_second"))) {
+      lingering += card.quantity;
+    } else if (roles.includes("interaction")) {
+      oneShot += card.quantity;
+    }
+  }
+  return { oneShot, lingering };
+}
+
+function choose(n: number, k: number): number {
+  if (k < 0 || k > n) return 0;
+  let result = 1;
+  for (let i = 0; i < Math.min(k, n - k); i += 1) result = (result * (n - i)) / (i + 1);
+  return result;
+}
+
+/**
+ * P(a hand of `sample` cards holds at least `needed` disruption points), exact: each of the
+ * `oneShot` cards is worth 1 point and each of the `lingering` cards `worth` points.
+ */
+export function disruptionAtLeast(
+  deck: number,
+  oneShot: number,
+  lingering: number,
+  sample: number,
+  worth: number,
+  needed: number,
+): number {
+  const rest = deck - oneShot - lingering;
+  const total = choose(deck, sample);
+  if (total === 0) return 0;
+  let hits = 0;
+  for (let l = 0; l <= Math.min(lingering, sample); l += 1) {
+    for (let o = 0; o <= Math.min(oneShot, sample - l); o += 1) {
+      const others = sample - l - o;
+      if (others > rest || o + worth * l < needed) continue;
+      hits += choose(lingering, l) * choose(oneShot, o) * choose(rest, others);
+    }
+  }
+  return hits / total;
 }
 
 /** A weighted mean over the numbers that exist and have weight; null when none do. */
@@ -372,8 +429,18 @@ function turnScore(
   } else {
     interaction = atLeastOne(mainSize, interactionCopies, sample);
   }
-  const lingeringInDeck = lingeringCopies(doc, turnOrder);
-  const lingering = lingeringInDeck === 0 ? null : atLeastOne(mainSize, lingeringInDeck, sample);
+  const disruption = disruptionCards(doc, turnOrder);
+  const lingering =
+    disruption.lingering === 0
+      ? null
+      : disruptionAtLeast(
+          mainSize,
+          disruption.oneShot,
+          disruption.lingering,
+          sample,
+          settings.lingeringWorth,
+          settings.disruptionNeeded,
+        );
 
   return {
     turnOrder,

@@ -306,16 +306,19 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
   case over the handtraps and pairs in the Handtraps tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
-- **Lingering** - hands with at least one lingering handtrap that works in that turn
-  order. A lingering handtrap keeps its effect on for the opponent's whole turn (Droll
-  & Lock Bird) instead of stopping one play, so the opponent tends to end on a smaller
-  board. Mark it "Lingering disruption" to count it in
-  both turn orders, or "Lingering disruption, going second" to count it only going
-  second (Mulcharmy, which need you to control no cards). It says how often you hold
-  one, not how much it hurts the opponent. How much more it counts than a one-shot
-  handtrap is your judgement, set with its weight, which is 0 until you set one, so
-  the combined numbers do not change by default. It is never the weakest part and
-  is not reported as missing.
+- **Disruption** - hands with enough disruption points. A one-shot Interaction card
+  is worth 1 point. A lingering handtrap, whose effect stays on for the opponent's
+  whole turn (Droll & Lock Bird), is worth more, because it keeps taxing the opponent
+  and they tend to end on a smaller board. Mark such a card "Lingering disruption" to
+  count it in both turn orders, or "Lingering disruption, going second" to count it only
+  going second (Mulcharmy, which need you to control no cards). In Settings, "A
+  lingering handtrap is worth" sets its points (default 2) and "Disruption points a hand
+  needs" sets the bar (default 2), so by default one lingering card is enough and one
+  Ash is not. A card marked both Interaction and lingering counts once, as lingering.
+  The number is exact: how often a hand reaches that many points. How much a lingering
+  handtrap is really worth is your judgement; the model does not measure the opponent's
+  board. It has weight 0 until you set one, so the combined numbers do not change by
+  default, and it is never the weakest part nor reported as missing.
 - **1 to 2 and 1 to 3 handtraps** - two extra columns on the interruption table:
   the average of the "after 1, 2 (and 3)" results, each count weighted equally.
   It is the survival to expect if the opponent holds that many handtraps (for

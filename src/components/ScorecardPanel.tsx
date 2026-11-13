@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { MappingDocument } from "../lib/document";
 import {
   BRICK_CURVE_MAX,
+  MAX_DISRUPTION_POINTS,
   rangeMean,
   scorableGoals,
   scorecard,
@@ -23,7 +24,7 @@ const NUMBER_WEIGHTS: { key: WeightKey; label: string }[] = [
   { key: "clean", label: "Clean" },
   { key: "resilient", label: "Resilient" },
   { key: "interaction", label: "Interaction" },
-  { key: "lingering", label: "Lingering" },
+  { key: "lingering", label: "Disruption" },
 ];
 
 function Meter({ value, label }: { value: number; label: string }) {
@@ -98,10 +99,10 @@ function Turn({ title, turn, tolerance }: { title: string; turn: TurnScore; tole
           missing="no card has the role"
         />
         <Row
-          label="Lingering"
+          label="Disruption"
           value={turn.lingering}
-          note={`hands with a lingering handtrap that works ${turn.turnOrder === "going_second" ? "going second" : "going first"}; not counted unless you give it a weight`}
-          missing="no card is marked as lingering disruption"
+          note="hands with enough disruption points, a lingering handtrap counting for more than a one-shot card; not counted unless you give it a weight"
+          missing="no lingering handtrap works in this turn order"
         />
       </dl>
       <p className="scorecard-slots">
@@ -327,7 +328,37 @@ export function ScorecardPanel({ doc }: Props) {
                 ))}
               </select>
             </label>
+            <label>
+              A lingering handtrap is worth
+              <select
+                value={settings.lingeringWorth}
+                onChange={(event) => set({ lingeringWorth: Math.max(1, whole(event.target.value, MAX_DISRUPTION_POINTS)) })}
+              >
+                {Array.from({ length: MAX_DISRUPTION_POINTS }, (_, k) => (
+                  <option key={k + 1} value={k + 1}>
+                    {k + 1} {k === 0 ? "point" : "points"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Disruption points a hand needs
+              <select
+                value={settings.disruptionNeeded}
+                onChange={(event) => set({ disruptionNeeded: Math.max(1, whole(event.target.value, MAX_DISRUPTION_POINTS)) })}
+              >
+                {Array.from({ length: MAX_DISRUPTION_POINTS }, (_, k) => (
+                  <option key={k + 1} value={k + 1}>
+                    {k + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
+          <p className="note">
+            A one-shot Interaction card is worth 1 point. With a lingering handtrap worth 2
+            and 2 points needed, one lingering card is enough and one Ash is not.
+          </p>
           <p className="note">
             Weights: how much each number counts toward the combined one. A number
             that cannot be measured, or has weight 0, is left out.
@@ -401,13 +432,14 @@ export function ScorecardPanel({ doc }: Props) {
                 not they are in your Hand Goal.
               </li>
               <li>
-                Lingering counts cards marked Lingering disruption (a handtrap whose effect stays on for the
-                opponent's whole turn, such as Droll &amp; Lock Bird) in both turn orders, and cards
-                marked Lingering disruption, going second (Mulcharmy, which need you to control no
-                cards) only going second. A lingering handtrap keeps taxing the opponent all turn,
-                so they tend to end on a smaller board than after a one-shot handtrap; that is your
-                judgement, and the weight is where you put it. The number only says how often you
-                hold one. It has weight 0 until you set one.
+                Disruption counts points in your hand. A one-shot Interaction card is worth 1. A
+                card marked Lingering disruption (a handtrap whose effect stays on for the opponent's
+                whole turn, such as Droll &amp; Lock Bird) is worth the points you set, in both turn
+                orders, and a card marked Lingering disruption, going second (Mulcharmy, which need
+                you to control no cards) only going second. It keeps taxing the opponent all turn,
+                so they tend to end on a smaller board than after a one-shot handtrap; how many
+                points that is worth is your judgement. The number says how often a hand reaches the
+                points you ask for, not how much it hurts the opponent. It has weight 0 until you set one.
               </li>
               <li>These measure how reliably you reach your plan, not how often you win.</li>
             </ul>
