@@ -10,7 +10,7 @@ import { CardFrame } from "./HandImages";
 import { HandBoard } from "./HandBoard";
 import { scorerWithSource } from "../lib/rankScore";
 import { rateHand } from "../lib/handRating";
-import { scorecard } from "../lib/scorecard";
+import { useScorecard } from "../lib/useScorecard";
 import { useScorecardSettings } from "../lib/scorecardWeights";
 import {
   analysisContextOf,
@@ -227,10 +227,10 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
 
   // The hand read against the Scorecard: the same checks, the same weights.
   const [scoreSettings] = useScorecardSettings();
+  // The deck's own numbers come from the Scorecard, calculated off the main thread and only once a hand is drawn.
+  const deckScore = useScorecard(doc, null, scoreSettings, hand !== null);
   const quality = useMemo(() => {
-    if (!hand) return null;
-    const deckScore = scorecard(doc, null, scoreSettings);
-    if ("error" in deckScore) return null;
+    if (!hand || deckScore === null || "error" in deckScore) return null;
     const turn = context.turn_order === "going_first" ? deckScore.first : deckScore.second;
     return {
       goalName: deckScore.goalName,
@@ -238,7 +238,7 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
       rating: rateHand(doc, hand.card_counts, deckScore.goalId, turn, scoreSettings),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the doc parts the rating reads
-  }, [hand, doc, scoreSettings, context.turn_order]);
+  }, [hand, doc, scoreSettings, context.turn_order, deckScore]);
 
   const roleCounts = useMemo(() => {
     if (!hand) return { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0 };

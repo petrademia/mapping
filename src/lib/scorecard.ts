@@ -330,11 +330,12 @@ function turnScore(
   }
   const groups = new Map(groupsToMembership(doc.groups));
   groups.set(BRICK_GROUP, bricks);
+  // Only this goal's conditions are read, so the exact pass tells fewer cards apart and runs faster.
   const analysis = analyzeHandConditions(
     doc.main,
     sample,
-    [...doc.hand_conditions, ...extraConditions],
-    [...doc.hand_condition_sets, ...extraSets],
+    [...members, ...extraConditions],
+    [goalSet, ...extraSets],
     groups,
     turnOrder,
   );
@@ -353,7 +354,7 @@ function turnScore(
   if (scenarioList.length === 0) {
     notes.push("Add a handtrap in the Handtraps tab to measure resilience.");
   } else {
-    const versus = analyzeVersus(scoped, scenarioList);
+    const versus = analyzeVersus(scoped, scenarioList, { goalIds: [goal.id] });
     if ("error" in versus) {
       notes.push(versus.error);
     } else {
@@ -393,7 +394,7 @@ function turnScore(
         label: `${index + 1} ${index === 0 ? "interruption" : "interruptions"}`,
         handtrapIds: Array<string>(index + 1).fill(everyCard.id),
       })),
-      { opponent },
+      { opponent, goalIds: [goal.id] },
     );
     if ("error" in curve) return [];
     return [
@@ -409,7 +410,7 @@ function turnScore(
   if (doc.hit_priority.length > 0) {
     interruptionsPriority = curveFor("priority");
     if (scenarioList.length > 0) {
-      const followed = analyzeVersus(scoped, scenarioList, { opponent: "priority" });
+      const followed = analyzeVersus(scoped, scenarioList, { opponent: "priority", goalIds: [goal.id] });
       if (!("error" in followed)) {
         const lows = followed.scenarios
           .map((result) => result.goals.find((item) => item.setId === goal.id)?.probability)

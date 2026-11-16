@@ -108,15 +108,28 @@ test("a first run loads default.mapping.json, the deck with its Hand Goals", asy
     name: string;
     hand_condition_sets: { name: string }[];
   };
-  // Not through openApp: nothing is hidden, so the real default mapping is what loads. With the
-  // full mapping the Profile calculates its quality summary on the page's main thread, which takes
-  // several seconds, so this waits much longer than the cards-only first run does.
-  test.setTimeout(120_000);
+  // Not through openApp: nothing is hidden, so the real default mapping is what loads.
   await page.route("**/__save-default-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
-  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(file.name);
   await expect(page.getByText(file.hand_condition_sets[0]!.name, { exact: true }).first()).toBeVisible();
+});
+
+test("the page stays responsive while the Profile's quality summary is calculated", async ({ page }) => {
+  // The full mapping takes seconds to score. That runs in a Web Worker, so the page must keep
+  // answering meanwhile; it once froze for about 8 seconds on the main thread.
+  await page.route("**/__save-default-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+  await page.goto("/");
+  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+  const summary = page.getByRole("region", { name: "Quality at a glance" });
+  await expect(summary).toBeVisible();
+  const started = Date.now();
+  await page.getByLabel("Card name or passcode").fill("ash blossom");
+  await expect(page.locator(".search-result").first()).toBeVisible();
+  expect(Date.now() - started).toBeLessThan(2500);
+  // The numbers still arrive afterwards.
+  await expect(summary.getByRole("status").first()).toHaveText(/%/, { timeout: 45_000 });
 });
 
 test.describe("Save mapping", () => {

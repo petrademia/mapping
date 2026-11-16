@@ -2,6 +2,7 @@ import { observedCards } from "./analysisContext";
 import { analysisContextOf, sectionSize, type MappingDocument } from "./document";
 import { groupsToMembership } from "./handCondition";
 import {
+  compileConditionHolds,
   compressDeck,
   forEachHandComposition,
   handConditionHolds,
@@ -122,7 +123,7 @@ export type OpponentModel = "worst_case" | "priority";
 export function analyzeVersus(
   doc: MappingDocument,
   scenarios: readonly VersusScenario[] = scenariosFor(doc),
-  options: { opponent?: OpponentModel } = {},
+  options: { opponent?: OpponentModel; goalIds?: readonly string[] } = {},
 ): VersusOutcome {
   const context = analysisContextOf(doc);
   const sample = observedCards(context, doc.analysis.opening_hand_size);
@@ -133,7 +134,9 @@ export function analyzeVersus(
   }
 
   const conditionById = new Map(doc.hand_conditions.map((c) => [c.id, c]));
+  const onlyGoals = options.goalIds ? new Set(options.goalIds) : null;
   const goals = doc.hand_condition_sets
+    .filter((set) => onlyGoals === null || onlyGoals.has(set.id))
     .map((set) => ({
       set,
       members: [...new Set(set.condition_ids)]
@@ -181,8 +184,20 @@ export function analyzeVersus(
   const survived = scenarios.map(() => goals.map(() => 0n));
   const total = combinations(deckSize, sample);
 
-  const holds = (hand: readonly number[], goal: number): boolean =>
-    goals[goal]!.members.some((condition) => handConditionHolds(hand, deck, condition, groups));
+  // Each condition is compiled once for this deck, since it is tested against every hand.
+  const compiled = goals.map((goal) =>
+    goal.members.map((condition) => compileConditionHolds(deck, condition, groups)),
+  );
+  const compiledInsulated = goals.map((goal) =>
+    goal.members.flatMap((condition) =>
+      condition.survives_one_interruption === true ? [compileConditionHolds(deck, condition, groups)] : [],
+    ),
+  );
+  const holds = (hand: readonly number[], goal: number): boolean => {
+    const tests = compiled[goal]!;
+    for (let i = 0; i < tests.length; i += 1) if (tests[i]!(hand)) return true;
+    return false;
+  };
 
   // True when the goal still holds against the opponent from handtrap `at` on.
   function survives(hand: number[], goal: number, traps: readonly string[], at: number): boolean {
@@ -213,6 +228,25 @@ export function analyzeVersus(
     return true;
   }
 
+  // For each scenario, the earlier scenarios whose handtraps are all among its own. The opponent
+  // may leave a handtrap unused, so surviving the larger set means surviving the smaller one, and a
+  // hand that fails the smaller set is not searched again for the larger. That only holds when the
+  // opponent may hold a handtrap back, which the priority opponent does not.
+  const counted = (ids: readonly string[]) => {
+    const counts = new Map<string, number>();
+    for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+    return counts;
+  };
+  const within = (small: Map<string, number>, large: Map<string, number>) =>
+    [...small].every(([id, count]) => (large.get(id) ?? 0) >= count);
+  const scenarioCounts = scenarios.map((scenario) => counted(scenario.handtrapIds));
+  const weaker: number[][] = scenarios.map((_, index) =>
+    options.opponent === "priority"
+      ? []
+      : scenarioCounts.flatMap((small, other) => (other < index && within(small, scenarioCounts[index]!) ? [other] : [])),
+  );
+  const results = scenarios.map(() => goals.map(() => false));
+
   forEachHandComposition(deck, sample, (view, weight) => {
     const hand = view as number[];
     const base = goals.map((_, goal) => holds(hand, goal));
@@ -221,22 +255,18 @@ export function analyzeVersus(
     });
     if (!base.some(Boolean)) return;
     // A line marked as having a second path finishes through one stop, whatever is hit.
-    const insulated = goals.map((goal) =>
-      goal.members.some(
-        (condition) =>
-          condition.survives_one_interruption === true &&
-          handConditionHolds(hand, deck, condition, groups),
-      ),
-    );
+    const insulated = compiledInsulated.map((tests) => tests.some((test) => test(hand)));
     scenarios.forEach((scenario, index) => {
       base.forEach((passes, goal) => {
-        if (
+        // A hand that a weaker opponent already beats cannot survive a stronger one.
+        const beaten = passes && weaker[index]!.some((other) => !results[other]![goal]);
+        const ok =
           passes &&
+          !beaten &&
           ((scenario.handtrapIds.length <= 1 && insulated[goal]) ||
-            withChokePoints(hand, chokeRows, () => survives(hand, goal, scenario.handtrapIds, 0)))
-        ) {
-          survived[index]![goal] = survived[index]![goal]! + weight;
-        }
+            withChokePoints(hand, chokeRows, () => survives(hand, goal, scenario.handtrapIds, 0)));
+        results[index]![goal] = ok;
+        if (ok) survived[index]![goal] = survived[index]![goal]! + weight;
       });
     });
   });

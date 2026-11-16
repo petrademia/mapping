@@ -1,6 +1,6 @@
-import { useMemo } from "react";
 import type { MappingDocument } from "../lib/document";
-import { COMPONENT_LABELS, rangeMean, scorecard, unmeasured, weakest, type TurnScore } from "../lib/scorecard";
+import { COMPONENT_LABELS, rangeMean, unmeasured, weakest, type TurnScore } from "../lib/scorecard";
+import { useScorecard } from "../lib/useScorecard";
 import { useScorecardSettings } from "../lib/scorecardWeights";
 
 const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
@@ -64,7 +64,15 @@ function Tile({ title, turn }: { title: string; turn: TurnScore }) {
  */
 export function ScorecardSummary({ doc, onOpen }: { doc: MappingDocument; onOpen: () => void }) {
   const [settings] = useScorecardSettings();
-  const result = useMemo(() => scorecard(doc, null, settings), [doc, settings]);
+  const result = useScorecard(doc, null, settings);
+  if (result === null) {
+    return (
+      <section className="panel summary" aria-label="Quality at a glance" aria-busy="true">
+        <h2>Quality at a glance</h2>
+        <p className="note">Calculating how reliably your hands reach the Hand Goal. This can take a few seconds when you have many routes.</p>
+      </section>
+    );
+  }
   // Without a deck or a Hand Goal the next-step card above already says what to do.
   if ("error" in result) return null;
 

@@ -5,10 +5,10 @@ import {
   MAX_DISRUPTION_POINTS,
   rangeMean,
   scorableGoals,
-  scorecard,
   type ScorecardSettings,
   type TurnScore,
 } from "../lib/scorecard";
+import { useScorecard } from "../lib/useScorecard";
 import { useScorecardSettings } from "../lib/scorecardWeights";
 
 const percent = (value: number): string => `${(value * 100).toFixed(2)}%`;
@@ -124,7 +124,7 @@ export function ScorecardPanel({ doc }: Props) {
   const [goalId, setGoalId] = useState<string | null>(null);
   const [settings, setSettings] = useScorecardSettings();
   const goals = useMemo(() => scorableGoals(doc), [doc]);
-  const result = useMemo(() => scorecard(doc, goalId, settings), [doc, goalId, settings]);
+  const result = useScorecard(doc, goalId, settings);
   const set = (patch: Partial<ScorecardSettings>) => setSettings({ ...settings, ...patch });
   const whole = (value: string, max: number): number =>
     Math.max(0, Math.min(max, Math.floor(Number(value) || 0)));
@@ -141,7 +141,11 @@ export function ScorecardPanel({ doc }: Props) {
         so they depend on the weights you choose.
       </p>
 
-      {"error" in result ? (
+      {result === null ? (
+        <p className="note" aria-busy="true">
+          Calculating. This can take a few seconds when you have many routes, and the rest of the page keeps working.
+        </p>
+      ) : "error" in result ? (
         <p className="empty">{result.error}</p>
       ) : (
         <>
