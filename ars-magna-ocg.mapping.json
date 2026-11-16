@@ -1,0 +1,1184 @@
+{
+  "schema_version": 10,
+  "name": "Power Patron Ars Magna Artmage",
+  "main": [
+    {
+      "card_id": 37279096,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 60946049,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 97556336,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 17473466,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 70488851,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 26237713,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 25661743,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 36270527,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 62368221,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 1122030,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 56349876,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 48739627,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 36709484,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 90875418,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 23829452,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 44654994,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 10266279,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 43871165,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 42141493,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [
+          "lingering_second"
+        ],
+        "opening_quality": {
+          "going_first": "neutral",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 84192580,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [
+          "lingering_second"
+        ],
+        "opening_quality": {
+          "going_first": "neutral",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 23434538,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [
+          "interaction",
+          "lingering"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 94145021,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [
+          "interaction",
+          "lingering"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 14558127,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [
+          "interaction"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 98476659,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": "undesirable",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 2729965,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": "undesirable",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 59438930,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [
+          "interaction"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 24203749,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [
+          "interaction",
+          "lingering_second"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 34541940,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 97434754,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": "undesirable",
+          "going_second": "undesirable"
+        }
+      }
+    },
+    {
+      "card_id": 23599634,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": "undesirable",
+          "going_second": "undesirable"
+        }
+      }
+    },
+    {
+      "card_id": 74011784,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": "neutral",
+          "going_second": "neutral"
+        }
+      }
+    },
+    {
+      "card_id": 74733322,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 82833574,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 99753860,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 59581480,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      },
+      "name": "Elfnote Tinia"
+    },
+    {
+      "card_id": 51669847,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    }
+  ],
+  "extra": [
+    {
+      "card_id": 60344723,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 27184601,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 74631897,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 31822037,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 4063756,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 5914858,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 53589300,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 90917401,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 65741786,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 8264361,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 22125101,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 70636044,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 4993187,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 29301450,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 96749437,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    }
+  ],
+  "side": [
+    {
+      "card_id": 10045474,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 41420027,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 50849686,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 24203749,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 27204311,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 90728287,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 56910167,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 10266279,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "monsters",
+      "name": "Monsters (fodder)",
+      "notes": "Every monster in the Main Deck, so a line can ask for one other monster. Types from YGOPRODeck.",
+      "card_ids": [
+        62368221,
+        99753860,
+        36270527,
+        34541940,
+        60946049,
+        97434754,
+        23829452,
+        14558127,
+        94145021,
+        59438930,
+        23434538,
+        42141493,
+        84192580,
+        10266279,
+        43871165,
+        17473466,
+        70488851,
+        97556336,
+        90875418,
+        24203749,
+        59581480
+      ]
+    },
+    {
+      "id": "my-handtraps",
+      "name": "My handtraps",
+      "notes": "Cards played from hand on the opponent's turn that cost no Normal Summon.",
+      "card_ids": [
+        14558127,
+        23434538,
+        94145021,
+        59438930
+      ]
+    },
+    {
+      "id": "going-second",
+      "name": "Going second cards",
+      "notes": "Cards that work going second and are weak going first. Mulcharmy only work when you control no cards. A guess: edit it.",
+      "card_ids": [
+        24203749,
+        2729965,
+        84192580,
+        42141493
+      ]
+    },
+    {
+      "id": "ars-magna",
+      "name": "Ars Magna starters",
+      "notes": "Only the Finite and the Infinite, and the Corruption and the Purification, start the Citrinitas route (monster, then Citrinitas, then Medius). The Division and the Union does not.",
+      "card_ids": [
+        36270527,
+        62368221
+      ]
+    },
+    {
+      "id": "spell-trap",
+      "name": "Spells and Traps (Main Deck)",
+      "notes": "Every Spell and Trap in the Main Deck, from card types. Remove the ones that do not count as a partner.",
+      "card_ids": [
+        37279096,
+        82833574,
+        74733322,
+        44654994,
+        1122030,
+        74011784,
+        2729965,
+        26237713,
+        98476659,
+        56349876,
+        25661743,
+        48739627,
+        36709484,
+        51669847
+      ]
+    },
+    {
+      "id": "artmage-stays",
+      "name": "Artmage cards that stay on the field",
+      "notes": "What Artmage Graflare needs to Special Summon itself: an Artmage Continuous or Field Spell you can activate. Artmage Vandalism and the two Acropolis Field Spells (the Ars Magna one is treated as Artmage). From your testing.",
+      "card_ids": [
+        1122030,
+        74733322,
+        82833574
+      ]
+    },
+    {
+      "id": "power-patron-monsters",
+      "name": "Power Patron monsters",
+      "notes": "Power Patron Portal Plugging discards one Power Patron card. Monsters only here; add Terminus if it counts.",
+      "card_ids": [
+        70488851,
+        17473466,
+        43871165,
+        10266279
+      ]
+    },
+    {
+      "id": "citrinitas-funnel",
+      "name": "Routes into Medius",
+      "notes": "Every route that ends with Medius's effect: Medius in hand, Medius added by Citrinitas (fetched by Corruption or Finite, placed by Tinia), and the Vidolium line. Ash Blossom lands on Medius's effect, so one stop ends all of them. Pendulum Treasure is left out on purpose: it adds Vidolium to the Extra Deck, a separate route that Ash on Medius does not stop.",
+      "card_ids": [
+        97556336,
+        37279096,
+        62368221,
+        36270527,
+        59581480,
+        70488851
+      ]
+    }
+  ],
+  "hand_conditions": [
+    {
+      "id": "medius-alone",
+      "name": "Medius alone",
+      "requirements": [
+        {
+          "id": "r1",
+          "kind": "card",
+          "card_id": 97556336,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "gallant-line",
+      "name": "Gallant + Medius + one other monster",
+      "notes": "Gallant is Tribute Summoned, Medius is tributed, and one more monster is in hand. Needs an opponent monster to tribute too, which a hand cannot show.",
+      "requirements": [
+        {
+          "id": "r2",
+          "kind": "card",
+          "card_id": 24203749,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "r3",
+          "kind": "card",
+          "card_id": 97556336,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "r4",
+          "kind": "group",
+          "group_id": "monsters",
+          "op": "gte",
+          "count": 3
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "medius-handtrap",
+      "name": "Medius + a handtrap",
+      "requirements": [
+        {
+          "id": "r5",
+          "kind": "card",
+          "card_id": 97556336,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "r6",
+          "kind": "group",
+          "group_id": "my-handtraps",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "medius-second",
+      "name": "Medius + a going second card",
+      "requirements": [
+        {
+          "id": "r7",
+          "kind": "card",
+          "card_id": 97556336,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "r8",
+          "kind": "group",
+          "group_id": "going-second",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "vidolium-alone",
+      "name": "Vidolium alone",
+      "notes": "From the Power Patron demo's Vidolium Access. Edit if it needs more.",
+      "requirements": [
+        {
+          "id": "r9",
+          "kind": "card",
+          "card_id": 70488851,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "treasure-alone",
+      "name": "Pendulum Treasure alone",
+      "notes": "From the Power Patron demo's Pendulum Treasure Access. Edit if it needs more.",
+      "requirements": [
+        {
+          "id": "r10",
+          "kind": "card",
+          "card_id": 26237713,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "ars-magna-alone",
+      "name": "An Ars Magna starter alone",
+      "notes": "Finite and the Infinite, or Corruption and the Purification: then Citrinitas, then Medius. Citrinitas can be stopped.",
+      "requirements": [
+        {
+          "id": "r11",
+          "kind": "group",
+          "group_id": "ars-magna",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "nervedo-st",
+      "name": "Nervedo + a Spell/Trap",
+      "notes": "DRAFT from the Road of the King report (Nervedo and a Spell/Trap from hand, then Artmage Non-Finito). Edit to the exact partners.",
+      "requirements": [
+        {
+          "id": "p1",
+          "kind": "card",
+          "card_id": 17473466,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "p2",
+          "kind": "group",
+          "group_id": "spell-trap",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "nervedo-treasure-st",
+      "name": "Nervedo + Pendulum Treasure + another Spell/Trap",
+      "notes": "DRAFT, the report's second line. Pendulum Treasure is itself a Spell, so the group needs 2.",
+      "requirements": [
+        {
+          "id": "p3",
+          "kind": "card",
+          "card_id": 17473466,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "p4",
+          "kind": "card",
+          "card_id": 26237713,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "p5",
+          "kind": "group",
+          "group_id": "spell-trap",
+          "op": "gte",
+          "count": 2
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "tinia-alone",
+      "name": "Tinia alone",
+      "notes": "Tinia Special Summons itself from hand (no Normal Summon) and places Citrinitas, which adds Medius.",
+      "requirements": [
+        {
+          "id": "t1",
+          "kind": "card",
+          "card_id": 59581480,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "plugging-pp",
+      "name": "Portal Plugging + a Power Patron monster",
+      "notes": "A starter you described: Plugging, discarding a Power Patron monster.",
+      "requirements": [
+        {
+          "id": "g1",
+          "kind": "card",
+          "card_id": 56349876,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "g2",
+          "kind": "group",
+          "group_id": "power-patron-monsters",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "graflare-stays",
+      "name": "Artmage Graflare + an Artmage card that stays on the field",
+      "notes": "Graflare plus an Artmage Continuous or Field Spell. Tested: this line keeps going through one interruption without Medius, so it is marked as still working after one.",
+      "survives_one_interruption": true,
+      "requirements": [
+        {
+          "id": "a1",
+          "kind": "card",
+          "card_id": 60946049,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "a2",
+          "kind": "group",
+          "group_id": "artmage-stays",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "citrinitas-alone",
+      "name": "Citrinitas alone",
+      "notes": "Citrinitas is the starter: activated, it adds Medius or an Ars Magna monster. Corruption and Finite fetch it, Tinia places it.",
+      "requirements": [
+        {
+          "id": "c1",
+          "kind": "card",
+          "card_id": 37279096,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    }
+  ],
+  "hand_condition_sets": [
+    {
+      "id": "goal-medius",
+      "name": "Medius alone",
+      "condition_ids": [
+        "medius-alone"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-gallant",
+      "name": "Gallant line",
+      "condition_ids": [
+        "gallant-line"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-handtrap",
+      "name": "Plan with a handtrap in hand",
+      "condition_ids": [
+        "medius-handtrap"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-second",
+      "name": "Plan with a going second card",
+      "condition_ids": [
+        "medius-second"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-any",
+      "name": "Any one-card start",
+      "notes": "Medius, Vidolium, Pendulum Treasure or an Ars Magna starter. The headline goal: edit it to match what you count as a start.",
+      "condition_ids": [
+        "medius-alone",
+        "vidolium-alone",
+        "treasure-alone",
+        "ars-magna-alone",
+        "tinia-alone",
+        "citrinitas-alone"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-nervedo-st",
+      "name": "Nervedo + a Spell/Trap (draft)",
+      "condition_ids": [
+        "nervedo-st"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-nervedo-treasure",
+      "name": "Nervedo + Pendulum Treasure + a Spell/Trap (draft)",
+      "condition_ids": [
+        "nervedo-treasure-st"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-any-pairs",
+      "name": "Any start, with the pair (draft)",
+      "notes": "The one-card starts plus Nervedo and a Spell/Trap. Draft: the headline goal is unchanged.",
+      "condition_ids": [
+        "medius-alone",
+        "vidolium-alone",
+        "treasure-alone",
+        "ars-magna-alone",
+        "nervedo-st",
+        "tinia-alone",
+        "plugging-pp",
+        "citrinitas-alone",
+        "graflare-stays"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "goal-plugging",
+      "name": "Portal Plugging + a Power Patron monster",
+      "condition_ids": [
+        "plugging-pp"
+      ],
+      "aggregation": "any"
+    }
+  ],
+  "engine_access_set_id": "goal-any",
+  "choke_point_group_ids": [
+    "citrinitas-funnel"
+  ],
+  "hit_priority": [
+    {
+      "kind": "group",
+      "group_id": "citrinitas-funnel"
+    },
+    {
+      "kind": "card",
+      "card_id": 25661743
+    },
+    {
+      "kind": "card",
+      "card_id": 41350417
+    }
+  ],
+  "analysis": {
+    "opening_hand_size": 5,
+    "turn_order": "going_first",
+    "observation_point": "opening_hand"
+  },
+  "configurations": [],
+  "active_configuration_id": null,
+  "card_rank": {
+    "going_first": [],
+    "going_second": []
+  },
+  "handtraps": [],
+  "handtrap_pairs": []
+}
