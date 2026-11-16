@@ -190,7 +190,9 @@ export function analyzeVersus(
   );
   const compiledInsulated = goals.map((goal) =>
     goal.members.flatMap((condition) =>
-      condition.survives_one_interruption === true ? [compileConditionHolds(deck, condition, groups)] : [],
+      (condition.survives_interruptions ?? 0) > 0
+        ? [{ holds: compileConditionHolds(deck, condition, groups), stops: condition.survives_interruptions! }]
+        : [],
     ),
   );
   const holds = (hand: readonly number[], goal: number): boolean => {
@@ -254,8 +256,10 @@ export function analyzeVersus(
       if (passes) baseline[goal] = baseline[goal]! + weight;
     });
     if (!base.some(Boolean)) return;
-    // A line marked as having a second path finishes through one stop, whatever is hit.
-    const insulated = compiledInsulated.map((tests) => tests.some((test) => test(hand)));
+    // A line marked as having a second path finishes through that many stops, whatever is hit.
+    const insulation = compiledInsulated.map((tests) =>
+      tests.reduce((most, test) => (test.holds(hand) ? Math.max(most, test.stops) : most), 0),
+    );
     scenarios.forEach((scenario, index) => {
       base.forEach((passes, goal) => {
         // A hand that a weaker opponent already beats cannot survive a stronger one.
@@ -263,7 +267,7 @@ export function analyzeVersus(
         const ok =
           passes &&
           !beaten &&
-          ((scenario.handtrapIds.length <= 1 && insulated[goal]) ||
+          ((scenario.handtrapIds.length <= insulation[goal]! && insulation[goal]! > 0) ||
             withChokePoints(hand, chokeRows, () => survives(hand, goal, scenario.handtrapIds, 0)));
         results[index]![goal] = ok;
         if (ok) survived[index]![goal] = survived[index]![goal]! + weight;
@@ -371,13 +375,14 @@ export function handVersus(
     .filter((goal) => goal.members.length > 0)
     .map(({ set, members }) => {
       const base = holds(members);
-      const insulated =
-        handtrapIds.length <= 1 &&
-        members.some(
-          (condition) =>
-            condition.survives_one_interruption === true &&
-            handConditionHolds(hand, deck, condition, groups),
-        );
+      const stops = members.reduce(
+        (most, condition) =>
+          (condition.survives_interruptions ?? 0) > most && handConditionHolds(hand, deck, condition, groups)
+            ? condition.survives_interruptions!
+            : most,
+        0,
+      );
+      const insulated = stops > 0 && handtrapIds.length <= stops;
       const broken = base && !insulated ? breakChoosing(members) : null;
       return {
         setId: set.id,

@@ -904,7 +904,7 @@ export function serializeMapping(doc: MappingDocument): string {
       id: condition.id,
       name: condition.name,
       ...(condition.notes ? { notes: condition.notes } : {}),
-      ...(condition.survives_one_interruption ? { survives_one_interruption: true } : {}),
+      ...(condition.survives_interruptions ? { survives_interruptions: condition.survives_interruptions } : {}),
       requirements: condition.requirements.map(serializeCondition),
       excludes: condition.excludes.map(serializeCondition),
       distinct_constraints: (condition.distinct_constraints ?? []).map(

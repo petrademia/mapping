@@ -1024,7 +1024,7 @@
       "id": "graflare-stays",
       "name": "Artmage Graflare + an Artmage card that stays on the field",
       "notes": "Graflare plus an Artmage Continuous or Field Spell. Tested: this line keeps going through one interruption without Medius, so it is marked as still working after one.",
-      "survives_one_interruption": true,
+      "survives_interruptions": 1,
       "requirements": [
         {
           "id": "a1",

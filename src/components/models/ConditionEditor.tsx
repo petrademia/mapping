@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isPresenceRequirement, type DistinctMatchConstraint } from "../../lib/distinctMatch";
-import { defaultCondition, newId, type HandCondition } from "../../lib/handCondition";
+import { defaultCondition, MAX_SURVIVED_INTERRUPTIONS, newId, type HandCondition } from "../../lib/handCondition";
 import type { Catalog } from "../../lib/catalog";
 import { displayName } from "../../lib/catalog";
 import type { MappingDocument } from "../../lib/document";
@@ -142,22 +142,27 @@ export function ConditionEditor({
         label={`Notes for ${condition.name || "hand condition"}`}
         onCommit={(notes) => onChange({ ...condition, notes })}
       />
-      <label className="check-row">
-        <input
-          type="checkbox"
-          checked={condition.survives_one_interruption === true}
-          onChange={(event) =>
-            onChange({ ...condition, survives_one_interruption: event.target.checked })
-          }
-        />
-        <span>
-          Still works after one interruption
-          <small>
-            The line has a second path, so it finishes when the opponent stops one
-            card or effect, whichever they pick. It does not count against two
-            stops. Use it only for a line you tested.
-          </small>
-        </span>
+      <label>
+        Still works after
+        <select
+          value={condition.survives_interruptions ?? 0}
+          onChange={(event) => {
+            const stops = Number(event.target.value);
+            onChange({ ...condition, survives_interruptions: stops > 0 ? stops : undefined });
+          }}
+        >
+          <option value={0}>Not marked</option>
+          {Array.from({ length: MAX_SURVIVED_INTERRUPTIONS }, (_, k) => (
+            <option key={k + 1} value={k + 1}>
+              {k + 1} {k === 0 ? "interruption" : "interruptions"}
+            </option>
+          ))}
+        </select>
+        <small className="field-hint">
+          The line has a second path, so it finishes when the opponent stops this many
+          cards or effects, whichever they pick. More stops are worked out as usual. Use
+          it only for a line you tested.
+        </small>
       </label>
       <p className="access-allof">Requires</p>
       {condition.requirements.length === 0 ? (
