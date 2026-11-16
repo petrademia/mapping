@@ -82,7 +82,7 @@ function formatDelta(value: number): string {
 }
 
 export function App() {
-  // First run only: with no saved draft the deck comes from /default.ydk.
+  // First run only: with no saved draft the deck comes from /default.mapping.json, else /default.ydk.
   const [hadDraft] = useState(() => loadStored() !== null);
   const [doc, setDoc] = useState<MappingDocument>(
     () => loadStored() ?? createDocument("untitled"),
@@ -145,13 +145,13 @@ export function App() {
   const loadDefault = () => {
     void loadDefaultDeck().then((deck) => {
       if (!deck) {
-        setStatus("Could not load default.ydk.");
+        setStatus("Could not load the default deck.");
         return;
       }
       setDoc(deck);
       setResetKey((key) => key + 1);
       setTestedHand(null);
-      setStatus("Loaded the default deck from default.ydk.");
+      setStatus("Loaded the default deck.");
     });
   };
 
@@ -170,7 +170,7 @@ export function App() {
           ? deck
           : current,
       );
-      setStatus("Loaded the default deck from default.ydk.");
+      setStatus("Loaded the default deck.");
     });
     return () => {
       cancelled = true;
@@ -243,7 +243,7 @@ export function App() {
             <ClearButton
               label="Default deck"
               confirmLabel="Replace"
-              message="Replace the current deck and models with default.ydk?"
+              message="Replace the current deck and models with the default deck?"
               onConfirm={loadDefault}
             />
             <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
@@ -268,11 +268,11 @@ export function App() {
               <ClearButton
                 label="Reset default"
                 confirmLabel="Reset"
-                message="Forget your saved default and use default.ydk again?"
+                message="Forget your saved default and use the default files again?"
                 onConfirm={() => {
                   clearUserDefault();
                   setHasUserDefault(false);
-                  setStatus("Default deck is default.ydk again.");
+                  setStatus("Default deck is the default files again.");
                 }}
               />
             ) : null}

@@ -23,9 +23,22 @@ function defaultDeckCounts(): { main: number; extra: number; side: number; sideT
 }
 const DEFAULT = defaultDeckCounts();
 
+/**
+ * Opens the app as a first run. The default mapping is hidden, so the deck comes from
+ * default.ydk with no models (the starting point these tests were written for), and the
+ * save endpoint is stubbed so no test can overwrite the real default mapping file.
+ */
 async function openApp(page: Page): Promise<void> {
+  await stubDefaults(page);
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+}
+
+async function stubDefaults(page: Page): Promise<void> {
+  await page.route("**/default.mapping.json", (route) => route.fulfill({ status: 404, body: "" }));
+  await page.route("**/__save-default-mapping", (route) =>
+    route.fulfill({ status: 409, json: { saved: false, reason: "stubbed: the names differ" } }),
+  );
 }
 
 const STEP_OF: Record<string, string> = {
@@ -88,6 +101,45 @@ test("first run loads the default deck from default.ydk", async ({ page }) => {
   await expect(counts).toContainText(`${DEFAULT.extra} extra`);
   await expect(counts).toContainText(`${DEFAULT.side} side`);
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue("default deck");
+});
+
+test("a first run loads default.mapping.json, the deck with its Hand Goals", async ({ page }) => {
+  const file = JSON.parse(readFileSync("public/default.mapping.json", "utf8")) as {
+    name: string;
+    hand_condition_sets: { name: string }[];
+  };
+  // Not through openApp: nothing is hidden, so the real default mapping is what loads.
+  await page.route("**/__save-default-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+  await page.goto("/");
+  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+  await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(file.name);
+  await expect(page.getByText(file.hand_condition_sets[0]!.name, { exact: true }).first()).toBeVisible();
+});
+
+test.describe("Save mapping", () => {
+  test("overwrites the default mapping when the server accepts it, with no download", async ({ page }) => {
+    await openApp(page);
+    await page.route("**/__save-default-mapping", (route) =>
+      route.fulfill({ status: 200, json: { saved: true, path: "public/default.mapping.json" } }),
+    );
+    let downloaded = false;
+    page.on("download", () => {
+      downloaded = true;
+    });
+    await page.getByRole("button", { name: "Save mapping" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Saved over public/default.mapping.json" })).toBeVisible();
+    expect(downloaded).toBe(false);
+  });
+
+  test("downloads the file and says why when the names differ", async ({ page }) => {
+    await openApp(page);
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Save mapping" }).click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/\.mapping\.json$/);
+    await expect(page.getByRole("status").filter({ hasText: "stubbed: the names differ" })).toBeVisible();
+  });
 });
 
 test("card search finds the newest cards, even from a partial phrase", async ({ page }) => {
@@ -227,10 +279,13 @@ test.describe("Hand Test", () => {
   test("the deck tiles do not overlap", async ({ page }) => {
     const tiles = page.getByRole("region", { name: "Deck" }).locator(".hand-deck-grid li");
     await expect(tiles.first()).toBeVisible();
-    const a = (await tiles.nth(0).boundingBox())!;
-    const b = (await tiles.nth(1).boundingBox())!;
-    expect(a.width).toBeLessThanOrEqual(110);
-    expect(b.x).toBeGreaterThanOrEqual(a.x + a.width - 1);
+    // Read the geometry again until the layout has settled (card art loading moves tiles at first).
+    await expect(async () => {
+      const a = (await tiles.nth(0).boundingBox())!;
+      const b = (await tiles.nth(1).boundingBox())!;
+      expect(a.width).toBeLessThanOrEqual(110);
+      expect(b.x).toBeGreaterThanOrEqual(a.x + a.width - 1);
+    }).toPass();
   });
 
   test.describe("Batch Test tab", () => {
@@ -282,10 +337,13 @@ test.describe("Deck view", () => {
   test("copies of a card sit side by side", async ({ page }) => {
     await openApp(page);
     const copies = section(page, "Main Deck").getByRole("button", { name: /^Edit .*, copy \d of \d$/ });
-    const a = (await copies.nth(0).boundingBox())!;
-    const b = (await copies.nth(1).boundingBox())!;
-    expect(Math.abs(a.y - b.y)).toBeLessThan(2);
-    expect(b.x).toBeGreaterThan(a.x);
+    // Read the geometry again until the layout has settled (card art loading moves tiles at first).
+    await expect(async () => {
+      const a = (await copies.nth(0).boundingBox())!;
+      const b = (await copies.nth(1).boundingBox())!;
+      expect(Math.abs(a.y - b.y)).toBeLessThan(2);
+      expect(b.x).toBeGreaterThan(a.x);
+    }).toPass();
     await expect(copies.nth(0)).toHaveAttribute("aria-label", /copy 1 of/);
     await expect(copies.nth(1)).toHaveAttribute("aria-label", /copy 2 of/);
   });
@@ -1249,7 +1307,7 @@ test("the Default deck button loads default.ydk over whatever is there", async (
   await expect(page.locator(".counts")).toContainText("0 main");
 
   await page.getByRole("button", { name: "Default deck" }).click();
-  await expect(page.getByText("Replace the current deck and models with default.ydk?")).toBeVisible();
+  await expect(page.getByText("Replace the current deck and models with the default deck?")).toBeVisible();
   await page.getByRole("button", { name: "Replace", exact: true }).click();
 
   await expect(page.locator(".counts")).toContainText(`${DEFAULT.main} main`);

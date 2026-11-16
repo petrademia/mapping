@@ -392,6 +392,11 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
 - The selected configuration drives Profile, Models, Hand Test, the header
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
+- **Save mapping** on the dev server (`npm run dev`) overwrites `public/default.mapping.json`
+  instead of downloading a copy, but only when the deck has the same name as the deck
+  already in that file. A deck with another name is downloaded as before and the status
+  says why. A built or hosted copy always downloads. The dev server writes only that one
+  path, only for a page on the same server, and the browser tests stub it.
 
 ### Handtrap versus
 
@@ -633,4 +638,4 @@ MyCard's English data can lag behind new sets (its newest en-US commit was 22 Se
 
 **Card images** are optional and local. `npm run fetch-images -- --demo [deck.ydk ...]` downloads small images for the card ids found in the files you name into `public/cards/` and writes `public/cards/index.json`. The image host (YGOPRODeck) asks users to download each image once rather than hotlink it, so the script is throttled, skips existing files, and stops on HTTP 403/429. `public/cards/` is gitignored; cards without an image show an empty placeholder box.
 
-On first run (no saved draft in the browser) the app loads `public/default.ydk`; replace that file to change the starting deck. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.
+On first run (no saved draft in the browser) the app loads the default deck: the one you set with **Set as default** in this browser, else `public/default.mapping.json` (the deck with its Groups, Hand Goals and tags), else `public/default.ydk` (cards only). **Default deck** in the header loads the same one over the current deck. Replace those files to change the starting deck. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.

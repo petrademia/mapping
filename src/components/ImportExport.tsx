@@ -13,6 +13,7 @@ import {
   type ExtraDeckIds,
 } from "../lib/sectionRouting";
 import { download, slug } from "../lib/download";
+import { saveOverDefaultMapping } from "../lib/saveMappingClient";
 import { parseDeckText } from "../lib/ydk";
 import { Icon } from "./IconButton";
 
@@ -80,7 +81,19 @@ export function ImportExport({
       </label>
       <button
         type="button"
-        onClick={() => download(`${slug(doc.name)}.mapping.json`, serializeMapping(doc))}
+        onClick={() => {
+          const text = serializeMapping(doc);
+          // On the dev server this overwrites public/default.mapping.json when the deck has the
+          // same name as the one in it; any other deck is downloaded as before.
+          void saveOverDefaultMapping(text).then((result) => {
+            if (result.saved) {
+              onStatus(`Saved over ${result.path}`);
+              return;
+            }
+            download(`${slug(doc.name)}.mapping.json`, text);
+            onStatus(result.reason ? `Downloaded the mapping. ${result.reason}` : "Downloaded the mapping.");
+          });
+        }}
       >
         <Icon name="save" />
         Save mapping

@@ -32,7 +32,19 @@ export function loadUserDefault(): MappingDocument | null {
   }
 }
 
-/** Forget the saved default so Default deck falls back to /default.ydk. */
+/** A deck from the text of a MAPPING file, or null when it is not one or holds no cards. */
+export function deckFromMappingText(text: string): MappingDocument | null {
+  // A dev server answers unknown paths with index.html; that is not a mapping.
+  if (!text.trimStart().startsWith("{")) return null;
+  try {
+    const doc = parseMappingJson(text);
+    return doc.main.length + doc.extra.length + doc.side.length > 0 ? doc : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Forget the saved default so Default deck falls back to the files in public/. */
 export function clearUserDefault(): void {
   try {
     localStorage.removeItem(USER_DEFAULT_KEY);
@@ -42,13 +54,24 @@ export function clearUserDefault(): void {
 }
 
 /**
- * The default deck: the one you set with Set as default, else /default.ydk, served from `public/`. Replace that file to
- * change what a new browser starts with. Returns null when it is missing or
- * unreadable, so the app falls back to an empty deck.
+ * The default deck, first match wins: the one you set with Set as default in this browser,
+ * then /default.mapping.json (the deck with its Groups, Hand Goals and tags), then
+ * /default.ydk (cards only), both served from `public/`. Replace those files to change
+ * what a new browser starts with. Returns null when none is readable, so the app falls
+ * back to an empty deck.
  */
 export async function loadDefaultDeck(): Promise<MappingDocument | null> {
   const saved = loadUserDefault();
   if (saved) return saved;
+  try {
+    const response = await fetch("/default.mapping.json");
+    if (response.ok) {
+      const doc = deckFromMappingText(await response.text());
+      if (doc) return doc;
+    }
+  } catch {
+    /* fall through to default.ydk */
+  }
   try {
     const response = await fetch("/default.ydk");
     if (!response.ok) return null;
