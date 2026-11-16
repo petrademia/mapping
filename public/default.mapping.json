@@ -768,12 +768,13 @@
     {
       "id": "power-patron-monsters",
       "name": "Power Patron monsters",
-      "notes": "Power Patron Portal Plugging discards one Power Patron card. Monsters only here; add Terminus if it counts.",
+      "notes": "Power Patron monsters you can discard to Plugging or Special Summon from hand with Vidolium's Pendulum effect, including Artmage Power Patron. Add Terminus if it counts.",
       "card_ids": [
         70488851,
         17473466,
         43871165,
-        10266279
+        10266279,
+        23829452
       ]
     },
     {
@@ -1021,6 +1022,30 @@
       "distinct_constraints": []
     },
     {
+      "id": "treasure-pp",
+      "name": "Pendulum Treasure + a Power Patron monster",
+      "notes": "Tested: Medius is Normal Summoned and negated (the bait). Treasure puts Vidolium in the Extra Deck face-up and searches Terminus. Terminus sends a Power Patron to the GY and adds Vidolium. Vidolium goes in the Pendulum Zone and its effect Special Summons the Power Patron monster from hand (for example Artmage Power Patron), and the combo goes off. Medius is not needed. Marked as surviving 2 interruptions.",
+      "survives_interruptions": 2,
+      "requirements": [
+        {
+          "id": "tp1",
+          "kind": "card",
+          "card_id": 26237713,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "tp2",
+          "kind": "group",
+          "group_id": "power-patron-monsters",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
       "id": "graflare-stays",
       "name": "Artmage Graflare + an Artmage card that stays on the field",
       "notes": "Graflare plus an Artmage Continuous or Field Spell. Tested: this line keeps going through one interruption without Medius, so it is marked as still working after one.",
@@ -1137,6 +1162,7 @@
         "tinia-alone",
         "plugging-pp",
         "citrinitas-alone",
+        "treasure-pp",
         "graflare-stays"
       ],
       "aggregation": "any"

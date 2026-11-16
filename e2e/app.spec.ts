@@ -41,6 +41,24 @@ async function stubDefaults(page: Page): Promise<void> {
   );
 }
 
+/**
+ * Waits until the card names have loaded and the first tile has stopped moving, so a drag or a
+ * measurement lands where it was aimed. (The network never goes quiet reliably, so this does not
+ * wait for it.)
+ */
+async function settled(page: Page): Promise<void> {
+  const tiles = page.locator(".deck-tile");
+  await expect(tiles.first()).toBeVisible();
+  await expect
+    .poll(() => tiles.evaluateAll((all) => all.some((tile) => /^#\d+$/.test(tile.getAttribute("title") ?? ""))))
+    .toBe(false);
+  await expect(async () => {
+    const before = await tiles.first().boundingBox();
+    await page.waitForTimeout(200);
+    expect(await tiles.first().boundingBox()).toEqual(before);
+  }).toPass();
+}
+
 const STEP_OF: Record<string, string> = {
   Models: "Define",
   Handtraps: "Define",
@@ -495,7 +513,7 @@ test.describe("Deck view", () => {
 test.describe("Binder Pages shell", () => {
   test("the deck sits ten cards to a row", async ({ page }) => {
     await openApp(page);
-    await page.waitForLoadState("networkidle");
+    await settled(page);
     const tiles = page.locator(".deck-grid-section").first().locator(".deck-tile");
     const ys = await tiles.evaluateAll((els) => els.slice(0, 20).map((el) => Math.round(el.getBoundingClientRect().y)));
     const firstRow = ys.filter((y) => y === ys[0]).length;
@@ -1230,7 +1248,7 @@ test.describe("Dragging cards in the deck", () => {
   test("dragging an Extra card onto the Side Deck moves one copy", async ({ page }) => {
     await openApp(page);
     // Let images and the catalog finish loading so nothing shifts under the drag.
-    await page.waitForLoadState("networkidle");
+    await settled(page);
     await section(page, "Extra Deck").locator(".deck-tile").first().dragTo(section(page, "Side Deck"));
     await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra - 1} extra`);
     await expect(page.locator(".counts")).toContainText(`${DEFAULT.side + 1} side`);
@@ -1239,7 +1257,7 @@ test.describe("Dragging cards in the deck", () => {
   test("a Main card cannot be dragged into Extra", async ({ page }) => {
     await openApp(page);
     // Let images and the catalog finish loading so nothing shifts under the drag.
-    await page.waitForLoadState("networkidle");
+    await settled(page);
     await section(page, "Side Deck").locator(".deck-tile").first().scrollIntoViewIfNeeded();
     const extra = section(page, "Extra Deck");
     const main = section(page, "Main Deck").locator(".deck-tile").last();
@@ -1251,7 +1269,7 @@ test.describe("Dragging cards in the deck", () => {
   test("dropping a card before another reorders the section", async ({ page }) => {
     await openApp(page);
     // Let images and the catalog finish loading so nothing shifts under the drag.
-    await page.waitForLoadState("networkidle");
+    await settled(page);
     const tiles = section(page, "Extra Deck").locator(".deck-tile");
     const lastTitle = await tiles.last().getAttribute("title");
     await tiles.last().dragTo(tiles.first());
@@ -1262,7 +1280,7 @@ test.describe("Dragging cards in the deck", () => {
 
 test("Set as default makes the current deck what Default deck loads", async ({ page }) => {
   await openApp(page);
-  await page.waitForLoadState("networkidle");
+  await settled(page);
   const side = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Side Deck" }) });
   await page
     .locator(".deck-section")
