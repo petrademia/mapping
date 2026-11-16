@@ -210,6 +210,8 @@
 
 .deck-detail { margin: var(--space-2) 0; padding: var(--space-3); border: 1px solid var(--line); background: var(--sunken); }
 .deck-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-bottom: var(--space-2); }
+.deck-detail-move { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+.deck-detail-move button { padding: var(--space-1) var(--space-2); font-size: var(--text-sm); }
 .deck-detail-actions { display: inline-flex; align-items: center; gap: var(--space-2); margin-left: auto; }
 
 .rank-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }

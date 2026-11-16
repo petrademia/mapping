@@ -24,6 +24,8 @@ import { OpeningQualityEditor } from "./OpeningQualityEditor";
 import { QuantityEditor } from "./QuantityEditor";
 import { RoleEditor } from "./RoleEditor";
 
+const DECK_SECTIONS: readonly DeckSection[] = ["main", "extra", "side"];
+
 const TITLES: Record<DeckSection, string> = {
   main: "Main Deck",
   extra: "Extra Deck",
@@ -90,6 +92,7 @@ function DetailRow({
   doc,
   derived,
   catalog,
+  extraIds,
   onChange,
   onClose,
 }: {
@@ -99,11 +102,14 @@ function DetailRow({
   /** Starter, Extender and Brick for this card; null when no Hand Goal exists to read them from. */
   derived: DerivedLabels | null;
   catalog: Catalog;
+  extraIds: ExtraDeckIds;
   onChange: (doc: MappingDocument) => void;
   onClose: () => void;
 }): ReactNode {
   const ref = useRef<HTMLLIElement>(null);
   const name = displayName(card.card_id, card.name, catalog);
+  // Where one copy may go: Extra Deck monsters only to Extra or Side, every other card to Main or Side.
+  const targets = DECK_SECTIONS.filter((target) => target !== section && canMoveTo(card.card_id, target, extraIds));
 
   // Opening the editor must never leave it off screen.
   useEffect(() => {
@@ -139,6 +145,25 @@ function DetailRow({
             <IconButton icon="x" label="Close" onClick={onClose} />
           </span>
         </div>
+        {targets.length > 0 ? (
+          <div className="deck-detail-move" role="group" aria-label="Move one copy">
+            <span className="taxonomy-label">Move one copy to</span>
+            {targets.map((target) => (
+              <button
+                key={target}
+                type="button"
+                aria-label={`Move one ${name} to ${TITLES[target]}`}
+                onClick={() => {
+                  onChange(moveCopy(doc, section, target, card.card_id, extraIds));
+                  // The row is gone from this section once its last copy has left.
+                  if (card.quantity <= 1) onClose();
+                }}
+              >
+                {TITLES[target]}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {section !== "extra" ? (
           <div className="taxonomy-cell">
             <RoleEditor
@@ -344,6 +369,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         doc={doc}
                         derived={labels.get(card.card_id) ?? null}
                         catalog={catalog}
+                        extraIds={extraIds}
                         onChange={onChange}
                         onClose={() => setSelected(null)}
                       />,

@@ -108,10 +108,13 @@ test("a first run loads default.mapping.json, the deck with its Hand Goals", asy
     name: string;
     hand_condition_sets: { name: string }[];
   };
-  // Not through openApp: nothing is hidden, so the real default mapping is what loads.
+  // Not through openApp: nothing is hidden, so the real default mapping is what loads. With the
+  // full mapping the Profile calculates its quality summary on the page's main thread, which takes
+  // several seconds, so this waits much longer than the cards-only first run does.
+  test.setTimeout(120_000);
   await page.route("**/__save-default-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
-  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(file.name);
   await expect(page.getByText(file.hand_condition_sets[0]!.name, { exact: true }).first()).toBeVisible();
 });
@@ -348,6 +351,55 @@ test.describe("Deck view", () => {
     await expect(copies.nth(1)).toHaveAttribute("aria-label", /copy 2 of/);
   });
 
+  test("a Main card moves to Side and back from its editor, and never to Extra", async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("button", { name: "New deck" }).click();
+    await addCardBySearch(page, "ash blossom");
+    await expect(page.locator(".counts")).toContainText("1 main");
+
+    const main = section(page, "Main Deck");
+    await main.locator(".deck-tile").first().click();
+    const fromMain = main.getByRole("group", { name: /^Edit / });
+    await expect(fromMain.getByRole("button", { name: /to Extra Deck$/ })).toHaveCount(0);
+    await fromMain.getByRole("button", { name: /to Side Deck$/ }).click();
+    await expect(page.locator(".counts")).toContainText("0 main");
+    await expect(page.locator(".counts")).toContainText("1 side");
+    // The last copy left, so the editor under the old row is gone.
+    await expect(main.getByRole("group", { name: /^Edit / })).toHaveCount(0);
+
+    const side = section(page, "Side Deck");
+    await side.locator(".deck-tile").first().click();
+    const fromSide = side.getByRole("group", { name: /^Edit / });
+    await expect(fromSide.getByRole("button", { name: /to Extra Deck$/ })).toHaveCount(0);
+    await fromSide.getByRole("button", { name: /to Main Deck$/ }).click();
+    await expect(page.locator(".counts")).toContainText("1 main");
+    await expect(page.locator(".counts")).toContainText("0 side");
+  });
+
+  test("an Extra Deck monster moves between Extra and Side, and never to Main", async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("button", { name: "New deck" }).click();
+    await page.getByRole("group", { name: "Add to" }).getByRole("button", { name: "Extra" }).click();
+    await addCardBySearch(page, "omega vidolium");
+    await expect(page.locator(".counts")).toContainText("1 extra");
+
+    const extra = section(page, "Extra Deck");
+    await extra.locator(".deck-tile").first().click();
+    const fromExtra = extra.getByRole("group", { name: /^Edit / });
+    await expect(fromExtra.getByRole("button", { name: /to Main Deck$/ })).toHaveCount(0);
+    await fromExtra.getByRole("button", { name: /to Side Deck$/ }).click();
+    await expect(page.locator(".counts")).toContainText("0 extra");
+    await expect(page.locator(".counts")).toContainText("1 side");
+
+    const side = section(page, "Side Deck");
+    await side.locator(".deck-tile").first().click();
+    const fromSide = side.getByRole("group", { name: /^Edit / });
+    await expect(fromSide.getByRole("button", { name: /to Main Deck$/ })).toHaveCount(0);
+    await fromSide.getByRole("button", { name: /to Extra Deck$/ }).click();
+    await expect(page.locator(".counts")).toContainText("1 extra");
+    await expect(page.locator(".counts")).toContainText("0 side");
+  });
+
   test("the quantity box is wide enough to show two digits", async ({ page }) => {
     await openApp(page);
     const main = section(page, "Main Deck");
@@ -380,15 +432,18 @@ test.describe("Deck view", () => {
     await openApp(page);
     const main = section(page, "Main Deck");
     const tile = main.locator(".deck-tile").nth(3);
-    const tileBox = (await tile.boundingBox())!;
     await tile.click();
 
     const detail = main.getByRole("group", { name: /^Edit / });
     await expect(detail).toBeInViewport();
-    const detailBox = (await detail.boundingBox())!;
-    // Directly below the clicked row: within about one tile row, not a section away.
-    expect(detailBox.y).toBeGreaterThan(tileBox.y);
-    expect(detailBox.y - tileBox.y).toBeLessThan(200);
+    // Directly below the clicked row: within about one tile row, not a section away. Measured
+    // together, and again until the layout settles (card art loading moves things at first).
+    await expect(async () => {
+      const tileBox = (await tile.boundingBox())!;
+      const detailBox = (await detail.boundingBox())!;
+      expect(detailBox.y).toBeGreaterThan(tileBox.y);
+      expect(detailBox.y - tileBox.y).toBeLessThan(200);
+    }).toPass();
     // And the Role controls are usable without scrolling away from the card.
     await expect(detail.getByRole("button", { name: "Interaction" })).toBeInViewport();
     await detail.getByRole("button", { name: "Interaction" }).click();
@@ -1223,10 +1278,13 @@ test.describe("Card Rank", () => {
   const region = (page: Page, label: string) =>
     page.getByRole("region", { name: `${label} ranking` });
   // Card names in rank order, read from each tile's tooltip.
-  const order = (page: Page, label: string) =>
-    region(page, label).locator(".rank-tile").evaluateAll((tiles) =>
-      tiles.map((tile) => tile.getAttribute("title")),
-    );
+  const order = async (page: Page, label: string) => {
+    const read = () =>
+      region(page, label).locator(".rank-tile").evaluateAll((tiles) => tiles.map((tile) => tile.getAttribute("title")));
+    // Before the catalog loads a tile is titled with its passcode; wait for the names.
+    await expect.poll(async () => (await read()).some((title) => /^#\d+$/.test(title ?? ""))).toBe(false);
+    return read();
+  };
 
   test("shows card art in rank order for going first and going second", async ({ page }) => {
     await expect(region(page, "Going First")).toBeVisible();
