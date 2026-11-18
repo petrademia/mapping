@@ -3,7 +3,7 @@ import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { analysisContextOf, sectionSize, type MappingDocument } from "../lib/document";
 import { groupsToMembership } from "../lib/handCondition";
-import { analyzeHandConditions } from "../lib/handExplorer";
+import { useHandAnalysis } from "../lib/useHandAnalysis";
 import {
   generateHandBatch,
   MAX_BATCH_HANDS,
@@ -58,22 +58,21 @@ export function HandBatchPanel({ doc, catalog, onOpenInTester, onContext }: Prop
     engine_access_set_id: doc.engine_access_set_id,
   });
 
-  const analysis = useMemo(() => {
-    if (deck === 0) return null;
-    try {
-      return analyzeHandConditions(
-        doc.main,
-        sample,
-        doc.hand_conditions,
-        doc.hand_condition_sets,
-        groupsToMembership(doc.groups),
-        context.turn_order,
-      );
-    } catch {
-      return null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
-  }, [analysisKey, deck]);
+  // Counted in a Web Worker, so opening the tab does not freeze the page.
+  const { analysis: counted } = useHandAnalysis(
+    analysisKey,
+    deck === 0
+      ? null
+      : {
+          main: doc.main,
+          sample,
+          conditions: doc.hand_conditions,
+          sets: doc.hand_condition_sets,
+          groups: groupsToMembership(doc.groups),
+          turnOrder: context.turn_order,
+        },
+  );
+  const analysis = counted ?? null;
 
   // A batch describes one deck and model; drop it when either changes.
   useEffect(() => {

@@ -4,9 +4,7 @@ import { withDerivedLabels } from "../lib/derivedLabels";
 import {
   inheritModels,
   mainDifferences,
-  scoreDeck,
   type DeckScore,
-  type DeckScoreResult,
 } from "../lib/compareDecks";
 import {
   documentFromParsed,
@@ -15,6 +13,7 @@ import {
 } from "../lib/document";
 import { parseDeckText } from "../lib/ydk";
 import { loadDeckFile, type DeckEntry } from "../lib/deckLibrary";
+import { useCompareScores } from "../lib/useCompareScores";
 import { effectiveRank } from "../lib/effectiveRank";
 import { ClearButton } from "./ClearButton";
 import { CardStrip } from "./ModelArt";
@@ -199,25 +198,25 @@ export function ComparePanel({ doc, catalog, initialDeck = null, onUse, decks = 
   const ranking = useMemo(() => {
     return effectiveRank(doc, doc.analysis.turn_order)?.order ?? null;
   }, [doc]);
-  const scores = useMemo<{ a: DeckScoreResult; b: DeckScoreResult | null }>(
-    () => ({
-      a: scoreDeck(doc, ranking),
-      b: compared ? scoreDeck(compared, ranking) : null,
-    }),
-    [doc, compared, ranking],
+  // Both scores are exact counts over every hand, so they are worked out in a Web Worker; the
+  // previous comparison stays, dimmed, while a new one is counted.
+  const scoreKey = useMemo(() => (compared ? JSON.stringify([doc, compared, ranking]) : ""), [doc, compared, ranking]);
+  const { result: scores, pending } = useCompareScores(
+    scoreKey,
+    compared ? { doc, compared, ranking } : null,
   );
   const diff = useMemo(() => (compared ? mainDifferences(doc, compared) : []), [doc, compared]);
   const added = diff.filter((row) => row.delta > 0).map((row) => row.card_id);
   const dropped = diff.filter((row) => row.delta < 0).map((row) => row.card_id);
   const everyone = [...doc.main, ...(compared?.main ?? [])];
 
-  const a = scores.a;
-  const b = scores.b;
-  const ready = b !== null && !("error" in a) && !("error" in b);
-  const noGoals = !("error" in a) && a.goals.length === 0;
+  const a = scores?.a;
+  const b = scores?.b ?? null;
+  const ready = a !== undefined && b !== null && !("error" in a) && !("error" in b);
+  const noGoals = a !== undefined && !("error" in a) && a.goals.length === 0;
 
   return (
-    <section className="panel compare-panel" id="compare-top">
+    <section className="panel compare-panel" id="compare-top" aria-busy={pending}>
       <header>
         <h2>Compare decks</h2>
       </header>
@@ -300,10 +299,11 @@ export function ComparePanel({ doc, catalog, initialDeck = null, onUse, decks = 
           can be compared. Define a Hand Goal in Models to compare odds.
         </p>
       ) : null}
-      {"error" in a ? <p className="error">{a.error}</p> : null}
+      {other && !scores ? <p className="note">Counting the odds for both decks.</p> : null}
+      {a && "error" in a ? <p className="error">{a.error}</p> : null}
       {b && "error" in b ? <p className="error">The compared deck: {b.error}</p> : null}
 
-      {ready && b && !("error" in a) && !("error" in b) ? (
+      {ready && a && b && !("error" in a) && !("error" in b) ? (
         <div className="compare-results" aria-label="Comparison">
           <p className="compare-names">
             <strong>{a.name || "This deck"}</strong> against <strong>{b.name || "Compared deck"}</strong>

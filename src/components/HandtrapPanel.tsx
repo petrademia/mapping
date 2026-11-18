@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { analysisContextLabel } from "../lib/analysisContext";
+import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
 import { analysisContextOf, type MappingDocument } from "../lib/document";
 import {
@@ -15,7 +15,9 @@ import {
   updateHandtrap,
   type Handtrap,
 } from "../lib/handtrap";
-import { analyzeVersus, type GoalSurvival } from "../lib/handtrapVersus";
+import type { GoalSurvival } from "../lib/handtrapVersus";
+import { useVersus } from "../lib/useVersus";
+import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { CardFrame } from "./HandImages";
 import { HitPriorityEditor } from "./HitPriorityEditor";
 import { DeckPicker } from "./ModelArt";
@@ -150,12 +152,26 @@ export function HandtrapPanel({ doc, catalog, onChange }: Props) {
   const [first, setFirst] = useState("");
   const [second, setSecond] = useState("");
 
-  const outcome = useMemo(
-    () => analyzeVersus(doc),
-    // The analysis reads exactly these parts of the deck.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [doc.main, doc.groups, doc.hand_conditions, doc.hand_condition_sets, doc.handtraps, doc.handtrap_pairs, doc.analysis],
+  // Counted in a Web Worker, and only once there is a handtrap to count against. The key is the
+  // parts of the deck the analysis reads, with the cards in a fixed order so moving one around
+  // does not start it again.
+  const versusKey = useMemo(
+    () =>
+      doc.handtraps.length === 0
+        ? ""
+        : `${modelsAnalysisKey({
+            main: doc.main,
+            groups: doc.groups,
+            hand_conditions: doc.hand_conditions,
+            hand_condition_sets: doc.hand_condition_sets,
+            sample: observedCards(context, doc.analysis.opening_hand_size),
+            turn_order: context.turn_order,
+            engine_access_set_id: doc.engine_access_set_id,
+          })}\n${JSON.stringify([doc.handtraps, doc.handtrap_pairs, doc.analysis])}`,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the doc parts the analysis reads
+    [doc.main, doc.groups, doc.hand_conditions, doc.hand_condition_sets, doc.handtraps, doc.handtrap_pairs, doc.analysis, doc.engine_access_set_id],
   );
+  const { result: outcome, pending } = useVersus(versusKey, doc.handtraps.length === 0 ? null : { doc });
 
   const missing = COMMON_HANDTRAPS.filter(
     (common) => !doc.handtraps.some((handtrap) => handtrap.card_id === common.card_id),
@@ -176,12 +192,14 @@ export function HandtrapPanel({ doc, catalog, onChange }: Props) {
       </p>
 
       <h3 className="panel-subhead">How your Hand Goals hold up</h3>
-      {"error" in outcome ? (
-        <p className="empty">{outcome.error}</p>
-      ) : doc.handtraps.length === 0 ? (
+      {doc.handtraps.length === 0 ? (
         <p className="empty">Add a handtrap to see how each Hand Goal holds up against it.</p>
+      ) : !outcome ? (
+        <p className="note" aria-busy="true">Counting how each Hand Goal holds up.</p>
+      ) : "error" in outcome ? (
+        <p className="empty">{outcome.error}</p>
       ) : (
-        <div className="compare-results" aria-label="Handtrap results">
+        <div className="compare-results" aria-label="Handtrap results" aria-busy={pending}>
           <p className="note">
             First {outcome.sample} cards. Each number is the chance the goal still holds after the
             opponent uses the handtrap on the card that hurts most.
