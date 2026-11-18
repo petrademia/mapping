@@ -13,6 +13,7 @@ import {
   type MappingCard,
   type MappingDocument,
 } from "../lib/document";
+import { allowedCopies, copiesInDeck, type Banlist, type Format } from "../lib/banlist";
 import { canMoveTo, moveCopy, reorderCard } from "../lib/deckMove";
 import { isRanked, rankFor } from "../lib/cardRank";
 import { SORT_LABELS, sortCards, sortsFor, type DeckSort } from "../lib/deckSort";
@@ -38,6 +39,9 @@ interface Props {
   onChange: (doc: MappingDocument) => void;
   /** Extra Deck monster ids; decides which sections a dragged card may enter. */
   extraIds?: ExtraDeckIds;
+  /** With the format, how many copies of a card the deck may hold (3, or less if limited). */
+  banlist?: Banlist;
+  format?: Format;
 }
 
 const SORT_KEY = "mapping.deckSort";
@@ -93,6 +97,8 @@ function DetailRow({
   derived,
   catalog,
   extraIds,
+  banlist,
+  format,
   onChange,
   onClose,
 }: {
@@ -103,12 +109,17 @@ function DetailRow({
   derived: DerivedLabels | null;
   catalog: Catalog;
   extraIds: ExtraDeckIds;
+  banlist: Banlist;
+  format: Format;
   onChange: (doc: MappingDocument) => void;
   onClose: () => void;
 }): ReactNode {
   const ref = useRef<HTMLLIElement>(null);
   const name = displayName(card.card_id, card.name, catalog);
   // Where one copy may go: Extra Deck monsters only to Extra or Side, every other card to Main or Side.
+  // Copies this row may hold: what the format allows, less the copies in the other sections. Never
+  // below one, so a deck that is already over can still be reduced but not raised.
+  const room = Math.max(1, allowedCopies(banlist, format, card.card_id) - (copiesInDeck(doc, card.card_id) - card.quantity));
   const targets = DECK_SECTIONS.filter((target) => target !== section && canMoveTo(card.card_id, target, extraIds));
 
   // Opening the editor must never leave it off screen.
@@ -125,6 +136,7 @@ function DetailRow({
           <span className="deck-detail-actions">
             <QuantityEditor
               value={card.quantity}
+              max={room}
               onChange={(quantity) => {
                 if (quantity <= 0) {
                   onChange(removeCard(doc, section, card.card_id));
@@ -192,7 +204,7 @@ function DetailRow({
  * under that row (no scrolling to the end of the section). Extra Deck cards
  * are never drawn, so they have no roles or opening quality to edit.
  */
-export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props) {
+export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist = {}, format = "ocg" }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
   // A sort only changes how a section is shown; it never touches the deck itself.
   const [sorts, setSorts] = useState<Record<DeckSection, DeckSort>>(readSorts);
@@ -414,6 +426,8 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         derived={labels.get(card.card_id) ?? null}
                         catalog={catalog}
                         extraIds={extraIds}
+                        banlist={banlist}
+                        format={format}
                         onChange={onChange}
                         onClose={() => setSelected(null)}
                       />,

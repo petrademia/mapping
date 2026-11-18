@@ -436,14 +436,68 @@ test.describe("Deck view", () => {
     const main = section(page, "Main Deck");
     await main.locator(".deck-tile").first().click();
     const box = main.getByRole("group", { name: /^Edit / }).getByRole("spinbutton", { name: "Quantity" });
-    // The inner text area, after padding and the browser's own spin buttons, must fit "99".
+    // The inner text area, after padding and the browser's own spin buttons, must fit two digits.
     expect(await box.evaluate((el: HTMLInputElement) => el.clientWidth)).toBeGreaterThanOrEqual(32);
+    // Typing more than the deck may hold goes to the limit, never to 99.
     await box.fill("99");
-    await expect(box).toHaveValue("99");
+    expect(Number(await box.inputValue())).toBeLessThanOrEqual(3);
+  });
+
+  /** A card the OCG list limits to `copies` that can be added to Main, from the lists in public/. */
+  function limitedCard(copies: 1 | 2): number {
+    const limits = JSON.parse(readFileSync("public/banlist.json", "utf8")).ocg.limits as Record<string, number>;
+    const catalog = JSON.parse(readFileSync("public/catalog.json", "utf8")) as Record<string, string>;
+    const extra = new Set<number>(JSON.parse(readFileSync("public/extra-deck.json", "utf8")));
+    const id = Object.entries(limits).find(([key, limit]) => limit === copies && key in catalog && !extra.has(Number(key)))?.[0];
+    if (!id) throw new Error(`no card limited to ${copies} on the OCG list`);
+    return Number(id);
+  }
+
+  for (const copies of [1, 2] as const) {
+    test(`a ${copies === 1 ? "Limited" : "Semi-limited"} card stops at ${copies} in the quantity box`, async ({ page }) => {
+      await openApp(page);
+      await page.getByRole("button", { name: "New deck" }).click();
+      await addCardBySearch(page, String(limitedCard(copies)));
+      const main = section(page, "Main Deck");
+      await main.locator(".deck-tile").first().click();
+      const detail = main.getByRole("group", { name: /^Edit / });
+      const plus = detail.getByRole("button", { name: "Increase quantity" });
+      const box = detail.getByRole("spinbutton", { name: "Quantity" });
+      for (let copy = 1; copy < copies; copy += 1) await plus.click();
+      await expect(box).toHaveValue(String(copies));
+      await expect(plus).toBeDisabled();
+      await box.fill("99");
+      await expect(box).toHaveValue(String(copies));
+      await expect(page.locator(".counts")).toContainText(`${copies} main`);
+    });
+  }
+
+  test("the limit of 3 counts the copies in Side too", async ({ page }) => {
+    await openApp(page);
+    await page.getByRole("button", { name: "New deck" }).click();
+    await page.getByLabel("Forbidden and limited list").selectOption("none");
+    await addCardBySearch(page, "mulcharmy fuwalos");
+    const main = section(page, "Main Deck");
+    await main.locator(".deck-tile").first().click();
+    const detail = main.getByRole("group", { name: /^Edit / });
+    await detail.getByRole("button", { name: "Increase quantity" }).click();
+    await expect(page.locator(".counts")).toContainText("2 main");
+    // One more copy in Side leaves room for only two in Main.
+    await page.getByRole("group", { name: "Add to" }).getByRole("button", { name: "Side" }).click();
+    await addCardBySearch(page, "mulcharmy fuwalos");
+    await expect(page.locator(".counts")).toContainText("1 side");
+    await expect(detail.getByRole("button", { name: "Increase quantity" })).toBeDisabled();
+    const box = detail.getByRole("spinbutton", { name: "Quantity" });
+    await box.fill("99");
+    await expect(box).toHaveValue("2");
+    await expect(page.locator(".counts")).toContainText("2 main");
   });
 
   test("clicking a card edits its quantity and tags underneath", async ({ page }) => {
     await openApp(page);
+    // A card with room for another copy, whatever the default deck holds.
+    await page.getByRole("button", { name: "New deck" }).click();
+    await addCardBySearch(page, "mulcharmy fuwalos");
     const main = section(page, "Main Deck");
     await main.locator(".deck-tile").first().click();
     const detail = main.getByRole("group", { name: /^Edit / });
@@ -451,9 +505,9 @@ test.describe("Deck view", () => {
     await expect(detail.getByText("Going First")).toBeVisible();
 
     await detail.getByRole("button", { name: "Increase quantity" }).click();
-    await expect(page.locator(".counts")).toContainText(`${DEFAULT.main + 1} main`);
+    await expect(page.locator(".counts")).toContainText("2 main");
     // The new copy gets its own tile next to the others.
-    await expect(main.locator(".deck-tile")).toHaveCount(DEFAULT.main + 1);
+    await expect(main.locator(".deck-tile")).toHaveCount(2);
 
     await detail.getByRole("button", { name: "Close" }).click();
     await expect(main.getByRole("group", { name: /^Edit / })).toHaveCount(0);

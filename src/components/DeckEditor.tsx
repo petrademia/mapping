@@ -82,6 +82,8 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
         catalog={catalog}
         onChange={onChange}
         extraIds={extraIds}
+        banlist={banlist}
+        format={format}
       />
     </div>
     </div>
