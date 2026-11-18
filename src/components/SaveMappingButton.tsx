@@ -16,6 +16,7 @@ export function SaveMappingButton({ doc, onStatus }: Props) {
   return (
     <button
       type="button"
+      className="primary"
       onClick={() => {
         const text = serializeMapping(doc);
         void saveOverDeckMapping(text).then((result) => {

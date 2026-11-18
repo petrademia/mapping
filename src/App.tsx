@@ -37,7 +37,9 @@ import { ModelsPanel, type ModelsView } from "./components/ModelsPanel";
 import { GoalOdds, NextStep } from "./components/NextStep";
 import { HandTestPanel } from "./components/HandTestPanel";
 import { DeckEditor } from "./components/DeckEditor";
-import { ImportExport } from "./components/ImportExport";
+import { LoadFileButton } from "./components/ImportExport";
+import { Menu } from "./components/Menu";
+import { serializeYapping } from "./lib/exportYapping";
 import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
@@ -219,122 +221,138 @@ export function App() {
   return (
     <CardImagesContext.Provider value={imageIds}>
     <div className="app">
-      <header className="masthead">
-        <div className="brand">
+      <header className="topbar">
+        <div className="topbar-brand">
           <h1>MAPPING</h1>
-          <p className="tag">
-            Annotate Role and Opening Quality hypotheses per deck card, inspect
-            composition, then export configuration for YAPPING.
-          </p>
-          <div className="theme-switch" role="group" aria-label="Color theme">
-            {(
-              [
-                ["system", "device", "Match the device"],
-                ["light", "sun", "Light theme"],
-                ["dark", "moon", "Dark theme"],
-              ] as const
-            ).map(([option, icon, label]) => (
-              <IconButton
-                key={option}
-                icon={icon}
-                label={label}
-                aria-pressed={theme === option}
-                className={theme === option ? "on" : ""}
-                onClick={() => setTheme(option)}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="deck-meta">
-          <label>
-            Deck
-            <input
-              value={doc.name}
-              onChange={(event) => setDoc(setDeckName(doc, event.target.value))}
-            />
-          </label>
           <p className="counts">
             <span>{sectionSize(view.main)} main</span>
             <span>{sectionSize(view.extra)} extra</span>
             <span>{sectionSize(view.side)} side</span>
             {activeConfig ? <span>{configurationLabel(activeConfig)}</span> : null}
           </p>
-          <DeckPicker decks={deckLibrary} currentName={doc.name} onOpen={openDeck} />
-          <div className="row-actions">
-            <button
-              type="button"
-              onClick={() => {
-                setDoc(createDocument("untitled"));
-                setResetKey((key) => key + 1);
-                setTestedHand(null);
-                setStatus("Started an empty deck.");
-              }}
-            >
-              <Icon name="file" />
-              New deck
-            </button>
-            <ClearButton
-              label="Default deck"
-              confirmLabel="Replace"
-              message="Replace the current deck and models with the default deck?"
-              onConfirm={loadDefault}
-            />
-            <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
-            <ClearButton
-              label={hasUserDefault ? "Update default" : "Set as default"}
-              confirmLabel="Save"
-              message={
-                hasUserDefault
-                  ? "Replace your saved default with this deck?"
-                  : "Make this deck, with its groups and Hand Goals, the one Default deck loads?"
-              }
-              onConfirm={() => {
-                if (saveUserDefault(doc)) {
-                  setHasUserDefault(true);
-                  setStatus("Saved as your default deck.");
-                } else {
-                  setStatus("Could not save the default deck in this browser.");
-                }
-              }}
-            />
-            {hasUserDefault ? (
-              <ClearButton
-                label="Reset default"
-                confirmLabel="Reset"
-                message="Forget your saved default and use the default files again?"
-                onConfirm={() => {
-                  clearUserDefault();
-                  setHasUserDefault(false);
-                  setStatus("Default deck is the default files again.");
-                }}
-              />
-            ) : null}
-            <SaveMappingButton doc={doc} onStatus={setStatus} />
-            <button
-              type="button"
-              className="primary"
-              onClick={() => {
-                download(
-                  `${slug(doc.name)}.ydk`,
-                  serializeYdk({ main: view.main, extra: view.extra, side: view.side }),
-                );
-                setStatus("Saved YDK");
-              }}
-            >
-              <Icon name="download" />
-              Save YDK
-            </button>
-          </div>
+        </div>
+        <label className="topbar-name">
+          Deck
+          <input
+            value={doc.name}
+            onChange={(event) => setDoc(setDeckName(doc, event.target.value))}
+          />
+        </label>
+        <DeckPicker decks={deckLibrary} currentName={doc.name} onOpen={openDeck} />
+        <div className="topbar-actions">
+          <LoadFileButton doc={doc} onChange={setDoc} onStatus={setStatus} />
+          <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
+          <Menu label="More">
+            {(close) => (
+              <div className="menu-list">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDoc(createDocument("untitled"));
+                    setResetKey((key) => key + 1);
+                    setTestedHand(null);
+                    setStatus("Started an empty deck.");
+                    close();
+                  }}
+                >
+                  <Icon name="file" />
+                  New deck
+                </button>
+                <ClearButton
+                  label="Default deck"
+                  confirmLabel="Replace"
+                  message="Replace the current deck and models with the default deck?"
+                  onConfirm={() => {
+                    loadDefault();
+                    close();
+                  }}
+                />
+                <ClearButton
+                  label={hasUserDefault ? "Update default" : "Set as default"}
+                  confirmLabel="Save"
+                  message={
+                    hasUserDefault
+                      ? "Replace your saved default with this deck?"
+                      : "Make this deck, with its groups and Hand Goals, the one Default deck loads?"
+                  }
+                  onConfirm={() => {
+                    if (saveUserDefault(doc)) {
+                      setHasUserDefault(true);
+                      setStatus("Saved as your default deck.");
+                    } else {
+                      setStatus("Could not save the default deck in this browser.");
+                    }
+                    close();
+                  }}
+                />
+                {hasUserDefault ? (
+                  <ClearButton
+                    label="Reset default"
+                    confirmLabel="Reset"
+                    message="Forget your saved default and use the default files again?"
+                    onConfirm={() => {
+                      clearUserDefault();
+                      setHasUserDefault(false);
+                      setStatus("Default deck is the default files again.");
+                      close();
+                    }}
+                  />
+                ) : null}
+                <div className="theme-switch" role="group" aria-label="Color theme">
+                  {(
+                    [
+                      ["system", "device", "Match the device"],
+                      ["light", "sun", "Light theme"],
+                      ["dark", "moon", "Dark theme"],
+                    ] as const
+                  ).map(([option, icon, label]) => (
+                    <IconButton
+                      key={option}
+                      icon={icon}
+                      label={label}
+                      aria-pressed={theme === option}
+                      className={theme === option ? "on" : ""}
+                      onClick={() => setTheme(option)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </Menu>
+          <Menu label="Export">
+            {(close) => (
+              <div className="menu-list">
+                <button
+                  type="button"
+                  onClick={() => {
+                    download(
+                      `${slug(doc.name)}.ydk`,
+                      serializeYdk({ main: view.main, extra: view.extra, side: view.side }),
+                    );
+                    setStatus("Saved YDK");
+                    close();
+                  }}
+                >
+                  <Icon name="download" />
+                  Save YDK
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    download(`${slug(doc.name)}.yapping.json`, serializeYapping(view));
+                    setStatus("Exported YAPPING archetype JSON");
+                    close();
+                  }}
+                >
+                  <Icon name="download" />
+                  Export for YAPPING
+                </button>
+              </div>
+            )}
+          </Menu>
+          <SaveMappingButton doc={doc} onStatus={setStatus} />
         </div>
       </header>
-      <ImportExport
-        doc={doc}
-        exportDoc={view}
-        catalog={catalog}
-        extraIds={extraIds}
-        onChange={setDoc}
-        onStatus={setStatus}
-      />
       <p className="status" role="status">
         {status}
         {undoOpen && doc === undoOpen.opened ? (

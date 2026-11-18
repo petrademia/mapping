@@ -412,6 +412,11 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
 - The selected configuration drives Profile, Models, Hand Test, the header
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
+- **The top bar** is one strip: the deck name, Open a deck, the counts, then Load file, Clear,
+  More (New deck, Default deck, Set as default, theme), Export (Save YDK, Export for YAPPING) and
+  Save mapping. Paste a deck list sits under the card search, and Card labels (what the Starter,
+  Extender and Brick dots and Board breaking are read from) is one line above the deck that opens
+  to its two menus.
 - **Save mapping** on the dev server (`npm run dev`) overwrites the file in `public/decks/` that
   holds a deck with the same name, instead of downloading a copy. A deck no file is named after
   is downloaded as before and the status says why. A built or hosted copy always downloads. The

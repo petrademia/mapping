@@ -8,6 +8,7 @@ import { setBreakingGoal, setLabelGoal, type MappingDocument } from "../lib/docu
 import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
 import { DeckGrid } from "./DeckGrid";
 import { CardSearch } from "./CardSearch";
+import { PasteDeckList } from "./ImportExport";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { deckViolations, limitLabel, type Banlist, type Format } from "../lib/banlist";
 import { displayName } from "../lib/catalog";
@@ -26,6 +27,14 @@ interface Props {
 export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatChange, onChange, onStatus }: Props) {
   const active = findConfiguration(doc, doc.active_configuration_id);
   const violations = deckViolations(doc, banlist, format);
+  const goals = doc.hand_condition_sets.filter((set) => set.condition_ids.length > 0);
+  const nameOf = (id: string | null | undefined, none: string): string => {
+    if (!id) return none;
+    const set = goals.find((entry) => entry.id === id);
+    return set ? set.name || "Untitled hand goal" : none;
+  };
+  const labelName = nameOf(doc.label_goal_id, "Every Hand Goal");
+  const breakingName = `Breaks: ${nameOf(doc.breaking_goal_id, "tagged cards only")}`;
   return (
     <div className="deck-editor-layout">
     <CardSearch
@@ -38,6 +47,7 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
       onChange={onChange}
       onStatus={onStatus}
     />
+    <PasteDeckList doc={doc} catalog={catalog} extraIds={extraIds} onChange={onChange} onStatus={onStatus} />
     <div className="deck-editor" id={DECK_LIST_ID}>
       {violations.length > 0 ? (
         <p className="deck-editor-banner deck-violations" role="alert">
@@ -77,55 +87,57 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
           search a card on the right.
         </p>
       ) : null}
-      {doc.hand_condition_sets.some((set) => set.condition_ids.length > 0) ? (
-        <label className="deck-label-goal">
-          <span>
-            Card dots come from
-            <small>
-              Starter, Extender and Brick are worked out from the Hand Goal you pick: one card starts it,
-              needed with another card, or in no route.
-            </small>
-          </span>
-          <select
-            aria-label="Read card labels from"
-            value={doc.label_goal_id ?? ""}
-            onChange={(event) => onChange(setLabelGoal(doc, event.target.value || null))}
-          >
-            <option value="">Every Hand Goal</option>
-            {doc.hand_condition_sets
-              .filter((set) => set.condition_ids.length > 0)
-              .map((set) => (
+      {goals.length > 0 ? (
+        <details className="deck-labels">
+          <summary>
+            <strong>Card labels</strong>
+            <span>
+              {labelName} <i aria-hidden="true">/</i> {breakingName}
+            </span>
+          </summary>
+          <label className="deck-label-goal">
+            <span>
+              Card dots come from
+              <small>
+                Starter, Extender and Brick are worked out from the Hand Goal you pick: one card starts it,
+                needed with another card, or in no route.
+              </small>
+            </span>
+            <select
+              aria-label="Read card labels from"
+              value={doc.label_goal_id ?? ""}
+              onChange={(event) => onChange(setLabelGoal(doc, event.target.value || null))}
+            >
+              <option value="">Every Hand Goal</option>
+              {goals.map((set) => (
                 <option key={set.id} value={set.id}>
                   {set.name || "Untitled hand goal"}
                 </option>
               ))}
-          </select>
-        </label>
-      ) : null}
-      {doc.hand_condition_sets.some((set) => set.condition_ids.length > 0) ? (
-        <label className="deck-label-goal">
-          <span>
-            Board-breaking combos
-            <small>
-              A Hand Goal for breaks that need two cards, such as Jupredo and a partner. A single card is
-              tagged Board breaker instead.
-            </small>
-          </span>
-          <select
-            aria-label="Hand Goal for breaking boards"
-            value={doc.breaking_goal_id ?? ""}
-            onChange={(event) => onChange(setBreakingGoal(doc, event.target.value || null))}
-          >
-            <option value="">None, only cards tagged Board breaker</option>
-            {doc.hand_condition_sets
-              .filter((set) => set.condition_ids.length > 0)
-              .map((set) => (
+            </select>
+          </label>
+          <label className="deck-label-goal">
+            <span>
+              Board-breaking combos
+              <small>
+                A Hand Goal for breaks that need two cards, such as Jupredo and a partner. A single card is
+                tagged Board breaker instead.
+              </small>
+            </span>
+            <select
+              aria-label="Hand Goal for breaking boards"
+              value={doc.breaking_goal_id ?? ""}
+              onChange={(event) => onChange(setBreakingGoal(doc, event.target.value || null))}
+            >
+              <option value="">None, only cards tagged Board breaker</option>
+              {goals.map((set) => (
                 <option key={set.id} value={set.id}>
                   {set.name || "Untitled hand goal"}
                 </option>
               ))}
-          </select>
-        </label>
+            </select>
+          </label>
+        </details>
       ) : null}
       <DeckGrid
         doc={doc}
