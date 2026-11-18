@@ -1114,6 +1114,54 @@
       ],
       "excludes": [],
       "distinct_constraints": []
+    },
+    {
+      "id": "griffoh-alone",
+      "name": "Griffoh alone",
+      "notes": "A ritual-deck starter you named: one card starts the turn.",
+      "requirements": [
+        {
+          "id": "griffoh-alone-r",
+          "kind": "card",
+          "card_id": 97462632,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "black-chaos-alone",
+      "name": "Black Chaos alone",
+      "notes": "A ritual-deck starter you named: one card starts the turn.",
+      "requirements": [
+        {
+          "id": "black-chaos-alone-r",
+          "kind": "card",
+          "card_id": 98684220,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "ragged-records-alone",
+      "name": "Ragged Records of Rites alone",
+      "notes": "A ritual-deck starter you named: one card starts the turn.",
+      "requirements": [
+        {
+          "id": "ragged-records-alone-r",
+          "kind": "card",
+          "card_id": 24461358,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
     }
   ],
   "hand_condition_sets": [
@@ -1152,7 +1200,7 @@
     {
       "id": "goal-any",
       "name": "Any one-card start",
-      "notes": "One card starts it: Medius, Vidolium, Pendulum Treasure, an Ars Magna starter (Finite and the Infinite, or Corruption and the Purification), Citrinitas or Terminus. The headline goal. Treasure + a Power Patron monster is listed too: it starts nothing new (Treasure alone already does), but you tested that it survives 2 interruptions, so it is here to count that.",
+      "notes": "One card starts it: Medius, Vidolium, Pendulum Treasure, an Ars Magna starter (Finite and the Infinite, or Corruption and the Purification), Citrinitas or Terminus. The headline goal. Treasure + a Power Patron monster is listed too: it starts nothing new (Treasure alone already does), but you tested that it survives 2 interruptions, so it is here to count that. In the ritual deck, Griffoh, Black Chaos and Ragged Records of Rites are one-card starters too.",
       "condition_ids": [
         "medius-alone",
         "vidolium-alone",
@@ -1160,7 +1208,10 @@
         "ars-magna-alone",
         "citrinitas-alone",
         "terminus-alone",
-        "treasure-pp"
+        "treasure-pp",
+        "griffoh-alone",
+        "black-chaos-alone",
+        "ragged-records-alone"
       ],
       "aggregation": "any"
     },
@@ -1195,7 +1246,10 @@
         "citrinitas-alone",
         "terminus-alone",
         "treasure-pp",
-        "graflare-stays"
+        "graflare-stays",
+        "griffoh-alone",
+        "black-chaos-alone",
+        "ragged-records-alone"
       ],
       "aggregation": "any"
     },
