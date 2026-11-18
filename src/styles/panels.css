@@ -40,7 +40,7 @@
 .card-id { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); }
 
 /* Odds are being counted again after an edit: the last ones stay, dimmed. */
-.goal-odds[aria-busy="true"], .card-impact-panel[aria-busy="true"] { opacity: 0.6; }
+.goal-odds[aria-busy="true"], .card-impact-panel[aria-busy="true"], .summary[aria-busy="true"], .scorecard[aria-busy="true"] { opacity: 0.6; }
 
 /* One thing to do next, and the odds it unlocks. */
 .next-step { border-color: var(--accent); }

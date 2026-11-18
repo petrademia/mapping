@@ -10,7 +10,7 @@ import {
   type ScorecardSettings,
   type TurnScore,
 } from "../lib/scorecard";
-import { useScorecard } from "../lib/useScorecard";
+import { useScorecardState } from "../lib/useScorecard";
 import { useScorecardSettings } from "../lib/scorecardWeights";
 
 const percent = (value: number): string => `${(value * 100).toFixed(2)}%`;
@@ -133,14 +133,14 @@ export function ScorecardPanel({ doc }: Props) {
   const [goalId, setGoalId] = useState<string | null>(null);
   const [settings, setSettings] = useScorecardSettings();
   const goals = useMemo(() => scorableGoals(doc), [doc]);
-  const result = useScorecard(doc, goalId, settings);
+  const { result, pending } = useScorecardState(doc, goalId, settings);
   const match = result !== null && !("error" in result) ? matchPush(result.first, result.second, settings) : null;
   const set = (patch: Partial<ScorecardSettings>) => setSettings({ ...settings, ...patch });
   const whole = (value: string, max: number): number =>
     Math.max(0, Math.min(max, Math.floor(Number(value) || 0)));
 
   return (
-    <section className="panel scorecard" id="scorecard-top">
+    <section className="panel scorecard" id="scorecard-top" aria-busy={pending}>
       <header>
         <h2>Scorecard</h2>
       </header>

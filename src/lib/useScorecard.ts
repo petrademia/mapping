@@ -1,44 +1,74 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MappingDocument } from "./document";
 import { scorecard, type ScorecardResult, type ScorecardSettings } from "./scorecard";
 import type { ScorecardRequest } from "./scorecard.worker";
 
-/** Results already worked out, per deck object, so returning to a tab shows them at once. */
-const finished = new WeakMap<MappingDocument, Map<string, ScorecardResult>>();
+/** Results already worked out, by deck content and settings, so returning to a tab shows them at once. */
+const finished = new Map<string, ScorecardResult>();
+const KEEP = 24;
+
+function remember(key: string, result: ScorecardResult): void {
+  finished.delete(key);
+  finished.set(key, result);
+  while (finished.size > KEEP) finished.delete(finished.keys().next().value as string);
+}
 
 const keyOf = (goalId: string | null, settings: ScorecardSettings): string =>
   `${goalId ?? ""}|${JSON.stringify(settings)}`;
 
+/**
+ * What the Scorecard depends on in a deck: everything except the name, with the cards in a fixed
+ * order. Renaming the deck or moving a card around does not change the Scorecard, so it must not
+ * start the calculation again.
+ */
+function contentKey(doc: MappingDocument): string {
+  const byId = <T extends { card_id: number }>(cards: readonly T[]): T[] =>
+    [...cards].sort((a, b) => a.card_id - b.card_id);
+  return JSON.stringify({ ...doc, name: "", main: byId(doc.main), extra: byId(doc.extra), side: byId(doc.side) });
+}
+
 /** Wait this long after the last change before starting, so a burst of edits is one calculation. */
 const SETTLE_MS = 150;
 
+export interface ScorecardState {
+  /** The Scorecard, or null when none has been worked out yet for these settings. */
+  result: ScorecardResult | null;
+  /** True while the result shown is for an earlier version of the deck and a new one is on its way. */
+  pending: boolean;
+}
+
 /**
- * The Scorecard for a deck, worked out in a Web Worker so the page stays responsive. It is
- * null while that runs, and starts over, dropping the old work, when the deck or the settings
- * change. A result already worked out for the same deck is returned at once. With `enabled`
- * false nothing is calculated.
+ * The Scorecard for a deck, worked out in a Web Worker so the page stays responsive. It starts
+ * over, dropping the old work, when the deck's content or the settings change. While the new
+ * result is on its way the previous one stays (so the panels do not collapse and jump) and
+ * `pending` is true; it is null only when nothing has been worked out yet for these settings.
+ * With `enabled` false nothing is calculated.
  */
-export function useScorecard(
+export function useScorecardState(
   doc: MappingDocument,
   goalId: string | null,
   settings: ScorecardSettings,
   enabled = true,
-): ScorecardResult | null {
-  const key = keyOf(goalId, settings);
-  const [arrived, setArrived] = useState<{ doc: MappingDocument; key: string; result: ScorecardResult } | null>(null);
+): ScorecardState {
+  const settingsKey = keyOf(goalId, settings);
+  const content = useMemo(() => contentKey(doc), [doc]);
+  const key = `${settingsKey}#${content}`;
+  const docRef = useRef(doc);
+  docRef.current = doc;
+  const [arrived, setArrived] = useState<{ key: string; result: ScorecardResult } | null>(null);
+  const lastGood = useRef<{ settingsKey: string; result: ScorecardResult } | null>(null);
 
   useEffect(() => {
-    if (!enabled || finished.get(doc)?.has(key)) return;
+    if (!enabled || finished.has(key)) return;
+    const current = docRef.current;
     let worker: Worker | null = null;
     const done = (result: ScorecardResult) => {
-      const results = finished.get(doc) ?? new Map<string, ScorecardResult>();
-      results.set(key, result);
-      finished.set(doc, results);
-      setArrived({ doc, key, result });
+      remember(key, result);
+      setArrived({ key, result });
     };
     const timer = setTimeout(() => {
       if (typeof Worker === "undefined") {
-        done(scorecard(doc, goalId, settings));
+        done(scorecard(current, goalId, settings));
         return;
       }
       try {
@@ -50,24 +80,41 @@ export function useScorecard(
         worker.onerror = () => {
           worker?.terminate();
           // The worker could not start: work it out here instead.
-          done(scorecard(doc, goalId, settings));
+          done(scorecard(current, goalId, settings));
         };
-        const request: ScorecardRequest = { doc, goalId, settings };
+        const request: ScorecardRequest = { doc: current, goalId, settings };
         worker.postMessage(request);
       } catch {
-        done(scorecard(doc, goalId, settings));
+        done(scorecard(current, goalId, settings));
       }
     }, SETTLE_MS);
     return () => {
       clearTimeout(timer);
       worker?.terminate();
     };
-    // `settings` is covered by `key`.
+    // `settings` is covered by `settingsKey`, the deck by `content`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, goalId, key, enabled]);
+  }, [key, enabled]);
 
-  if (!enabled) return null;
-  const cached = finished.get(doc)?.get(key);
-  if (cached) return cached;
-  return arrived && arrived.doc === doc && arrived.key === key ? arrived.result : null;
+  if (!enabled) return { result: null, pending: false };
+  const ready = finished.get(key) ?? (arrived && arrived.key === key ? arrived.result : undefined);
+  if (ready) {
+    lastGood.current = { settingsKey, result: ready };
+    return { result: ready, pending: false };
+  }
+  // Keep showing the last result for the same goal and settings while the new one is counted.
+  if (lastGood.current && lastGood.current.settingsKey === settingsKey) {
+    return { result: lastGood.current.result, pending: true };
+  }
+  return { result: null, pending: true };
+}
+
+/** Like `useScorecardState`, for callers that only need the result. */
+export function useScorecard(
+  doc: MappingDocument,
+  goalId: string | null,
+  settings: ScorecardSettings,
+  enabled = true,
+): ScorecardResult | null {
+  return useScorecardState(doc, goalId, settings, enabled).result;
 }
