@@ -137,6 +137,20 @@
   gap: var(--space-5);
 }
 
+/* On a wide screen the analysis stays in view while the deck scrolls, so an edit and its effect
+   on the numbers are on screen together. The panel scrolls on its own when it is taller. */
+@media (min-width: 961px) {
+  .workspace > aside {
+    position: sticky;
+    top: var(--space-3);
+    max-height: calc(100vh - 2 * var(--space-3));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+}
+
 /* Binder tabs: the active tab is fused to the page below it. */
 .workspace-nav {
   flex-wrap: wrap;
