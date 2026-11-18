@@ -196,7 +196,8 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
   const [selected, setSelected] = useState<Selection | null>(null);
   // A sort only changes how a section is shown; it never touches the deck itself.
   const [sorts, setSorts] = useState<Record<DeckSection, DeckSort>>(readSorts);
-  const chooseSort = (section: DeckSection, sort: DeckSort) =>
+  const chooseSort = (section: DeckSection, sort: DeckSort) => {
+    setBlockedSection((current) => (current === section ? null : current));
     setSorts((current) => {
       const next = { ...current, [section]: sort };
       try {
@@ -206,6 +207,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
       }
       return next;
     });
+  };
   // Starter, Extender and Brick, read from the Hand Conditions (empty until a Hand Goal exists).
   const labels = useMemo(() => deriveLabels(doc), [doc]);
   const turn = doc.analysis.turn_order;
@@ -216,6 +218,8 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
   // drag, so the source is dimmed with a data attribute instead.
   const dragRef = useRef<Selection | null>(null);
   const [over, setOver] = useState<{ section: DeckSection; cardId: number | null } | null>(null);
+  // A section a card was dragged inside while it is sorted: it cannot be reordered, so it says so.
+  const [blockedSection, setBlockedSection] = useState<DeckSection | null>(null);
 
   const endDrag = () => {
     dragRef.current = null;
@@ -229,7 +233,10 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
     return canMoveTo(source.cardId, section, extraIds);
   };
   const overTile = (event: DragEvent, section: DeckSection, cardId: number | null) => {
-    if (!accepts(section)) return;
+    if (!accepts(section)) {
+      if (dragRef.current?.section === section && blockedSection !== section) setBlockedSection(section);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
@@ -242,6 +249,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
     event.stopPropagation();
     if (source.section === section) {
       onChange(reorderCard(doc, section, source.cardId, cardId));
+      setBlockedSection(null);
     } else {
       onChange(moveCopy(doc, source.section, section, source.cardId, extraIds));
     }
@@ -311,6 +319,14 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                 />
               ) : null}
             </header>
+            {blockedSection === section && sort !== "built" ? (
+              <p className="deck-sort-hint" aria-live="polite">
+                This section is sorted by {SORT_LABELS[sort]}, so cards cannot be dragged into a new order here.{" "}
+                <button type="button" onClick={() => chooseSort(section, "built")}>
+                  Use As built
+                </button>
+              </p>
+            ) : null}
             {cards.length === 0 ? (
               <p className="empty">No cards in this section.</p>
             ) : (

@@ -1276,6 +1276,30 @@ test.describe("Dragging cards in the deck", () => {
     await expect(section(page, "Extra Deck").locator(".deck-tile").first()).toHaveAttribute("title", lastTitle!);
     await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra} extra`);
   });
+
+  test("dragging inside a sorted section says why it cannot reorder, and As built fixes it", async ({ page }) => {
+    await openApp(page);
+    await settled(page);
+    const extra = section(page, "Extra Deck");
+    // The section was never silently refusing: a section sorted by name cannot be dragged into a new order.
+    await page.getByLabel("Sort Extra Deck").selectOption("name");
+    const tiles = extra.locator(".deck-tile");
+    await expect(page.getByLabel("Sort Extra Deck")).toHaveValue("name");
+    const before = await tiles.evaluateAll((all) => all.map((tile) => tile.getAttribute("title")));
+    await tiles.last().dragTo(tiles.first());
+    const hint = extra.locator(".deck-sort-hint");
+    await expect(hint).toBeVisible();
+    await expect(hint).toContainText("sorted by Name");
+    expect(await tiles.evaluateAll((all) => all.map((tile) => tile.getAttribute("title")))).toEqual(before);
+
+    await hint.getByRole("button", { name: "Use As built" }).click();
+    await expect(page.getByLabel("Sort Extra Deck")).toHaveValue("built");
+    await expect(hint).toHaveCount(0);
+    // And now the same drag reorders.
+    const lastTitle = await tiles.last().getAttribute("title");
+    await tiles.last().dragTo(tiles.first());
+    await expect(tiles.first()).toHaveAttribute("title", lastTitle!);
+  });
 });
 
 test("Set as default makes the current deck what Default deck loads", async ({ page }) => {
