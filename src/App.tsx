@@ -362,6 +362,20 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => {
+                    const list = serializeYdk({ main: view.main, extra: view.extra, side: view.side });
+                    navigator.clipboard
+                      .writeText(list)
+                      .then(() => setStatus("Copied the deck list. Paste it into any deck box."))
+                      .catch(() => setStatus("The browser would not let MAPPING copy. Use Save YDK instead."));
+                    close();
+                  }}
+                >
+                  <Icon name="file" />
+                  Copy deck list
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     download(`${slug(doc.name)}.yapping.json`, serializeYapping(view));
                     setStatus("Exported YAPPING archetype JSON");
                     close();

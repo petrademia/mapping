@@ -413,7 +413,7 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
 - **The top bar** is one strip: the deck name, Open a deck, the counts, then Load file, Clear,
-  More (New deck, Default deck, Set as default, theme), Export (Save YDK, Export for YAPPING) and
+  More (New deck, Default deck, Set as default, theme), Export (Save YDK, Copy deck list, Export for YAPPING) and
   Save mapping. Paste a deck list sits under the card search, and Card labels (what the Starter,
   Extender and Brick dots and Board breaking are read from) is one line above the deck that opens
   to its two menus.

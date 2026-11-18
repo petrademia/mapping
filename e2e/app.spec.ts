@@ -1576,6 +1576,17 @@ test.describe("Top bar menus", () => {
     await expect(menu).toHaveCount(0);
   });
 
+  test("Copy deck list puts the .ydk text on the clipboard", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await openApp(page);
+    await menuItem(page, "Export", "Copy deck list");
+    await expect(page.getByRole("status").filter({ hasText: "Copied the deck list" })).toBeVisible();
+    const text = await page.evaluate(() => navigator.clipboard.readText());
+    expect(text).toContain("#main");
+    expect(text).toContain("#extra");
+    expect(text).toContain("!side");
+  });
+
   test("Save YDK downloads the list from the Export menu", async ({ page }) => {
     await openApp(page);
     const download = page.waitForEvent("download");
