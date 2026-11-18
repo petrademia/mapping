@@ -322,10 +322,12 @@ export function ConfigurationPanel({ doc, catalog, extraIds = NO_EXTRA_IDS, onCh
           <Icon name="plus" /> Post-Side
         </button>
       </div>
-      <p className="note configuration-hint">
-        Profile, Models and Hand Test analyze the selected list. Annotations are
-        edited in the deck list and shared by every configuration.
-      </p>
+      {doc.configurations.length > 0 ? (
+        <p className="note configuration-hint">
+          Profile, Models and Hand Test analyze the selected list. Annotations are
+          edited in the deck list and shared by every configuration.
+        </p>
+      ) : null}
 
       {active ? (
         <div className="configuration-editor">

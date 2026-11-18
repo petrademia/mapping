@@ -178,7 +178,7 @@ export function ModelsPanel({
 
       {view === "groups" ? (
         <>
-          <h3 className="panel-subhead">Groups</h3>
+          <h3 className="visually-hidden">Groups</h3>
           <p className="note">
             A group names a set of Main Deck cards, like "Handtraps", so a Hand
             Condition can count them together.
@@ -214,7 +214,7 @@ export function ModelsPanel({
 
       {view === "conditions" ? (
         <>
-          <h3 className="panel-subhead">Hand Conditions</h3>
+          <h3 className="visually-hidden">Hand Conditions</h3>
           <p className="note">
             A rule about what a hand holds. It matches when every Requires line
             holds and no Excludes line does. The name is only a label.
@@ -244,7 +244,7 @@ export function ModelsPanel({
 
       {view === "outcomes" ? (
         <>
-          <h3 className="panel-subhead">Hand Goals</h3>
+          <h3 className="visually-hidden">Hand Goals</h3>
           <p className="note">
             A Hand Goal is a hand you want. It matches when the hand matches any
             of its Hand Conditions.
