@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createDocument, parseMappingJson, serializeMapping, type MappingDocument } from "./document";
+import {
+  createDocument,
+  parseMappingJson,
+  removeHandConditionSet,
+  serializeMapping,
+  setBreakingGoal,
+  type MappingDocument,
+} from "./document";
 import { deriveLabels } from "./derivedLabels";
 import { atLeastCopies, breakerCopies, DEFAULT_SETTINGS, scorecard, unmeasured, weakest, type Scorecard } from "./scorecard";
 import type { Role } from "./taxonomy";
@@ -32,6 +39,82 @@ function ok(result: ReturnType<typeof scorecard>): Scorecard {
   if ("error" in result) throw new Error(result.error);
   return result;
 }
+
+/**
+ * 10 cards: card 1 x4 is the route, card 5 x1 breaks a board only with a partner, card 6 x2 are its
+ * partners, card 7 x1 is a board breaker on its own (tagged or not), card 4 x2 does nothing.
+ * The breaking goal is "card 5 and a partner".
+ */
+function withPartner(tagCard7: boolean): MappingDocument {
+  return {
+    ...createDocument("t"),
+    main: [
+      { card_id: 1, quantity: 4, taxonomy: tax([]) },
+      { card_id: 5, quantity: 1, taxonomy: tax([]) },
+      { card_id: 6, quantity: 2, taxonomy: tax([]) },
+      { card_id: 7, quantity: 1, taxonomy: tax(tagCard7 ? ["breaker"] : []) },
+      { card_id: 4, quantity: 2, taxonomy: tax([]) },
+    ],
+    groups: [{ id: "partners", name: "Partners", card_ids: [6] }],
+    hand_conditions: [
+      { id: "c1", name: "c1", requirements: [{ kind: "card", card_id: 1, op: "gte", count: 1 }], excludes: [] },
+      {
+        id: "pair",
+        name: "card 5 and a partner",
+        requirements: [
+          { kind: "card", card_id: 5, op: "gte", count: 1 },
+          { kind: "group", group_id: "partners", op: "gte", count: 1 },
+        ],
+        excludes: [],
+      },
+    ],
+    hand_condition_sets: [
+      { id: "g", name: "Goal", condition_ids: ["c1"], aggregation: "any" },
+      { id: "breakGoal", name: "Breaking", condition_ids: ["pair"], aggregation: "any" },
+    ],
+    breaking_goal_id: "breakGoal",
+  } as unknown as MappingDocument;
+}
+
+describe("a Hand Goal for breaking boards", () => {
+  it("counts a hand that meets the chosen goal, for a card that needs a partner", () => {
+    const card = ok(scorecard(withPartner(false), "g", only));
+    // Five of ten: card 5 (C(9,4) = 126 hands) minus the 35 with no partner: 91 of 252.
+    expect(card.first.breaking).toBeCloseTo(91 / 252, 12);
+    // Six of ten: 126 hands hold card 5, 21 of them without a partner: 105 of 210.
+    expect(card.second.breaking).toBeCloseTo(105 / 210, 12);
+  });
+
+  it("is the union with the tagged breakers, counting a hand once", () => {
+    // Five: 91 (pair) + 126 (card 7) - 36 (both) = 181 of 252. Six: 105 + 126 - 55 = 176 of 210.
+    const card = ok(scorecard(withPartner(true), "g", only));
+    expect(card.first.breaking).toBeCloseTo(181 / 252, 12);
+    expect(card.second.breaking).toBeCloseTo(176 / 210, 12);
+  });
+
+  it("counts only the tagged breakers when no goal is chosen", () => {
+    const doc = { ...withPartner(true), breaking_goal_id: null };
+    const card = ok(scorecard(doc, "g", only));
+    expect(card.first.breaking).toBeCloseTo(0.5, 12); // card 7 alone: 126 of 252
+    expect(card.second.breaking).toBeCloseTo(126 / 210, 12);
+  });
+
+  it("is null with neither a tagged breaker nor a goal", () => {
+    const doc = { ...withPartner(false), breaking_goal_id: null };
+    expect(ok(scorecard(doc, "g", only)).first.breaking).toBeNull();
+  });
+
+  it("is saved and read back, and cleared when its goal is removed", () => {
+    const doc = withPartner(false);
+    expect(parseMappingJson(serializeMapping(doc)).breaking_goal_id).toBe("breakGoal");
+    expect(serializeMapping({ ...doc, breaking_goal_id: null })).not.toContain("breaking_goal_id");
+    expect(setBreakingGoal(doc, "g").breaking_goal_id).toBe("g");
+    expect(setBreakingGoal(doc, "nope").breaking_goal_id).toBeNull();
+    expect(removeHandConditionSet(doc, "breakGoal").breaking_goal_id).toBeNull();
+    const text = serializeMapping(doc).replace('"breaking_goal_id": "breakGoal"', '"breaking_goal_id": "gone"');
+    expect(parseMappingJson(text).breaking_goal_id).toBeUndefined();
+  });
+});
 
 describe("board breakers", () => {
   it("counts a both-turns breaker in both turn orders and a going-second one only going second", () => {

@@ -85,10 +85,21 @@ export function deriveLabels(doc: MappingDocument): Map<number, DerivedLabels> {
       brick: false,
     });
   }
+  // A card the Hand Goal chosen for breaking boards names does its work there, so it is not a Brick.
+  const breaks = new Set<number>();
+  const breakingGoal = doc.breaking_goal_id
+    ? doc.hand_condition_sets.find((set) => set.id === doc.breaking_goal_id)
+    : undefined;
+  for (const id of breakingGoal?.condition_ids ?? []) {
+    for (const requirement of conditionById.get(id)?.requirements ?? []) {
+      if (requirement.kind === "card") breaks.add(requirement.card_id);
+      else if (requirement.kind === "group") for (const cardId of groups.get(requirement.group_id) ?? []) breaks.add(cardId);
+    }
+  }
   for (const card of doc.main) {
     const label = labels.get(card.card_id)!;
     const disrupts = card.taxonomy.roles.some((role) => DISRUPTIVE.has(role));
-    label.brick = !label.starter && !label.extender && !disrupts;
+    label.brick = !label.starter && !label.extender && !disrupts && !breaks.has(card.card_id);
   }
   return labels;
 }

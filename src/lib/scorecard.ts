@@ -279,13 +279,25 @@ export function atLeastOne(deck: number, special: number, sample: number): numbe
 
 const NUMBER_KEYS = ["opens", "clean", "resilient", "interaction", "lingering", "breaking"] as const;
 
+const BREAKER_GROUP = "__breakers";
+const BREAKER_SET_ID = "__breaking";
+
 /** Board breakers that count in a turn order: "both" ones, plus "going second only" ones going second. */
+export function breakerCardIds(doc: MappingDocument, turnOrder: TurnOrder): Set<number> {
+  return new Set(
+    doc.main
+      .filter((card) => {
+        const roles = card.taxonomy.roles;
+        return roles.includes("breaker") || (turnOrder === "going_second" && roles.includes("breaker_second"));
+      })
+      .map((card) => card.card_id),
+  );
+}
+
+/** How many copies of those board breakers the deck holds. */
 export function breakerCopies(doc: MappingDocument, turnOrder: TurnOrder): number {
-  return doc.main.reduce((sum, card) => {
-    const roles = card.taxonomy.roles;
-    const counts = roles.includes("breaker") || (turnOrder === "going_second" && roles.includes("breaker_second"));
-    return counts ? sum + card.quantity : sum;
-  }, 0);
+  const ids = breakerCardIds(doc, turnOrder);
+  return doc.main.reduce((sum, card) => (ids.has(card.card_id) ? sum + card.quantity : sum), 0);
 }
 
 /**
@@ -428,12 +440,47 @@ function turnScore(
   }
   const groups = new Map(groupsToMembership(doc.groups));
   groups.set(BRICK_GROUP, bricks);
+
+  // Breaking: a hand holding enough cards tagged Board breaker for this turn order, or meeting the
+  // Hand Goal chosen for breaking boards (for example a card that only breaks one with a partner).
+  const breakerIds = breakerCardIds(doc, turnOrder);
+  groups.set(BREAKER_GROUP, breakerIds);
+  const breakingConditions: HandCondition[] = [];
+  if (breakerIds.size > 0) {
+    breakingConditions.push({
+      id: BREAKER_GROUP,
+      name: "Board breakers",
+      requirements: [{ id: `${BREAKER_GROUP}::req`, kind: "group", group_id: BREAKER_GROUP, op: "gte", count: settings.breakersNeeded }],
+      excludes: [],
+    });
+  }
+  const breakingGoal = doc.breaking_goal_id
+    ? doc.hand_condition_sets.find((set) => set.id === doc.breaking_goal_id)
+    : undefined;
+  for (const id of new Set(breakingGoal?.condition_ids ?? [])) {
+    const condition = doc.hand_conditions.find((item) => item.id === id);
+    if (condition) breakingConditions.push(condition);
+  }
+  const breakingSet: HandConditionSet | null =
+    breakingConditions.length === 0
+      ? null
+      : {
+          id: "__breaking",
+          name: "Breaking",
+          condition_ids: [...new Set(breakingConditions.map((condition) => condition.id))],
+          aggregation: "any",
+        };
+  // The same condition may be in more than one list; read each once.
+  const analysisConditions = [
+    ...new Map([...members, ...extraConditions, ...breakingConditions].map((condition) => [condition.id, condition])).values(),
+  ];
+
   // Only this goal's conditions are read, so the exact pass tells fewer cards apart and runs faster.
   const analysis = analyzeHandConditions(
     doc.main,
     sample,
-    [...members, ...extraConditions],
-    [goalSet, ...extraSets],
+    analysisConditions,
+    [goalSet, ...extraSets, ...(breakingSet ? [breakingSet] : [])],
     groups,
     turnOrder,
   );
@@ -540,8 +587,7 @@ function turnScore(
           settings.lingeringWorth,
           settings.disruptionNeeded,
         );
-  const breakers = breakerCopies(doc, turnOrder);
-  const breaking = breakers === 0 ? null : atLeastCopies(mainSize, breakers, sample, settings.breakersNeeded);
+  const breaking = breakingSet === null ? null : unionOf(BREAKER_SET_ID);
 
   return {
     turnOrder,

@@ -135,11 +135,17 @@ export function rateHand(
         inHand += counts[card.card_id] ?? 0;
       }
     }
+    const goalMet = doc.breaking_goal_id
+      ? (handVersus(doc, counts, []).find((goal) => goal.setId === doc.breaking_goal_id)?.holds ?? false)
+      : false;
+    const tagged = inHand >= settings.breakersNeeded;
     checks.push({
       key: "breaking",
       label: COMPONENT_LABELS.breaking,
-      passed: inHand >= settings.breakersNeeded,
-      detail: `${inHand} board ${inHand === 1 ? "breaker" : "breakers"} in hand, needs ${settings.breakersNeeded}`,
+      passed: tagged || goalMet,
+      detail: goalMet
+        ? "meets the Hand Goal chosen for breaking boards"
+        : `${inHand} board ${inHand === 1 ? "breaker" : "breakers"} in hand, needs ${settings.breakersNeeded}`,
     });
   }
 

@@ -4,7 +4,7 @@ import {
   DECK_LIST_ID,
   findConfiguration,
 } from "../lib/configuration";
-import { setLabelGoal, type MappingDocument } from "../lib/document";
+import { setBreakingGoal, setLabelGoal, type MappingDocument } from "../lib/document";
 import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
 import { DeckGrid } from "./DeckGrid";
 import { CardSearch } from "./CardSearch";
@@ -86,6 +86,25 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
             onChange={(event) => onChange(setLabelGoal(doc, event.target.value || null))}
           >
             <option value="">Every Hand Goal</option>
+            {doc.hand_condition_sets
+              .filter((set) => set.condition_ids.length > 0)
+              .map((set) => (
+                <option key={set.id} value={set.id}>
+                  {set.name || "Untitled hand goal"}
+                </option>
+              ))}
+          </select>
+        </label>
+      ) : null}
+      {doc.hand_condition_sets.some((set) => set.condition_ids.length > 0) ? (
+        <label className="deck-label-goal">
+          Board breaking also counts the Hand Goal
+          <select
+            aria-label="Hand Goal for breaking boards"
+            value={doc.breaking_goal_id ?? ""}
+            onChange={(event) => onChange(setBreakingGoal(doc, event.target.value || null))}
+          >
+            <option value="">None, only cards tagged Board breaker</option>
             {doc.hand_condition_sets
               .filter((set) => set.condition_ids.length > 0)
               .map((set) => (

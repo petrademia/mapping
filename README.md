@@ -310,8 +310,12 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Breaking** - hands with enough board breakers, cards that destroy, banish or bounce the
   opponent's cards on your own turn. Mark such a card "Board breaker" to count it in both turn
   orders, or "Board breaker, going second" to count it only going second, since going first
-  there is no board yet. "Board breakers a hand needs" in Settings (default 1) sets the bar. It
-  says how often you hold enough breakers, not how much a breaker is worth. It has weight 0
+  there is no board yet. "Board breakers a hand needs" in Settings (default 1) sets the bar. A
+  card that only breaks a board with a partner (such as Jupredo with another Power Patron
+  monster) is a Hand Condition in a Hand Goal instead: choose that goal in "Board breaking also
+  counts the Hand Goal" above the deck, and a hand meeting it counts too, once, with the tagged
+  breakers. A Hand Goal has no turn order, so it counts in both. It says how often you hold
+  enough breakers, not how much a breaker is worth. It has weight 0
   until you set one, so the combined numbers do not change by default, and it is never the
   weakest part nor reported as missing. A Board breaker is not counted as a Brick.
 - **Match-weighted push** - the interruption curves weighted over a best-of-three, shown in

@@ -125,6 +125,7 @@ test("a first run loads default.mapping.json, the deck with its Hand Goals", asy
   const file = JSON.parse(readFileSync("public/default.mapping.json", "utf8")) as {
     name: string;
     label_goal_id: string;
+    breaking_goal_id: string;
     hand_condition_sets: { name: string }[];
   };
   // Not through openApp: nothing is hidden, so the real default mapping is what loads.
@@ -136,6 +137,8 @@ test("a first run loads default.mapping.json, the deck with its Hand Goals", asy
   // The labels are read from the Hand Goal the mapping names, and the choice can be changed.
   const labelGoal = page.getByLabel("Read card labels from");
   await expect(labelGoal).toHaveValue(file.label_goal_id);
+  // So is the Hand Goal that counts as breaking a board.
+  await expect(page.getByLabel("Hand Goal for breaking boards")).toHaveValue(file.breaking_goal_id);
   await labelGoal.selectOption("");
   await expect(labelGoal).toHaveValue("");
   await expect

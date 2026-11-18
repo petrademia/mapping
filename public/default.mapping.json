@@ -17,9 +17,7 @@
       "card_id": 60946049,
       "quantity": 1,
       "taxonomy": {
-        "roles": [
-          "breaker_second"
-        ],
+        "roles": [],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -195,9 +193,7 @@
       "card_id": 43871165,
       "quantity": 1,
       "taxonomy": {
-        "roles": [
-          "breaker_second"
-        ],
+        "roles": [],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -286,7 +282,9 @@
       "card_id": 2729965,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "breaker_second"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": null
@@ -312,7 +310,8 @@
       "taxonomy": {
         "roles": [
           "interaction",
-          "lingering_second"
+          "lingering_second",
+          "breaker_second"
         ],
         "opening_quality": {
           "going_first": null,
@@ -760,6 +759,18 @@
       ]
     },
     {
+      "id": "pp-doomz-partners",
+      "name": "Power Patron or DoomZ monsters (Jupredo's partner)",
+      "notes": "What Jupredo destroys with itself to break a board: another Power Patron or DoomZ monster in hand or on the field. Vidolium, Nervedo, Junoldo, Artmage Power Patron, and Theorealized Medius, which is always treated as a Power Patron card. Jupredo itself is not its own partner.",
+      "card_ids": [
+        70488851,
+        17473466,
+        10266279,
+        23829452,
+        90875418
+      ]
+    },
+    {
       "id": "artmage-stays",
       "name": "Artmage cards that stay on the field",
       "notes": "What Artmage Graflare needs to Special Summon itself: an Artmage Continuous or Field Spell you can activate. Artmage Vandalism and the two Acropolis Field Spells (the Ars Magna one is treated as Artmage). From your testing.",
@@ -1050,6 +1061,29 @@
       "distinct_constraints": []
     },
     {
+      "id": "jupredo-breaks",
+      "name": "Jupredo + a Power Patron or DoomZ monster",
+      "notes": "Jupredo's Pendulum effect destroys itself and one other Power Patron or DoomZ monster, then can destroy a card on the field. It breaks a board only with a partner.",
+      "requirements": [
+        {
+          "id": "jb1",
+          "kind": "card",
+          "card_id": 43871165,
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "jb2",
+          "kind": "group",
+          "group_id": "pp-doomz-partners",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
       "id": "graflare-stays",
       "name": "Artmage Graflare + an Artmage card that stays on the field",
       "notes": "Graflare plus an Artmage Continuous or Field Spell. Tested: this line keeps going through one interruption without Medius, so it is marked as still working after one.",
@@ -1178,10 +1212,20 @@
         "plugging-pp"
       ],
       "aggregation": "any"
+    },
+    {
+      "id": "goal-breaking",
+      "name": "Breaking a board: Jupredo and a partner",
+      "notes": "Ways to break the opponent's board that need more than one card. Single cards that break a board are tagged Board breaker instead. Chosen as the Hand Goal for breaking boards, so the Breaking measure counts it.",
+      "condition_ids": [
+        "jupredo-breaks"
+      ],
+      "aggregation": "any"
     }
   ],
   "engine_access_set_id": "goal-any",
   "label_goal_id": "goal-any-pairs",
+  "breaking_goal_id": "goal-breaking",
   "choke_point_group_ids": [
     "citrinitas-funnel"
   ],
