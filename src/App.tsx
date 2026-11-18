@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "./lib/theme";
+import { useDocHistory } from "./lib/docHistory";
 import { Icon, IconButton } from "./components/IconButton";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
@@ -91,9 +92,7 @@ function formatDelta(value: number): string {
 export function App() {
   // First run only: with no saved draft the deck comes from /default.mapping.json, else /default.ydk.
   const [hadDraft] = useState(() => loadStored() !== null);
-  const [doc, setDoc] = useState<MappingDocument>(
-    () => loadStored() ?? createDocument("untitled"),
-  );
+  const [doc, setDoc, history] = useDocHistory(() => loadStored() ?? createDocument("untitled"));
   const [catalog, setCatalog] = useState<Catalog>(new Map());
   const [imageIds, setImageIds] = useState<CardImageIds>(new Set());
   const [extraIds, setExtraIds] = useState<ExtraDeckIds>(new Set());
@@ -193,6 +192,24 @@ export function App() {
     setUndoOpen(null);
   };
 
+  // Ctrl/Cmd+Z and Ctrl+Shift+Z (or Ctrl+Y). Inside a text field the browser undoes the typing.
+  const historyRef = useRef(history);
+  historyRef.current = history;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      const key = event.key.toLowerCase();
+      if (key === "z" && !event.shiftKey) historyRef.current.undo();
+      else if ((key === "z" && event.shiftKey) || key === "y") historyRef.current.redo();
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   useEffect(() => {
     saveStored(doc);
   }, [doc]);
@@ -244,6 +261,8 @@ export function App() {
         </label>
         <DeckPicker decks={deckLibrary} currentName={doc.name} onOpen={openDeck} />
         <div className="topbar-actions">
+          <IconButton icon="undo" label="Undo (Ctrl+Z)" disabled={!history.canUndo} onClick={history.undo} />
+          <IconButton icon="redo" label="Redo (Ctrl+Shift+Z)" disabled={!history.canRedo} onClick={history.redo} />
           <LoadFileButton doc={doc} onChange={setDoc} onStatus={setStatus} />
           <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
           <Menu label="More">

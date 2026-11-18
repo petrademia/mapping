@@ -422,6 +422,10 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   is downloaded as before and the status says why. A built or hosted copy always downloads. The
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
+- **Undo and Redo.** The two arrows in the top bar, or Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (Ctrl+Y),
+  step back and forward through every change to the deck, up to 100 changes. Typing a name counts
+  as one step. In a text field the keys undo the typing instead. The history is not saved: a reload
+  starts it again, with the autosaved draft as its first state.
 - **Open a deck.** "Open a deck" in the header lists the decks in `public/decks/` and opens one
   at once, with its cards, Groups, Hand Goals and tags. The status line then offers Undo, which puts
   back the deck you had with any edits you had not saved; it goes away when you edit the new deck. Each deck is a `.mapping.json`

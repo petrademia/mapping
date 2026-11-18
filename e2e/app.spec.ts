@@ -222,18 +222,18 @@ test.describe("Open a deck", () => {
     await name.fill("My unsaved edit");
     await page.getByLabel("Open a deck").selectOption({ label: other.name });
     await expect(name).toHaveValue(other.name);
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
     await expect(name).toHaveValue("My unsaved edit");
     await expect(page.getByRole("status").filter({ hasText: "Went back to My unsaved edit." })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toHaveCount(0);
   });
 
   test("the Undo goes away once you edit the deck you opened", async ({ page }) => {
     await openWithDecks(page);
     await page.getByLabel("Open a deck").selectOption({ label: other.name });
-    await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeVisible();
     await page.getByLabel("Deck", { exact: true }).fill(`${other.name} edited`);
-    await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toHaveCount(0);
   });
 
   test("is not shown when the decks folder has no index", async ({ page }) => {
@@ -1881,4 +1881,36 @@ test.describe("Deck Configuration", () => {
 test("Card Impact ranks cards once a Hand Goal has conditions", async ({ page }) => {
   await openApp(page);
   await expect(page.getByText("Put Hand Conditions into a Hand Goal")).toBeVisible();
+});
+
+test.describe("Undo and Redo", () => {
+  test("the buttons step back and forward through edits", async ({ page }) => {
+    await openApp(page);
+    await menuItem(page, "More", "New deck");
+    const bar = page.locator(".topbar");
+    await addCardBySearch(page, "vidolium unstable");
+    await expect(page.locator(".counts")).toContainText("1 main");
+    await bar.getByRole("button", { name: /^Undo/ }).click();
+    await expect(page.locator(".counts")).toContainText("0 main");
+    await expect(bar.getByRole("button", { name: /^Undo/ })).toBeEnabled();
+    await bar.getByRole("button", { name: /^Redo/ }).click();
+    await expect(page.locator(".counts")).toContainText("1 main");
+    await expect(bar.getByRole("button", { name: /^Redo/ })).toBeDisabled();
+  });
+
+  test("Ctrl+Z and Ctrl+Shift+Z work outside text fields, and leave typing to the field", async ({ page }) => {
+    await openApp(page);
+    await menuItem(page, "More", "New deck");
+    await addCardBySearch(page, "vidolium unstable");
+    await expect(page.locator(".counts")).toContainText("1 main");
+    await page.locator(".topbar-brand").click();
+    await page.keyboard.press("Control+z");
+    await expect(page.locator(".counts")).toContainText("0 main");
+    await page.keyboard.press("Control+Shift+z");
+    await expect(page.locator(".counts")).toContainText("1 main");
+    // In the Deck field the browser keeps its own undo, so the deck is not undone.
+    await page.getByLabel("Deck", { exact: true }).click();
+    await page.keyboard.press("Control+z");
+    await expect(page.locator(".counts")).toContainText("1 main");
+  });
 });
