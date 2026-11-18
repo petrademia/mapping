@@ -79,7 +79,13 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
       ) : null}
       {doc.hand_condition_sets.some((set) => set.condition_ids.length > 0) ? (
         <label className="deck-label-goal">
-          Starter, Extender and Brick are read from
+          <span>
+            Card dots come from
+            <small>
+              Starter, Extender and Brick are worked out from the Hand Goal you pick: one card starts it,
+              needed with another card, or in no route.
+            </small>
+          </span>
           <select
             aria-label="Read card labels from"
             value={doc.label_goal_id ?? ""}
@@ -98,7 +104,13 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
       ) : null}
       {doc.hand_condition_sets.some((set) => set.condition_ids.length > 0) ? (
         <label className="deck-label-goal">
-          Board breaking also counts the Hand Goal
+          <span>
+            Board-breaking combos
+            <small>
+              A Hand Goal for breaks that need two cards, such as Jupredo and a partner. A single card is
+              tagged Board breaker instead.
+            </small>
+          </span>
           <select
             aria-label="Hand Goal for breaking boards"
             value={doc.breaking_goal_id ?? ""}
