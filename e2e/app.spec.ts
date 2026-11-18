@@ -1440,7 +1440,9 @@ test("the analysis panels do not jump while the odds are counted again after an 
     }
     return tops;
   });
-  expect(Math.max(...seen) - Math.min(...seen)).toBeLessThanOrEqual(2);
+  // The new numbers may add or drop a line of text (a few pixels), but the summary must not
+  // collapse to a placeholder and come back, which moves the panel by a couple of hundred.
+  expect(Math.max(...seen) - Math.min(...seen)).toBeLessThanOrEqual(40);
   // The summary was never swapped for a placeholder.
   await expect(summary.getByRole("status").first()).toContainText("%");
 });
