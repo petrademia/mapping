@@ -1,11 +1,31 @@
 /**
- * Saving over the default mapping file, as the dev server does it. The rule is kept
- * here, with no file access, so it can be tested: the file is replaced only when
- * the deck being saved has the same name as the deck already in it. A deck with another
- * name is never allowed to overwrite it; the app downloads that one instead.
+ * Saving over a deck file, as the dev server does it. The rule is kept here, with no file
+ * access, so it can be tested: a deck replaces the file in `public/decks/` that holds a deck
+ * of the same name, and nothing else. A deck with a name no file has is never allowed to
+ * overwrite one; the app downloads that one instead.
  */
-/** Where the dev server accepts a mapping to save over public/default.mapping.json. */
-export const SAVE_DEFAULT_MAPPING_PATH = "/__save-default-mapping";
+/** Where the dev server accepts a mapping to save over the deck file with the same name. */
+export const SAVE_DECK_MAPPING_PATH = "/__save-deck-mapping";
+
+/**
+ * Which file `incoming` replaces: the one whose deck has the same name. `files` are the
+ * mapping files in the decks folder. Two files with the same name are never guessed between.
+ */
+export function chooseDeckFile(
+  files: readonly { file: string; text: string }[],
+  incoming: string,
+): { file: string } | { reason: string } {
+  const next = mappingName(incoming);
+  if (next === null) return { reason: "That is not a MAPPING file." };
+  const same = files.filter((entry) => mappingName(entry.text) === next);
+  if (same.length === 0) {
+    return { reason: `No deck in public/decks is named "${next}", so nothing was overwritten.` };
+  }
+  if (same.length > 1) {
+    return { reason: `More than one file in public/decks is named "${next}", so nothing was overwritten.` };
+  }
+  return { file: same[0]!.file };
+}
 
 export type SaveDecision = { ok: true } | { ok: false; reason: string };
 

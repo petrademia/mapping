@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import mappingText from "../../public/default.mapping.json?raw";
+import mappingText from "../../public/decks/power-patron-ars-magna-artmage.mapping.json?raw";
 import { deckFromMappingText } from "./defaultDeck";
 import { createDocument, serializeMapping } from "./document";
-import { decideSave, mappingName } from "./saveMapping";
+import { chooseDeckFile, decideSave, mappingName } from "./saveMapping";
 
 const named = (name: string) => serializeMapping({ ...createDocument(name), name });
 
@@ -33,7 +33,37 @@ describe("saving over the default mapping", () => {
   });
 });
 
-describe("the default mapping file", () => {
+describe("choosing which deck file a saved deck replaces", () => {
+  const files = [
+    { file: "a.mapping.json", text: named("Power Patron") },
+    { file: "b.mapping.json", text: named("Ritual") },
+  ];
+
+  it("picks the file that holds a deck of the same name", () => {
+    expect(chooseDeckFile(files, named("Ritual"))).toEqual({ file: "b.mapping.json" });
+    expect(chooseDeckFile(files, named("  Power Patron "))).toEqual({ file: "a.mapping.json" });
+  });
+
+  it("refuses a name no file has, and a file that is not a mapping", () => {
+    const none = chooseDeckFile(files, named("Something new"));
+    expect("reason" in none && none.reason).toContain('"Something new"');
+    expect("reason" in chooseDeckFile(files, "not json")).toBe(true);
+    expect("reason" in chooseDeckFile([], named("Ritual"))).toBe(true);
+  });
+
+  it("does not guess between two files with the same name", () => {
+    const twins = [...files, { file: "c.mapping.json", text: named("Ritual") }];
+    const result = chooseDeckFile(twins, named("Ritual"));
+    expect("reason" in result && result.reason).toContain("More than one");
+  });
+
+  it("ignores a file in the folder that is not readable", () => {
+    const withBroken = [...files, { file: "broken.mapping.json", text: "<html>" }];
+    expect(chooseDeckFile(withBroken, named("Ritual"))).toEqual({ file: "b.mapping.json" });
+  });
+});
+
+describe("the default deck's mapping file", () => {
   it("is a readable deck with cards and its models", () => {
     const doc = deckFromMappingText(mappingText);
     expect(doc).not.toBeNull();

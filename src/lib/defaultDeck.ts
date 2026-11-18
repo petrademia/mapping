@@ -4,6 +4,7 @@ import {
   serializeMapping,
   type MappingDocument,
 } from "./document";
+import { loadDeckFile, loadDeckIndex } from "./deckLibrary";
 import { parseDeckText } from "./ydk";
 
 /** Build a document from .ydk text. No card names are stored, so names always follow the catalog. */
@@ -55,22 +56,18 @@ export function clearUserDefault(): void {
 
 /**
  * The default deck, first match wins: the one you set with Set as default in this browser,
- * then /default.mapping.json (the deck with its Groups, Hand Goals and tags), then
- * /default.ydk (cards only), both served from `public/`. Replace those files to change
- * what a new browser starts with. Returns null when none is readable, so the app falls
- * back to an empty deck.
+ * then the deck `public/decks/index.json` names as its default (a mapping, with its Groups,
+ * Hand Goals and tags), then /default.ydk (cards only). Change those files to change what
+ * a new browser starts with. Returns null when none is readable, so the app falls back to an
+ * empty deck.
  */
 export async function loadDefaultDeck(): Promise<MappingDocument | null> {
   const saved = loadUserDefault();
   if (saved) return saved;
-  try {
-    const response = await fetch("/default.mapping.json");
-    if (response.ok) {
-      const doc = deckFromMappingText(await response.text());
-      if (doc) return doc;
-    }
-  } catch {
-    /* fall through to default.ydk */
+  const index = await loadDeckIndex();
+  if (index.default) {
+    const doc = await loadDeckFile(index.default);
+    if (doc) return doc;
   }
   try {
     const response = await fetch("/default.ydk");

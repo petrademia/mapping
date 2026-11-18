@@ -13,7 +13,7 @@ import {
   type ExtraDeckIds,
 } from "../lib/sectionRouting";
 import { download, slug } from "../lib/download";
-import { saveOverDefaultMapping } from "../lib/saveMappingClient";
+import { saveOverDeckMapping } from "../lib/saveMappingClient";
 import { parseDeckText } from "../lib/ydk";
 import { Icon } from "./IconButton";
 
@@ -83,9 +83,9 @@ export function ImportExport({
         type="button"
         onClick={() => {
           const text = serializeMapping(doc);
-          // On the dev server this overwrites public/default.mapping.json when the deck has the
-          // same name as the one in it; any other deck is downloaded as before.
-          void saveOverDefaultMapping(text).then((result) => {
+          // On the dev server this overwrites the file in public/decks/ that holds a deck with the
+          // same name; a deck no file is named after is downloaded as before.
+          void saveOverDeckMapping(text).then((result) => {
             if (result.saved) {
               onStatus(`Saved over ${result.path}`);
               return;

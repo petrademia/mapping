@@ -1,0 +1,13 @@
+{
+  "default": "power-patron-ars-magna-artmage.mapping.json",
+  "decks": [
+    {
+      "file": "power-patron-ars-magna-artmage.mapping.json",
+      "name": "Power Patron Ars Magna Artmage"
+    },
+    {
+      "file": "power-patron-ars-magna-light-and-darkness-ritual.mapping.json",
+      "name": "Power Patron Ars Magna Light and Darkness Ritual"
+    }
+  ]
+}

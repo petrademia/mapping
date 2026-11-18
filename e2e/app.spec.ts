@@ -35,8 +35,8 @@ async function openApp(page: Page): Promise<void> {
 }
 
 async function stubDefaults(page: Page): Promise<void> {
-  await page.route("**/default.mapping.json", (route) => route.fulfill({ status: 404, body: "" }));
-  await page.route("**/__save-default-mapping", (route) =>
+  await page.route("**/decks/index.json", (route) => route.fulfill({ status: 404, body: "" }));
+  await page.route("**/__save-deck-mapping", (route) =>
     route.fulfill({ status: 409, json: { saved: false, reason: "stubbed: the names differ" } }),
   );
 }
@@ -121,15 +121,15 @@ test("first run loads the default deck from default.ydk", async ({ page }) => {
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue("default deck");
 });
 
-test("a first run loads default.mapping.json, the deck with its Hand Goals", async ({ page }) => {
-  const file = JSON.parse(readFileSync("public/default.mapping.json", "utf8")) as {
+test("a first run loads the default deck from public/decks, with its Hand Goals", async ({ page }) => {
+  const file = JSON.parse(readFileSync("public/decks/power-patron-ars-magna-artmage.mapping.json", "utf8")) as {
     name: string;
     label_goal_id: string;
     breaking_goal_id: string;
     hand_condition_sets: { name: string }[];
   };
   // Not through openApp: nothing is hidden, so the real default mapping is what loads.
-  await page.route("**/__save-default-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+  await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(file.name);
@@ -149,7 +149,7 @@ test("a first run loads default.mapping.json, the deck with its Hand Goals", asy
 test("the page stays responsive while the Profile's quality summary is calculated", async ({ page }) => {
   // The full mapping takes seconds to score. That runs in a Web Worker, so the page must keep
   // answering meanwhile; it once froze for about 8 seconds on the main thread.
-  await page.route("**/__save-default-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+  await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
   const summary = page.getByRole("region", { name: "Quality at a glance" });
@@ -163,18 +163,69 @@ test("the page stays responsive while the Profile's quality summary is calculate
   await expect(summary.getByText(/Over a best-of-three/)).toBeVisible();
 });
 
+test.describe("Open a deck", () => {
+  // Not through openApp: the decks folder is not hidden, so the real index and decks are used.
+  const index = JSON.parse(readFileSync("public/decks/index.json", "utf8")) as {
+    default: string;
+    decks: { file: string; name: string }[];
+  };
+  const other = index.decks.find((deck) => deck.file !== index.default)!;
+
+  async function openWithDecks(page: Page): Promise<void> {
+    await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+    await page.goto("/");
+    await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+  }
+
+  test("lists the decks in the decks folder, and marks the one that is open", async ({ page }) => {
+    await openWithDecks(page);
+    const menu = page.getByLabel("Open a deck");
+    for (const deck of index.decks) {
+      await expect(menu.locator("option", { hasText: deck.name }).first()).toBeAttached();
+    }
+    const current = index.decks.find((deck) => deck.file === index.default)!;
+    await expect(menu.locator("option", { hasText: `${current.name} (open now)` })).toBeAttached();
+  });
+
+  test("opens another deck after asking, with its cards and models", async ({ page }) => {
+    await openWithDecks(page);
+    await page.getByLabel("Open a deck").selectOption({ label: other.name });
+    await expect(page.getByText(`Replace the current deck and models with "${other.name}"?`)).toBeVisible();
+    await page.getByRole("button", { name: "Replace", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: `Opened ${other.name}.` })).toBeVisible();
+    await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(other.name);
+    await expect(page.locator(".counts")).toContainText("60 main");
+    // Its Hand Goals came with it.
+    await expect(page.getByLabel("Read card labels from")).toBeVisible();
+  });
+
+  test("keeps the current deck when the question is cancelled", async ({ page }) => {
+    await openWithDecks(page);
+    const before = await page.getByLabel("Deck", { exact: true }).inputValue();
+    await page.getByLabel("Open a deck").selectOption({ label: other.name });
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByText(/Replace the current deck and models with/)).toHaveCount(0);
+    await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(before);
+  });
+
+  test("is not shown when the decks folder has no index", async ({ page }) => {
+    await openApp(page); // openApp hides the index
+    await expect(page.getByLabel("Open a deck")).toHaveCount(0);
+  });
+});
+
 test.describe("Save mapping", () => {
   test("overwrites the default mapping when the server accepts it, with no download", async ({ page }) => {
     await openApp(page);
-    await page.route("**/__save-default-mapping", (route) =>
-      route.fulfill({ status: 200, json: { saved: true, path: "public/default.mapping.json" } }),
+    await page.route("**/__save-deck-mapping", (route) =>
+      route.fulfill({ status: 200, json: { saved: true, path: "public/decks/power-patron-ars-magna-artmage.mapping.json" } }),
     );
     let downloaded = false;
     page.on("download", () => {
       downloaded = true;
     });
     await page.getByRole("button", { name: "Save mapping" }).click();
-    await expect(page.getByRole("status").filter({ hasText: "Saved over public/default.mapping.json" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Saved over public/decks/power-patron-ars-magna-artmage.mapping.json" })).toBeVisible();
     expect(downloaded).toBe(false);
   });
 

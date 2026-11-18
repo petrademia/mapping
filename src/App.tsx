@@ -16,6 +16,8 @@ import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
 import { download, slug } from "./lib/download";
 import { serializeYdk } from "./lib/ydk";
 import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
+import { loadDeckFile, loadDeckIndex, type DeckEntry } from "./lib/deckLibrary";
+import { DeckPicker } from "./components/DeckPicker";
 import type { TestedHand } from "./lib/handTest";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
 import {
@@ -155,6 +157,24 @@ export function App() {
     });
   };
 
+  // The decks in public/decks/, for the menu that opens one.
+  const [deckLibrary, setDeckLibrary] = useState<DeckEntry[]>([]);
+  useEffect(() => {
+    void loadDeckIndex().then((index) => setDeckLibrary(index.decks));
+  }, []);
+  const openDeck = (entry: DeckEntry) => {
+    void loadDeckFile(entry.file).then((deck) => {
+      if (!deck) {
+        setStatus(`Could not open ${entry.name}.`);
+        return;
+      }
+      setDoc(deck);
+      setResetKey((key) => key + 1);
+      setTestedHand(null);
+      setStatus(`Opened ${entry.name}.`);
+    });
+  };
+
   useEffect(() => {
     saveStored(doc);
   }, [doc]);
@@ -227,6 +247,7 @@ export function App() {
             <span>{sectionSize(view.side)} side</span>
             {activeConfig ? <span>{configurationLabel(activeConfig)}</span> : null}
           </p>
+          <DeckPicker decks={deckLibrary} currentName={doc.name} onOpen={openDeck} />
           <div className="row-actions">
             <button
               type="button"

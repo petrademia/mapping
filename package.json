@@ -13,7 +13,8 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "extract-catalog": "python3 scripts/extract-catalog.py",
-    "fetch-images": "python3 scripts/fetch-card-images.py"
+    "fetch-images": "python3 scripts/fetch-card-images.py",
+    "decks:index": "node scripts/build-deck-index.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

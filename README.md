@@ -412,11 +412,16 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
 - The selected configuration drives Profile, Models, Hand Test, the header
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
-- **Save mapping** on the dev server (`npm run dev`) overwrites `public/default.mapping.json`
-  instead of downloading a copy, but only when the deck has the same name as the deck
-  already in that file. A deck with another name is downloaded as before and the status
-  says why. A built or hosted copy always downloads. The dev server writes only that one
-  path, only for a page on the same server, and the browser tests stub it.
+- **Save mapping** on the dev server (`npm run dev`) overwrites the file in `public/decks/` that
+  holds a deck with the same name, instead of downloading a copy. A deck no file is named after
+  is downloaded as before and the status says why. A built or hosted copy always downloads. The
+  dev server writes only into that folder, only to a file already named after the deck, only
+  for a page on the same server, and the browser tests stub it.
+- **Open a deck.** "Open a deck" in the header lists the decks in `public/decks/` and opens one
+  after you confirm, with its cards, Groups, Hand Goals and tags. Each deck is a `.mapping.json`
+  file there (a `.ydk` beside it is optional). `public/decks/index.json` lists them and names the
+  default; after adding, renaming or removing a deck, run `npm run decks:index` to rewrite it
+  (a test fails when it is out of date). The menu is hidden when there is no index.
 - **Loading a deck list over a deck.** Load file with a `.ydk` or `.txt`, or Paste a deck
   list and Replace deck, swaps the cards and keeps your Groups, Hand Conditions and Hand
   Goals. A card that is still in the new list keeps its tags (roles, Opening Quality) and any
@@ -664,4 +669,4 @@ MyCard's English data can lag behind new sets (its newest en-US commit was 22 Se
 
 **Card images** are optional and local. `npm run fetch-images -- --demo [deck.ydk ...]` downloads small images for the card ids found in the files you name into `public/cards/` and writes `public/cards/index.json`. The image host (YGOPRODeck) asks users to download each image once rather than hotlink it, so the script is throttled, skips existing files, and stops on HTTP 403/429. `public/cards/` is gitignored; cards without an image show an empty placeholder box.
 
-On first run (no saved draft in the browser) the app loads the default deck: the one you set with **Set as default** in this browser, else `public/default.mapping.json` (the deck with its Groups, Hand Goals and tags), else `public/default.ydk` (cards only). **Default deck** in the header loads the same one over the current deck. Replace those files to change the starting deck. The `decks/` folder holds the builds being compared, each as a `.ydk` (cards only) and a `.mapping.json` (cards with Groups, Hand Goals and tags): **Power Patron Ars Magna Artmage** (the same deck as `public/default.mapping.json`) and **Power Patron Ars Magna Light and Darkness Ritual**. Open either with Load file. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.
+On first run (no saved draft in the browser) the app loads the default deck: the one you set with **Set as default** in this browser, else the deck `public/decks/index.json` names as its default (a mapping, with its Groups, Hand Goals and tags), else `public/default.ydk` (cards only). **Default deck** in the header loads the same one over the current deck. Replace those files to change the starting deck. The `public/decks/` folder holds the builds being compared, each as a `.mapping.json` (cards with Groups, Hand Goals and tags) and a `.ydk` (cards only): **Power Patron Ars Magna Artmage** (the default) and **Power Patron Ars Magna Light and Darkness Ritual**. Open either from "Open a deck" in the header. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.

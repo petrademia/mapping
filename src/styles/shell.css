@@ -64,6 +64,15 @@
   color: var(--muted);
 }
 .deck-meta .row-actions { align-items: flex-start; }
+.deck-picker { margin: var(--space-2) 0; }
+.deck-picker-confirm { display: block; margin-top: var(--space-2); font-size: var(--text-sm); color: color-mix(in srgb, var(--rail-ink) 90%, transparent); }
+.deck-picker-confirm button { margin-left: var(--space-1); padding: var(--space-1) var(--space-2); font-size: var(--text-sm); }
+.masthead select {
+  background-color: color-mix(in srgb, var(--rail-ink) 10%, transparent);
+  border-color: color-mix(in srgb, var(--rail-ink) 40%, transparent);
+  color: var(--rail-ink);
+}
+.masthead select option { background-color: var(--paper); color: var(--ink); }
 .counts {
   display: flex;
   flex-wrap: wrap;

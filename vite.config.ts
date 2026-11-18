@@ -1,25 +1,24 @@
 /// <reference types="vitest/config" />
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import { decideSave, SAVE_DEFAULT_MAPPING_PATH } from "./src/lib/saveMapping.ts";
+import { chooseDeckFile, SAVE_DECK_MAPPING_PATH } from "./src/lib/saveMapping.ts";
 
-const DEFAULT_MAPPING = "public/default.mapping.json";
+const DECKS_DIR = "public/decks";
 const MAX_BODY = 10 * 1024 * 1024;
 
 /**
- * Dev server only: lets Save mapping overwrite public/default.mapping.json instead of
- * downloading a copy. It writes that one fixed path, never one the page names, only
- * for a page on this same server, and only when the deck has the same name as the
- * deck already in the file (see decideSave).
+ * Dev server only: lets Save mapping overwrite a deck in public/decks/ instead of downloading a
+ * copy. The file is never one the page names: it is the one file there that holds a deck with the
+ * same name (see chooseDeckFile). It is only for a page on this same server.
  */
-function saveDefaultMapping(): Plugin {
+function saveDeckMapping(): Plugin {
   return {
-    name: "save-default-mapping",
+    name: "save-deck-mapping",
     apply: "serve",
     configureServer(server) {
-      server.middlewares.use(SAVE_DEFAULT_MAPPING_PATH, (req, res) => {
+      server.middlewares.use(SAVE_DECK_MAPPING_PATH, (req, res) => {
         const reply = (status: number, body: Record<string, unknown>) => {
           res.statusCode = status;
           res.setHeader("content-type", "application/json");
@@ -45,12 +44,19 @@ function saveDefaultMapping(): Plugin {
         req.on("end", () => {
           if (size > MAX_BODY) return reply(413, { saved: false, reason: "That file is too large." });
           const incoming = Buffer.concat(chunks).toString("utf8");
-          const target = resolve(server.config.root, DEFAULT_MAPPING);
-          const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
-          const decision = decideSave(existing, incoming);
-          if (!decision.ok) return reply(409, { saved: false, reason: decision.reason });
-          writeFileSync(target, incoming.endsWith("\n") ? incoming : `${incoming}\n`);
-          reply(200, { saved: true, path: DEFAULT_MAPPING });
+          const folder = resolve(server.config.root, DECKS_DIR);
+          let files: { file: string; text: string }[] = [];
+          try {
+            files = readdirSync(folder)
+              .filter((file) => file.endsWith(".mapping.json"))
+              .map((file) => ({ file, text: readFileSync(join(folder, file), "utf8") }));
+          } catch {
+            files = [];
+          }
+          const choice = chooseDeckFile(files, incoming);
+          if ("reason" in choice) return reply(409, { saved: false, reason: choice.reason });
+          writeFileSync(join(folder, choice.file), incoming.endsWith("\n") ? incoming : `${incoming}\n`);
+          reply(200, { saved: true, path: `${DECKS_DIR}/${choice.file}` });
         });
       });
     },
@@ -58,7 +64,7 @@ function saveDefaultMapping(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), saveDefaultMapping()],
+  plugins: [react(), saveDeckMapping()],
   server: {
     port: 51173,
     strictPort: true,
