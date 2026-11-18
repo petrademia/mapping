@@ -313,8 +313,8 @@
       "taxonomy": {
         "roles": [],
         "opening_quality": {
-          "going_first": null,
-          "going_second": null
+          "going_first": "undesirable",
+          "going_second": "undesirable"
         }
       }
     },
@@ -324,8 +324,8 @@
       "taxonomy": {
         "roles": [],
         "opening_quality": {
-          "going_first": null,
-          "going_second": null
+          "going_first": "undesirable",
+          "going_second": "undesirable"
         }
       }
     },
@@ -346,8 +346,8 @@
       "taxonomy": {
         "roles": [],
         "opening_quality": {
-          "going_first": null,
-          "going_second": null
+          "going_first": "undesirable",
+          "going_second": "undesirable"
         }
       }
     },
@@ -368,8 +368,8 @@
       "taxonomy": {
         "roles": [],
         "opening_quality": {
-          "going_first": null,
-          "going_second": null
+          "going_first": "undesirable",
+          "going_second": "undesirable"
         }
       }
     },
@@ -390,8 +390,8 @@
       "taxonomy": {
         "roles": [],
         "opening_quality": {
-          "going_first": null,
-          "going_second": null
+          "going_first": "undesirable",
+          "going_second": "undesirable"
         }
       }
     },
@@ -399,7 +399,9 @@
       "card_id": 73642296,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "interaction"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
