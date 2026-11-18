@@ -185,6 +185,7 @@ test.describe("Open a deck", () => {
     }
     const current = index.decks.find((deck) => deck.file === index.default)!;
     await expect(menu.locator("option", { hasText: `${current.name} (open now)` })).toBeAttached();
+    await expect(menu).toHaveValue(current.file);
   });
 
   test("opens another deck at once, with its cards and models, without asking", async ({ page }) => {
@@ -192,6 +193,8 @@ test.describe("Open a deck", () => {
     await page.getByLabel("Open a deck").selectOption({ label: other.name });
     await expect(page.getByRole("status").filter({ hasText: `Opened ${other.name}.` })).toBeVisible();
     await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(other.name);
+    // The menu now shows the deck that is open.
+    await expect(page.getByLabel("Open a deck")).toHaveValue(other.file);
     await expect(page.locator(".counts")).toContainText("60 main");
     // Its Hand Goals came with it, and nothing asked first.
     await expect(page.getByLabel("Read card labels from")).toBeVisible();

@@ -14,13 +14,16 @@ interface Props {
  */
 export function DeckPicker({ decks, currentName, onOpen }: Props) {
   if (decks.length === 0) return null;
+  // Show the deck that is open. A deck that is not in the folder (a loaded file, a renamed deck)
+  // leaves the menu on its prompt.
+  const current = decks.find((entry) => entry.name.trim() === currentName.trim());
   return (
     <div className="deck-picker">
       <label>
         Open a deck
         <select
           aria-label="Open a deck"
-          value=""
+          value={current?.file ?? ""}
           onChange={(event) => {
             const deck = decks.find((entry) => entry.file === event.target.value);
             if (deck) onOpen(deck);
