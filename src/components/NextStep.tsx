@@ -1,8 +1,7 @@
-import { useMemo } from "react";
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
 import { analysisContextOf, sectionSize, type MappingDocument } from "../lib/document";
 import { groupsToMembership } from "../lib/handCondition";
-import { analyzeHandConditions } from "../lib/handExplorer";
+import { useHandAnalysis } from "../lib/useHandAnalysis";
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 
 interface Props {
@@ -55,27 +54,25 @@ export function GoalOdds({ doc }: { doc: MappingDocument }) {
     turn_order: context.turn_order,
     engine_access_set_id: doc.engine_access_set_id,
   });
-  const analysis = useMemo(() => {
-    if (deck === 0 || sample > deck) return null;
-    try {
-      return analyzeHandConditions(
-        doc.main,
-        sample,
-        doc.hand_conditions,
-        doc.hand_condition_sets,
-        groupsToMembership(doc.groups),
-        context.turn_order,
-      );
-    } catch {
-      return null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
-  }, [key, deck]);
+  // Worked out in a Web Worker; the previous odds stay on screen, dimmed, while a new edit is counted.
+  const { analysis, pending } = useHandAnalysis(
+    key,
+    deck === 0 || sample > deck
+      ? null
+      : {
+          main: doc.main,
+          sample,
+          conditions: doc.hand_conditions,
+          sets: doc.hand_condition_sets,
+          groups: groupsToMembership(doc.groups),
+          turnOrder: context.turn_order,
+        },
+  );
 
   const rows = (analysis?.sets ?? []).filter((set) => set.conditionIds.length > 0);
   if (!analysis || rows.length === 0) return null;
   return (
-    <section className="panel goal-odds" aria-label="Hand Goal odds">
+    <section className="panel goal-odds" aria-label="Hand Goal odds" aria-busy={pending}>
       <header>
         <h2>Hand Goals</h2>
         <p className="note">{analysisContextLabel(context, opening)}</p>

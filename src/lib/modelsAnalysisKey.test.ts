@@ -125,4 +125,18 @@ describe("modelsAnalysisKey", () => {
     });
     expect(withDistinct).not.toBe(base);
   });
+
+  it("does not change when the cards are only moved around, so reordering does not recompute", () => {
+    const card = (card_id: number, quantity: number) => ({
+      card_id,
+      quantity,
+      taxonomy: { roles: [], opening_quality: { going_first: null, going_second: null } },
+    });
+    const input = { groups, hand_conditions: conditions, hand_condition_sets: sets, sample: 5, turn_order: "going_first" as const };
+    const a = modelsAnalysisKey({ ...input, main: [card(1, 3), card(2, 1), card(3, 2)] });
+    const b = modelsAnalysisKey({ ...input, main: [card(3, 2), card(1, 3), card(2, 1)] });
+    expect(b).toBe(a);
+    // A change in copies still counts.
+    expect(modelsAnalysisKey({ ...input, main: [card(1, 2), card(2, 1), card(3, 2)] })).not.toBe(a);
+  });
 });
