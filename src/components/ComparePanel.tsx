@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Catalog } from "../lib/catalog";
+import { withDerivedLabels } from "../lib/derivedLabels";
 import {
   inheritModels,
   mainDifferences,
@@ -22,6 +23,7 @@ interface Props {
   /** The deck being edited, with its active configuration applied. */
   doc: MappingDocument;
   catalog: Catalog;
+  initialDeck?: MappingDocument | null;
   /** Replace the edited deck with the compared one. */
   onUse: (deck: MappingDocument) => void;
   /** The decks kept in public/decks/, offered as a one-click comparison. */
@@ -184,12 +186,15 @@ function rowsFor(a: DeckScore, b: DeckScore) {
  * and Hand Goals. Load another deck and see which one reaches your goals more
  * often, which bricks less, and which cards make the difference.
  */
-export function ComparePanel({ doc, catalog, onUse, decks = [] }: Props) {
+export function ComparePanel({ doc, catalog, initialDeck = null, onUse, decks = [] }: Props) {
   const offered = decks.filter((entry) => entry.name.trim() !== doc.name.trim());
-  const [other, setOther] = useState<MappingDocument | null>(null);
+  const [other, setOther] = useState(initialDeck);
   const [error, setError] = useState<string | null>(null);
 
-  const compared = useMemo(() => (other ? inheritModels(doc, other) : null), [doc, other]);
+  const compared = useMemo(
+    () => other ? other === initialDeck ? withDerivedLabels(other) : inheritModels(doc, other) : null,
+    [doc, initialDeck, other],
+  );
   // Both decks are judged by this deck's ranking for the compared turn order.
   const ranking = useMemo(() => {
     return effectiveRank(doc, doc.analysis.turn_order)?.order ?? null;
@@ -275,9 +280,12 @@ export function ComparePanel({ doc, catalog, onUse, decks = [] }: Props) {
             <ClearButton
               label="Use compared deck"
               confirmLabel="Replace"
-              message="Replace this deck with the compared deck? Your Groups and Hand Goals are kept."
+              message={other === initialDeck
+                ? "Replace the Pre-Side deck with this tuned list? This clears existing Post-Side configurations."
+                : "Replace this deck with the compared deck? Your Groups and Hand Goals are kept."}
               onConfirm={() => {
-                if (compared) onUse(compared);
+                if (other === initialDeck) onUse(other);
+                else if (compared) onUse(compared);
                 setOther(null);
               }}
             />
