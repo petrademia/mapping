@@ -18,6 +18,7 @@ import { serializeYdk } from "./lib/ydk";
 import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
 import { loadDeckFile, loadDeckIndex, type DeckEntry } from "./lib/deckLibrary";
 import { DeckPicker } from "./components/DeckPicker";
+import { SaveMappingButton } from "./components/SaveMappingButton";
 import type { TestedHand } from "./lib/handTest";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
 import {
@@ -308,6 +309,7 @@ export function App() {
                 }}
               />
             ) : null}
+            <SaveMappingButton doc={doc} onStatus={setStatus} />
             <button
               type="button"
               className="primary"

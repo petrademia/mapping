@@ -4,7 +4,6 @@ import {
   addFromParsed,
   parseMappingJson,
   replaceDeck,
-  serializeMapping,
   type MappingDocument,
 } from "../lib/document";
 import { serializeYapping } from "../lib/exportYapping";
@@ -13,7 +12,6 @@ import {
   type ExtraDeckIds,
 } from "../lib/sectionRouting";
 import { download, slug } from "../lib/download";
-import { saveOverDeckMapping } from "../lib/saveMappingClient";
 import { parseDeckText } from "../lib/ydk";
 import { Icon } from "./IconButton";
 
@@ -79,25 +77,6 @@ export function ImportExport({
           }}
         />
       </label>
-      <button
-        type="button"
-        onClick={() => {
-          const text = serializeMapping(doc);
-          // On the dev server this overwrites the file in public/decks/ that holds a deck with the
-          // same name; a deck no file is named after is downloaded as before.
-          void saveOverDeckMapping(text).then((result) => {
-            if (result.saved) {
-              onStatus(`Saved over ${result.path}`);
-              return;
-            }
-            download(`${slug(doc.name)}.mapping.json`, text);
-            onStatus(result.reason ? `Downloaded the mapping. ${result.reason}` : "Downloaded the mapping.");
-          });
-        }}
-      >
-        <Icon name="save" />
-        Save mapping
-      </button>
       <button
         type="button"
         onClick={() => {
