@@ -187,7 +187,7 @@
 }
 
 /* ---- Deck editor chrome ------------------------------------------------ */
-.deck-editor-layout { display: grid; gap: var(--space-3); }
+.deck-editor-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
 .deck-empty-state {
   margin: 0 0 var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -243,7 +243,9 @@
 .jump-bar { display: none; }
 .back-to-list { display: none; }
 @media (max-width: 960px) {
-  .workspace { grid-template-columns: 1fr; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .card-search-panel { grid-template-columns: minmax(0, 1fr); }
+  .card-search-panel select { margin-left: 0; }
   .jump-bar {
     position: sticky;
     top: 0;
