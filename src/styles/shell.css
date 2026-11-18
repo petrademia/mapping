@@ -69,6 +69,8 @@
 .deck-picker-confirm { display: block; margin-top: var(--space-2); font-size: var(--text-sm); color: color-mix(in srgb, var(--rail-ink) 90%, transparent); }
 .deck-picker-confirm button { margin-left: var(--space-1); padding: var(--space-1) var(--space-2); font-size: var(--text-sm); }
 .masthead select {
+  /* The arrow in base.css is dark ink, which vanishes on the dark rail. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23f3ecde' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 1.5l4.5 4.5 4.5-4.5'/%3E%3C/svg%3E");
   background-color: color-mix(in srgb, var(--rail-ink) 10%, transparent);
   border-color: color-mix(in srgb, var(--rail-ink) 40%, transparent);
   color: var(--rail-ink);
