@@ -169,6 +169,8 @@ export interface HandConditionLike {
   excludes?: readonly ConditionRequirement[];
   /** Optional distinct-by-card-name constraints over presence requirements. */
   distinct_constraints?: readonly DistinctMatchConstraint[];
+  /** Finishes through this many interruptions, whichever cards are stopped (handtrap numbers only). */
+  survives_interruptions?: number;
 }
 
 /**
@@ -196,6 +198,48 @@ export function handConditionHolds(
     condition.distinct_constraints ?? [],
     groups,
   );
+}
+
+/**
+ * The same answer as `handConditionHolds`, for many hands of one deck: the rows each
+ * requirement reads are looked up once here instead of on every hand. Use it where a
+ * condition is tested against a very large number of hands.
+ */
+export function compileConditionHolds(
+  deck: readonly MappingCard[],
+  condition: HandConditionLike,
+  groups: GroupMembership = new Map(),
+): (hand: readonly number[]) => boolean {
+  const compile = (predicate: ConditionRequirement): ((hand: readonly number[]) => boolean) => {
+    let rows: number[];
+    if (predicate.kind === "card") {
+      const index = deck.findIndex((card) => card.card_id === predicate.card_id);
+      rows = index === -1 ? [] : [index];
+    } else if (predicate.kind === "group") {
+      const members = groups.get(predicate.group_id);
+      rows = members ? deck.flatMap((card, i) => (members.has(card.card_id) ? [i] : [])) : [];
+    } else {
+      rows = deck.flatMap((card, i) => (card.taxonomy.roles.includes(predicate.role) ? [i] : []));
+    }
+    const { op, count } = predicate;
+    return (hand) => {
+      let total = 0;
+      for (let i = 0; i < rows.length; i += 1) total += hand[rows[i]!] ?? 0;
+      return matchesCount(total, op, count);
+    };
+  };
+  const requirements = condition.requirements.map(compile);
+  const exclusions = (condition.excludes ?? []).map(compile);
+  const distinct = condition.distinct_constraints ?? [];
+  return (hand) => {
+    if (requirements.length === 0) return false;
+    for (let i = 0; i < requirements.length; i += 1) if (!requirements[i]!(hand)) return false;
+    for (let i = 0; i < exclusions.length; i += 1) if (exclusions[i]!(hand)) return false;
+    return (
+      distinct.length === 0 ||
+      allDistinctMatchesHold(hand, deck, condition.requirements, distinct, groups)
+    );
+  };
 }
 
 /**
@@ -772,6 +816,43 @@ export function analyzeHandConditions(
   turnOrder?: "going_first" | "going_second",
   /** `compress: false` and `enumerate: true` force the slow reference path, for tests. */
   options: { compress?: boolean; enumerate?: boolean } = {},
+): HandEventAnalysis {
+  // Several panels ask for the same analysis of the same deck; work it out once.
+  if (options.compress !== undefined || options.enumerate !== undefined) {
+    return analyzeHandConditionsUncached(fullDeck, handSize, conditions, sets, groups, turnOrder, options);
+  }
+  const key = JSON.stringify([
+    fullDeck.map((card) => [card.card_id, card.quantity, card.taxonomy.roles, card.taxonomy.opening_quality]),
+    handSize,
+    conditions,
+    sets,
+    [...groups].map(([id, members]) => [id, [...members].sort((a, b) => a - b)]).sort(),
+    turnOrder ?? null,
+  ]);
+  const cached = analysisCache.get(key);
+  if (cached) {
+    // Keep the most recently used last.
+    analysisCache.delete(key);
+    analysisCache.set(key, cached);
+    return cached;
+  }
+  const analysis = analyzeHandConditionsUncached(fullDeck, handSize, conditions, sets, groups, turnOrder, options);
+  analysisCache.set(key, analysis);
+  if (analysisCache.size > ANALYSIS_CACHE_SIZE) analysisCache.delete(analysisCache.keys().next().value!);
+  return analysis;
+}
+
+const ANALYSIS_CACHE_SIZE = 12;
+const analysisCache = new Map<string, HandEventAnalysis>();
+
+function analyzeHandConditionsUncached(
+  fullDeck: readonly MappingCard[],
+  handSize: number,
+  conditions: readonly HandConditionLike[],
+  sets: readonly HandConditionSetLike[],
+  groups: GroupMembership,
+  turnOrder: "going_first" | "going_second" | undefined,
+  options: { compress?: boolean; enumerate?: boolean },
 ): HandEventAnalysis {
   const deck =
     options.compress === false ? fullDeck : compressDeck(fullDeck, conditions, groups, turnOrder);

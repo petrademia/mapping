@@ -21,7 +21,7 @@ import {
   type SidingConfiguration,
 } from "./configuration";
 import { emptyRank, parseCardRank, type CardRank } from "./cardRank";
-import { parseHandtraps, parsePairs, type Handtrap, type HandtrapPair } from "./handtrap";
+import { parseHandtraps, parseHitPriority, parsePairs, type Handtrap, type HandtrapPair, type HitTarget } from "./handtrap";
 import {
   EMPTY_TAXONOMY,
   mergeTaxonomies,
@@ -71,6 +71,31 @@ export interface MappingDocument {
   hand_condition_sets: HandConditionSet[];
   /** id of the HandConditionSet that defines Modeled Engine Access. */
   engine_access_set_id: string | null;
+  /**
+   * The Hand Goal Starter, Extender and Brick are read from. Only its Hand Conditions count, so a
+   * card is an Extender only when that goal needs it with another card. Absent means every Hand Goal
+   * counts, as before.
+   */
+  label_goal_id?: string | null;
+  /**
+   * A Hand Goal whose Hand Conditions are ways to break the opponent's board, such as a card that
+   * only breaks it with a partner. The Breaking measure counts a hand that meets it, as well as a
+   * hand holding enough cards tagged Board breaker. Absent means only the tagged cards count.
+   */
+  breaking_goal_id?: string | null;
+  /**
+   * ids of the Groups whose cards share one bottleneck, such as the one Normal
+   * Summon a turn or a once-per-turn effect every route runs through. Only one
+   * card of such a Group can complete in a turn, so a second card is no backup for
+   * the first when it is stopped. The handtrap analysis takes this into account.
+   */
+  choke_point_group_ids: string[];
+  /**
+   * What the opponent goes for first when they use a handtrap, in order: your cards or
+   * Groups. A handtrap still only stops what it can stop. Empty = no preference, and the
+   * opponent is only ever assumed to hit the card that hurts most.
+   */
+  hit_priority: HitTarget[];
   analysis: MappingAnalysis;
   /**
    * Post-side configurations. The main/extra/side lists above are Pre-Side.
@@ -148,6 +173,8 @@ export function createDocument(name: string): MappingDocument {
       },
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
+    choke_point_group_ids: [],
+    hit_priority: [],
     analysis: defaultAnalysis(),
     configurations: [],
     active_configuration_id: null,
@@ -271,8 +298,10 @@ export function setQuantity(
 /**
  * Replace the card lists with a parsed deck. Groups, Hand Conditions and Hand
  * Goals stay (they name cards by id), and Post-Side lists are dropped because
- * they only describe the old pool. No card names are stored, so names follow
- * the catalog.
+ * they only describe the old pool. A card that was already in the deck keeps its
+ * tags (roles and Opening Quality) and any name stored for it; it takes them from
+ * the same section when it was there, else from another. Cards that were not in
+ * the deck start without tags, and names follow the catalog.
  */
 export function replaceDeck(
   doc: MappingDocument,
@@ -284,12 +313,28 @@ export function replaceDeck(
   name?: string,
 ): MappingDocument {
   const fresh = documentFromParsed(name ?? doc.name, parsed, new Map());
+  const sections: readonly DeckSection[] = ["main", "extra", "side"];
+  const keep = (section: DeckSection, card: MappingCard): MappingCard => {
+    // The same section first, then the others in Main, Extra, Side order.
+    const before = [section, ...sections.filter((other) => other !== section)]
+      .map((from) => doc[from].find((old) => old.card_id === card.card_id))
+      .find((old) => old !== undefined);
+    if (!before) return card;
+    const kept: MappingCard = {
+      ...card,
+      taxonomy: {
+        roles: [...before.taxonomy.roles],
+        opening_quality: { ...before.taxonomy.opening_quality },
+      },
+    };
+    return before.name !== undefined ? { ...kept, name: before.name } : kept;
+  };
   return {
     ...doc,
     name: fresh.name,
-    main: fresh.main,
-    extra: fresh.extra,
-    side: fresh.side,
+    main: fresh.main.map((card) => keep("main", card)),
+    extra: fresh.extra.map((card) => keep("extra", card)),
+    side: fresh.side.map((card) => keep("side", card)),
     configurations: [],
     active_configuration_id: null,
   };
@@ -353,6 +398,8 @@ export function clearModeledOutcomes(doc: MappingDocument): MappingDocument {
       },
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
+    choke_point_group_ids: [],
+    hit_priority: [],
   };
 }
 
@@ -489,6 +536,8 @@ export function removeGroup(
   return {
     ...doc,
     groups: doc.groups.filter((group) => group.id !== groupId),
+    choke_point_group_ids: doc.choke_point_group_ids.filter((id) => id !== groupId),
+    hit_priority: doc.hit_priority.filter((target) => target.kind !== "group" || target.group_id !== groupId),
     hand_conditions: doc.hand_conditions.map((condition) =>
       normalizeHandCondition({
         ...condition,
@@ -599,7 +648,21 @@ export function removeHandConditionSet(
     ),
     engine_access_set_id:
       doc.engine_access_set_id === setId ? null : doc.engine_access_set_id,
+    label_goal_id: doc.label_goal_id === setId ? null : doc.label_goal_id,
+    breaking_goal_id: doc.breaking_goal_id === setId ? null : doc.breaking_goal_id,
   };
+}
+
+/** Choose the Hand Goal the card labels are read from; null reads every Hand Goal. */
+export function setLabelGoal(doc: MappingDocument, goalId: string | null): MappingDocument {
+  const known = goalId !== null && doc.hand_condition_sets.some((set) => set.id === goalId);
+  return { ...doc, label_goal_id: known ? goalId : null };
+}
+
+/** Choose the Hand Goal whose routes also count as breaking the opponent's board; null clears it. */
+export function setBreakingGoal(doc: MappingDocument, goalId: string | null): MappingDocument {
+  const known = goalId !== null && doc.hand_condition_sets.some((set) => set.id === goalId);
+  return { ...doc, breaking_goal_id: known ? goalId : null };
 }
 
 /**
@@ -751,6 +814,17 @@ export function parseMappingJson(text: string): MappingDocument {
   });
   const rawGroups = data.groups ?? data.access_groups;
   const groups = Array.isArray(rawGroups) ? rawGroups.map(parseGroup) : [];
+  // Groups marked as a shared bottleneck. Files from before this field have none, ids of a
+  // Group that is gone are dropped, and an earlier single "Normal Summon Group" is read as one.
+  const chokeIds = new Set<string>();
+  const knownGroup = (id: unknown): id is string =>
+    typeof id === "string" && groups.some((group) => group.id === id);
+  if (Array.isArray(data.choke_point_group_ids)) {
+    for (const id of data.choke_point_group_ids) if (knownGroup(id)) chokeIds.add(id);
+  }
+  if (knownGroup(data.normal_summon_group_id)) chokeIds.add(data.normal_summon_group_id);
+  const chokePointGroupIds = [...chokeIds];
+  const hitPriority = parseHitPriority(data.hit_priority, new Set(groups.map((group) => group.id)));
   const rawConditions = data.hand_conditions ?? data.access_conditions;
   const hand_conditions = Array.isArray(rawConditions)
     ? rawConditions.map(parseHandCondition)
@@ -810,6 +884,8 @@ export function parseMappingJson(text: string): MappingDocument {
       hand_conditions,
       hand_condition_sets: [...withoutDefault, engineSet],
       engine_access_set_id: ENGINE_ACCESS_SET_ID,
+      choke_point_group_ids: chokePointGroupIds,
+      hit_priority: hitPriority,
       analysis: parsedAnalysis,
       configurations,
       active_configuration_id: activeId,
@@ -840,6 +916,14 @@ export function parseMappingJson(text: string): MappingDocument {
     hand_conditions,
     hand_condition_sets,
     engine_access_set_id: engineAccessId,
+    ...(typeof data.label_goal_id === "string" && hand_condition_sets.some((set) => set.id === data.label_goal_id)
+      ? { label_goal_id: data.label_goal_id }
+      : {}),
+    ...(typeof data.breaking_goal_id === "string" && hand_condition_sets.some((set) => set.id === data.breaking_goal_id)
+      ? { breaking_goal_id: data.breaking_goal_id }
+      : {}),
+    choke_point_group_ids: chokePointGroupIds,
+    hit_priority: hitPriority,
     analysis: parsedAnalysis,
     configurations,
     active_configuration_id: activeId,
@@ -870,6 +954,7 @@ export function serializeMapping(doc: MappingDocument): string {
       id: condition.id,
       name: condition.name,
       ...(condition.notes ? { notes: condition.notes } : {}),
+      ...(condition.survives_interruptions ? { survives_interruptions: condition.survives_interruptions } : {}),
       requirements: condition.requirements.map(serializeCondition),
       excludes: condition.excludes.map(serializeCondition),
       distinct_constraints: (condition.distinct_constraints ?? []).map(
@@ -888,6 +973,10 @@ export function serializeMapping(doc: MappingDocument): string {
       aggregation: set.aggregation,
     })),
     engine_access_set_id: doc.engine_access_set_id,
+    ...(doc.label_goal_id ? { label_goal_id: doc.label_goal_id } : {}),
+    ...(doc.breaking_goal_id ? { breaking_goal_id: doc.breaking_goal_id } : {}),
+    choke_point_group_ids: [...doc.choke_point_group_ids],
+    hit_priority: doc.hit_priority.map((target) => ({ ...target })),
     analysis: doc.analysis,
     configurations: doc.configurations.map((config) => ({
       id: config.id,

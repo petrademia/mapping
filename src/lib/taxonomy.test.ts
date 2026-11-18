@@ -226,6 +226,10 @@ describe("Taxonomy v0 deck context and density", () => {
       starter: 3,
       extender: 5,
       interaction: 2,
+      lingering: 0,
+      lingering_second: 0,
+      breaker: 0,
+      breaker_second: 0,
     });
     expect(density.starter + density.extender + density.interaction).toBeGreaterThan(
       6,

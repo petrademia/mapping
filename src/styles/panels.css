@@ -51,14 +51,30 @@
 
 /* ---- Card editor: quantity, roles, opening quality --------------------- */
 .qty { display: flex; align-items: center; gap: var(--space-1); }
-.qty input { width: 3rem; text-align: center; }
+/* Wide enough for two digits: at 3rem the side padding left only 22px, and the
+   browser's own spin buttons took part of that, so a "3" was cut off. The + and
+   - buttons beside it do that job. */
+.qty input { width: 4rem; text-align: center; appearance: textfield; -moz-appearance: textfield; }
+.qty input::-webkit-inner-spin-button, .qty input::-webkit-outer-spin-button { appearance: none; -webkit-appearance: none; margin: 0; }
 .qty button { padding: var(--space-1) var(--space-2); }
 .qty svg { display: block; }
 .taxonomy-cell { min-width: 16rem; }
+.field-hint { display: block; margin-top: var(--space-1); font-size: var(--text-sm); font-weight: 400; color: var(--muted); }
 .taxonomy-block { display: grid; gap: var(--space-1); margin-bottom: var(--space-2); }
 .taxonomy-block:last-child { margin-bottom: 0; }
 .taxonomy-label { font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .roles, .opening-quality { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+/* Read from the Hand Conditions: shown like tags but not clickable. */
+/* The order the opponent goes for your cards. */
+.hit-priority { margin: var(--space-3) 0; }
+.priority-list { display: grid; gap: var(--space-1); margin: var(--space-2) 0; padding: 0; list-style: none; }
+.priority-list li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.priority-rank { min-width: 1.4rem; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); }
+.priority-name { flex: 1; min-width: 0; font-size: var(--text-sm); }
+.priority-actions { display: inline-flex; gap: var(--space-1); }
+.derived-labels { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); margin: var(--space-1) 0 0; font-size: var(--text-xs); color: var(--muted); }
+.derived-chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-2); border: 1px dashed var(--line); border-radius: var(--radius-pill); color: var(--ink); }
+.derived-chip::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--swatch, var(--muted)); }
 .opening-quality-contexts { display: grid; gap: var(--space-1); }
 .quality-context { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
 
@@ -97,8 +113,6 @@
 .impact-value { font-family: var(--font-mono); font-size: var(--text-sm); font-variant-numeric: tabular-nums; text-align: right; }
 
 /* ---- Models: Groups, Hand Conditions, Hand Goals ----------------------- */
-.models-steps { display: grid; gap: var(--space-1); margin: 0 0 var(--space-2); padding-left: var(--space-5); color: var(--muted); }
-.models-steps strong { font-weight: 600; color: var(--ink); }
 .models-nav { margin: var(--space-1) 0 var(--space-3); }
 .access-block { margin-bottom: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); }
 .access-block-head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
@@ -118,6 +132,9 @@
 .condition-card input[type="search"] { margin-bottom: var(--space-1); }
 .engine-members { display: grid; gap: var(--space-1); margin: 0 0 var(--space-2); padding: 0; list-style: none; }
 .engine-member { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.check-row { display: flex; align-items: flex-start; gap: var(--space-2); margin: var(--space-2) 0; font-size: var(--text-sm); }
+.check-row input { margin-top: 0.2rem; }
+.check-row small { display: block; color: var(--muted); font-size: var(--text-xs); }
 .engine-member-prob { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-sm); }
 .distinct-constraint { margin: var(--space-2) 0; padding: var(--space-2); border-left: 2px solid var(--line); }
 .distinct-requirement-list { display: grid; gap: var(--space-1); margin: var(--space-1) 0 var(--space-2); padding: 0; list-style: none; }
@@ -250,3 +267,43 @@
 .mini-cards li { width: 34px; }
 .versus-broken { display: grid; gap: var(--space-1); }
 
+
+/* Scorecard */
+.scorecard-combined { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); margin: var(--space-3) 0; }
+.scorecard-combined .outcome-primary { margin: 0; }
+.scorecard-rows { display: grid; gap: var(--space-3); margin: 0 0 var(--space-3); }
+.scorecard-rows > div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--space-2); align-items: start; }
+.scorecard-rows dt { font-weight: 600; }
+.scorecard-rows dd { display: grid; gap: var(--space-1); margin: 0; }
+.scorecard-rows strong { font-family: var(--font-mono); font-size: var(--text-md); font-weight: 500; }
+.scorecard-rows small { color: var(--muted); font-size: var(--text-xs); }
+.meter { display: block; height: 0.5rem; overflow: hidden; border-radius: var(--radius-pill); background: var(--sunken); }
+.meter > span { display: block; height: 100%; background: var(--accent); }
+.scorecard-weights { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.scorecard-weights label { display: grid; gap: var(--space-1); }
+.scorecard-weights input, .scorecard-weights select { width: 100%; }
+.scorecard-assumptions { margin: var(--space-2) 0 0; padding-left: var(--space-5); color: var(--muted); font-size: var(--text-sm); }
+.scorecard-overall { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); margin: var(--space-3) 0; }
+.scorecard-overall .outcome-primary { margin: 0; }
+.scorecard-turns { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); margin-bottom: var(--space-3); }
+.scorecard-turn { min-width: 0; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.scorecard-turn .panel-subhead { margin-top: 0; }
+.scorecard-turn .scorecard-combined { margin: var(--space-1) 0 var(--space-3); }
+.scorecard-turn .scorecard-rows > div { grid-template-columns: 5.5rem minmax(0, 1fr); }
+.scorecard-slots { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--text-xs); color: var(--muted); }
+.scorecard-slots span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.scorecard-slots span::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: var(--radius-pill); background: var(--c); }
+.hand-quality { margin: 0 0 var(--space-3); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.hand-quality-score { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); margin: 0 0 var(--space-2); }
+.hand-quality-score .outcome-primary { margin: 0; }
+.hand-quality-checks { display: grid; gap: var(--space-1); margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); }
+.hand-quality-checks li { display: flex; gap: var(--space-2); align-items: baseline; }
+.hand-quality-checks li.unmeasured { color: var(--muted); }
+.hand-quality-checks strong { font-weight: 600; margin-right: var(--space-1); }
+.summary-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-3); margin: var(--space-3) 0; }
+.summary-tile { min-width: 0; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper); }
+.summary-tile h3 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.summary-tile .outcome-primary { margin: var(--space-1) 0; font-size: var(--text-2xl, var(--text-xl)); }
+.summary-weakest { margin: 0; font-size: var(--text-xs); color: var(--muted); }
+.summary-weakest strong { color: var(--ink); font-weight: 600; }
+.scorecard-curve td.on { font-weight: 600; color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }

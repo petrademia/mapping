@@ -2,6 +2,7 @@ import { observedCards } from "./analysisContext";
 import { analysisContextOf, sectionSize, type MappingDocument } from "./document";
 import { groupsToMembership } from "./handCondition";
 import {
+  compileConditionHolds,
   compressDeck,
   forEachHandComposition,
   handConditionHolds,
@@ -65,9 +66,64 @@ export function scenariosFor(doc: MappingDocument): VersusScenario[] {
   ];
 }
 
+/**
+ * The Groups marked as a shared bottleneck, as hand positions: for each, the rows of its
+ * cards in `deck`. Groups with no card in the deck are left out.
+ */
+function chokePointRows(doc: MappingDocument, deck: readonly { card_id: number }[]): number[][] {
+  const rows: number[][] = [];
+  for (const id of doc.choke_point_group_ids) {
+    const group = doc.groups.find((entry) => entry.id === id);
+    if (!group) continue;
+    const members = new Set(group.card_ids);
+    const inDeck = deck.flatMap((card, row) => (members.has(card.card_id) ? [row] : []));
+    if (inDeck.length > 0) rows.push(inDeck);
+  }
+  return rows;
+}
+
+/**
+ * Runs `test` as if only one card of each choke-point Group could be used: for each
+ * Group you choose which card (or none) before the opponent answers, and it
+ * succeeds when any combination of choices passes. The hand is put back.
+ */
+function withChokePoints(
+  hand: number[],
+  groups: readonly (readonly number[])[],
+  test: () => boolean,
+  index = 0,
+): boolean {
+  if (index === groups.length) return test();
+  const rows = groups[index]!;
+  const present = rows.filter((row) => hand[row]! > 0);
+  if (present.length === 0) return withChokePoints(hand, groups, test, index + 1);
+  const saved = rows.map((row) => hand[row]!);
+  for (const choice of [...present, -1]) {
+    rows.forEach((row) => {
+      hand[row] = row === choice ? 1 : 0;
+    });
+    const ok = withChokePoints(hand, groups, test, index + 1);
+    rows.forEach((row, at) => {
+      hand[row] = saved[at]!;
+    });
+    if (ok) return true;
+  }
+  return false;
+}
+
+/**
+ * Who the opponent is.
+ * - "worst_case": every handtrap is used on the card that hurts you most, or not at all.
+ * - "priority": every handtrap goes to the first card or Group of the document's
+ *   `hit_priority` list that it can stop and that is in your hand, whether or not that
+ *   breaks your plan. When none is in reach, that handtrap falls back to the worst case.
+ */
+export type OpponentModel = "worst_case" | "priority";
+
 export function analyzeVersus(
   doc: MappingDocument,
   scenarios: readonly VersusScenario[] = scenariosFor(doc),
+  options: { opponent?: OpponentModel; goalIds?: readonly string[] } = {},
 ): VersusOutcome {
   const context = analysisContextOf(doc);
   const sample = observedCards(context, doc.analysis.opening_hand_size);
@@ -78,7 +134,9 @@ export function analyzeVersus(
   }
 
   const conditionById = new Map(doc.hand_conditions.map((c) => [c.id, c]));
+  const onlyGoals = options.goalIds ? new Set(options.goalIds) : null;
   const goals = doc.hand_condition_sets
+    .filter((set) => onlyGoals === null || onlyGoals.has(set.id))
     .map((set) => ({
       set,
       members: [...new Set(set.condition_ids)]
@@ -96,6 +154,11 @@ export function analyzeVersus(
   const handtrapById = new Map(doc.handtraps.map((h) => [h.id, h]));
   const groups = new Map<string, ReadonlySet<number>>(groupsToMembership(doc.groups));
   for (const id of used) groups.set(`__hits:${id}`, new Set(handtrapById.get(id)?.hits ?? []));
+  // What the opponent goes for, as hidden Groups too, so a listed card stays a row of its own.
+  const priority = options.opponent === "priority" ? doc.hit_priority : [];
+  priority.forEach((target, index) => {
+    if (target.kind === "card") groups.set(`__prio:${index}`, new Set([target.card_id]));
+  });
 
   const allConditions = goals.flatMap((goal) => goal.members);
   const deck = compressDeck(doc.main, allConditions, groups);
@@ -107,19 +170,57 @@ export function analyzeVersus(
       deck.flatMap((card, row) => (targets.has(card.card_id) ? [row] : [])),
     );
   }
+  const targetRows = priority
+    .map((target, index) => {
+      const members = target.kind === "card" ? groups.get(`__prio:${index}`)! : (groups.get(target.group_id) ?? new Set<number>());
+      return deck.flatMap((card, row) => (members.has(card.card_id) ? [row] : []));
+    })
+    .filter((rows) => rows.length > 0);
+
+  // Cards that share a bottleneck: each Group is already part of what tells rows apart.
+  const chokeRows = chokePointRows(doc, deck);
 
   const baseline = goals.map(() => 0n);
   const survived = scenarios.map(() => goals.map(() => 0n));
   const total = combinations(deckSize, sample);
 
-  const holds = (hand: readonly number[], goal: number): boolean =>
-    goals[goal]!.members.some((condition) => handConditionHolds(hand, deck, condition, groups));
+  // Each condition is compiled once for this deck, since it is tested against every hand.
+  const compiled = goals.map((goal) =>
+    goal.members.map((condition) => compileConditionHolds(deck, condition, groups)),
+  );
+  const compiledInsulated = goals.map((goal) =>
+    goal.members.flatMap((condition) =>
+      (condition.survives_interruptions ?? 0) > 0
+        ? [{ holds: compileConditionHolds(deck, condition, groups), stops: condition.survives_interruptions! }]
+        : [],
+    ),
+  );
+  const holds = (hand: readonly number[], goal: number): boolean => {
+    const tests = compiled[goal]!;
+    for (let i = 0; i < tests.length; i += 1) if (tests[i]!(hand)) return true;
+    return false;
+  };
 
-  // True when the goal still holds however the opponent uses the handtraps from `at` on.
+  // True when the goal still holds against the opponent from handtrap `at` on.
   function survives(hand: number[], goal: number, traps: readonly string[], at: number): boolean {
     if (at === traps.length) return holds(hand, goal);
-    if (!survives(hand, goal, traps, at + 1)) return false; // doing nothing is an option
-    for (const row of hitRows.get(traps[at]!) ?? []) {
+    const capable = hitRows.get(traps[at]!) ?? [];
+    // The first listed target this handtrap can stop and that you hold: it goes there.
+    for (const rows of targetRows) {
+      const reachable = rows.filter((row) => capable.includes(row) && hand[row]! > 0);
+      if (reachable.length === 0) continue;
+      // A card is one row. For a Group you choose which of its cards is the one stopped.
+      for (const row of reachable) {
+        hand[row]! -= 1;
+        const ok = survives(hand, goal, traps, at + 1);
+        hand[row]! += 1;
+        if (ok) return true;
+      }
+      return false;
+    }
+    // Nothing listed in reach: the worst case, the card that hurts most or no card at all.
+    if (!survives(hand, goal, traps, at + 1)) return false;
+    for (const row of capable) {
       if (hand[row]! <= 0) continue;
       hand[row]! -= 1;
       const ok = survives(hand, goal, traps, at + 1);
@@ -129,6 +230,25 @@ export function analyzeVersus(
     return true;
   }
 
+  // For each scenario, the earlier scenarios whose handtraps are all among its own. The opponent
+  // may leave a handtrap unused, so surviving the larger set means surviving the smaller one, and a
+  // hand that fails the smaller set is not searched again for the larger. That only holds when the
+  // opponent may hold a handtrap back, which the priority opponent does not.
+  const counted = (ids: readonly string[]) => {
+    const counts = new Map<string, number>();
+    for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+    return counts;
+  };
+  const within = (small: Map<string, number>, large: Map<string, number>) =>
+    [...small].every(([id, count]) => (large.get(id) ?? 0) >= count);
+  const scenarioCounts = scenarios.map((scenario) => counted(scenario.handtrapIds));
+  const weaker: number[][] = scenarios.map((_, index) =>
+    options.opponent === "priority"
+      ? []
+      : scenarioCounts.flatMap((small, other) => (other < index && within(small, scenarioCounts[index]!) ? [other] : [])),
+  );
+  const results = scenarios.map(() => goals.map(() => false));
+
   forEachHandComposition(deck, sample, (view, weight) => {
     const hand = view as number[];
     const base = goals.map((_, goal) => holds(hand, goal));
@@ -136,11 +256,21 @@ export function analyzeVersus(
       if (passes) baseline[goal] = baseline[goal]! + weight;
     });
     if (!base.some(Boolean)) return;
+    // A line marked as having a second path finishes through that many stops, whatever is hit.
+    const insulation = compiledInsulated.map((tests) =>
+      tests.reduce((most, test) => (test.holds(hand) ? Math.max(most, test.stops) : most), 0),
+    );
     scenarios.forEach((scenario, index) => {
       base.forEach((passes, goal) => {
-        if (passes && survives(hand, goal, scenario.handtrapIds, 0)) {
-          survived[index]![goal] = survived[index]![goal]! + weight;
-        }
+        // A hand that a weaker opponent already beats cannot survive a stronger one.
+        const beaten = passes && weaker[index]!.some((other) => !results[other]![goal]);
+        const ok =
+          passes &&
+          !beaten &&
+          ((scenario.handtrapIds.length <= insulation[goal]! && insulation[goal]! > 0) ||
+            withChokePoints(hand, chokeRows, () => survives(hand, goal, scenario.handtrapIds, 0)));
+        results[index]![goal] = ok;
+        if (ok) survived[index]![goal] = survived[index]![goal]! + weight;
       });
     });
   });
@@ -210,6 +340,31 @@ export function handVersus(
     return null;
   }
 
+  // For each choke-point Group you choose which of its cards to use, then the opponent
+  // answers: the goal is broken only when every combination of choices can be broken.
+  const chokeRows = chokePointRows(doc, deck);
+  function breakChoosing(members: readonly HandConditionLike[], index = 0): number[] | null {
+    if (index === chokeRows.length) return breakWith(members, 0);
+    const rows = chokeRows[index]!;
+    const present = rows.filter((row) => hand[row]! > 0);
+    if (present.length === 0) return breakChoosing(members, index + 1);
+    const saved = rows.map((row) => hand[row]!);
+    let shown: number[] | null = null;
+    for (const choice of [...present, -1]) {
+      rows.forEach((row) => {
+        hand[row] = row === choice ? 1 : 0;
+      });
+      const result = breakChoosing(members, index + 1);
+      rows.forEach((row, at) => {
+        hand[row] = saved[at]!;
+      });
+      if (result === null) return null; // this choice survives every answer
+      // Show a break that names cards, when there is one.
+      if (shown === null || (shown.length === 0 && result.length > 0)) shown = result;
+    }
+    return shown;
+  }
+
   return doc.hand_condition_sets
     .map((set) => ({
       set,
@@ -220,7 +375,15 @@ export function handVersus(
     .filter((goal) => goal.members.length > 0)
     .map(({ set, members }) => {
       const base = holds(members);
-      const broken = base ? breakWith(members, 0) : null;
+      const stops = members.reduce(
+        (most, condition) =>
+          (condition.survives_interruptions ?? 0) > most && handConditionHolds(hand, deck, condition, groups)
+            ? condition.survives_interruptions!
+            : most,
+        0,
+      );
+      const insulated = stops > 0 && handtrapIds.length <= stops;
+      const broken = base && !insulated ? breakChoosing(members) : null;
       return {
         setId: set.id,
         name: set.name,

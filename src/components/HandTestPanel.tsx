@@ -9,6 +9,9 @@ import { Icon, PassMark } from "./IconButton";
 import { CardFrame } from "./HandImages";
 import { HandBoard } from "./HandBoard";
 import { scorerWithSource } from "../lib/rankScore";
+import { rateHand } from "../lib/handRating";
+import { useScorecard } from "../lib/useScorecard";
+import { useScorecardSettings } from "../lib/scorecardWeights";
 import {
   analysisContextOf,
   sectionSize,
@@ -36,6 +39,10 @@ const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
   starter: "Starter",
   extender: "Extender",
   interaction: "Interaction",
+  lingering: "Lingering handtrap",
+  lingering_second: "Lingering handtrap, going second",
+  breaker: "Board breaker",
+  breaker_second: "Board breaker, going second",
 };
 
 const QUALITY_LABELS: { key: "desirable" | "neutral" | "undesirable" | "unclassified"; label: string }[] = [
@@ -220,9 +227,24 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
   );
   const rankScorer = ranked?.scorer ?? null;
 
+  // The hand read against the Scorecard: the same checks, the same weights.
+  const [scoreSettings] = useScorecardSettings();
+  // The deck's own numbers come from the Scorecard, calculated off the main thread and only once a hand is drawn.
+  const deckScore = useScorecard(doc, null, scoreSettings, hand !== null);
+  const quality = useMemo(() => {
+    if (!hand || deckScore === null || "error" in deckScore) return null;
+    const turn = context.turn_order === "going_first" ? deckScore.first : deckScore.second;
+    return {
+      goalName: deckScore.goalName,
+      sample: turn.sample,
+      rating: rateHand(doc, hand.card_counts, deckScore.goalId, turn, scoreSettings),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the doc parts the rating reads
+  }, [hand, doc, scoreSettings, context.turn_order, deckScore]);
+
   const roleCounts = useMemo(() => {
-    if (!hand) return { starter: 0, extender: 0, interaction: 0 };
-    const counts = { starter: 0, extender: 0, interaction: 0 };
+    if (!hand) return { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0 };
+    const counts = { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0 };
     for (const card of doc.main) {
       const copies = hand.card_counts[card.card_id] ?? 0;
       if (copies === 0) continue;
@@ -346,6 +368,14 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
       {hand && result && issues.length === 0 ? (
         <>
           <h3 className="panel-subhead" id="tested-hand">Tested Hand</h3>
+          {quality ? (
+            <HandQuality
+              goalName={quality.goalName}
+              rating={quality.rating}
+              handSize={totalSelected}
+              sample={quality.sample}
+            />
+          ) : null}
           <ul className="hand-facts">
             <li>
               <span>Rank score</span>
@@ -411,6 +441,11 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
                     {held.length > 0 && set.passed && versus?.get(set.setId) ? (
                       versus.get(set.setId)!.survives ? (
                         <span className="explorer-notation">Still holds against {heldLabel}</span>
+                      ) : versus.get(set.setId)!.negated.length === 0 ? (
+                        // Nothing was negated, so the goal asks for more than a shared bottleneck allows.
+                        <span className="explorer-notation">
+                          Needs more than one card that shares a bottleneck, so it cannot be done in a turn
+                        </span>
                       ) : (
                         <span className="versus-broken">
                           <span className="explorer-notation">Broken by {heldLabel}, negating</span>
@@ -557,6 +592,58 @@ function DistinctRow({
         <span className="explorer-notation">{evaluation.detail}</span>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * How good this hand is by the Scorecard's own checks: the share of them it
+ * passes, with your weights, set against what an average hand of this deck scores.
+ */
+function HandQuality({
+  goalName,
+  rating,
+  handSize,
+  sample,
+}: {
+  goalName: string;
+  rating: import("../lib/handRating").HandRating;
+  handSize: number;
+  sample: number;
+}) {
+  const { score, deckAverage } = rating;
+  const verdict =
+    score === null || deckAverage === null
+      ? null
+      : Math.abs(score - deckAverage) < 1e-9
+        ? "At the deck average"
+        : score > deckAverage
+          ? "Above the deck average"
+          : "Below the deck average";
+  return (
+    <section className="hand-quality" aria-label="Hand quality">
+      <p className="hand-quality-score" role="status">
+        <span className="outcome-primary">{score === null ? "-" : formatPercent(score)}</span>{" "}
+        <span className="explorer-notation">
+          hand quality for {goalName || "the Hand Goal"}
+          {verdict && deckAverage !== null ? ` · ${verdict} (${formatPercent(deckAverage)})` : ""}
+        </span>
+      </p>
+      <ul className="hand-quality-checks">
+        {rating.checks.map((check) => (
+          <li key={check.key} className={check.passed === null ? "unmeasured" : undefined}>
+            {check.passed === null ? <span aria-hidden="true">-</span> : <PassMark passed={check.passed} />}
+            <span>
+              <strong>{check.label}</strong> {check.detail}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {handSize !== sample ? (
+        <p className="note">
+          This hand has {handSize} cards; the deck average is for a hand of {sample}.
+        </p>
+      ) : null}
+    </section>
   );
 }
 

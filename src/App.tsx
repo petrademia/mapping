@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "./lib/theme";
 import { Icon, IconButton } from "./components/IconButton";
 import { CardImpactPanel } from "./components/CardImpactPanel";
 import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { ComparePanel } from "./components/ComparePanel";
+import { ScorecardPanel } from "./components/ScorecardPanel";
+import { ScorecardSummary } from "./components/ScorecardSummary";
+import { withDerivedLabels } from "./lib/derivedLabels";
 import { HandtrapPanel } from "./components/HandtrapPanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
@@ -13,6 +16,9 @@ import { loadBanlist, type Banlist, type Format } from "./lib/banlist";
 import { download, slug } from "./lib/download";
 import { serializeYdk } from "./lib/ydk";
 import { clearUserDefault, loadDefaultDeck, loadUserDefault, saveUserDefault } from "./lib/defaultDeck";
+import { loadDeckFile, loadDeckIndex, type DeckEntry } from "./lib/deckLibrary";
+import { DeckPicker } from "./components/DeckPicker";
+import { SaveMappingButton } from "./components/SaveMappingButton";
 import type { TestedHand } from "./lib/handTest";
 import { loadExtraDeckIds, type ExtraDeckIds } from "./lib/sectionRouting";
 import {
@@ -31,7 +37,9 @@ import { ModelsPanel, type ModelsView } from "./components/ModelsPanel";
 import { GoalOdds, NextStep } from "./components/NextStep";
 import { HandTestPanel } from "./components/HandTestPanel";
 import { DeckEditor } from "./components/DeckEditor";
-import { ImportExport } from "./components/ImportExport";
+import { LoadFileButton } from "./components/ImportExport";
+import { Menu } from "./components/Menu";
+import { serializeYapping } from "./lib/exportYapping";
 import { DeckProfile } from "./components/DeckProfile";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
@@ -46,17 +54,30 @@ import {
 import type { AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
+type Workspace = "profile" | "scorecard" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
 
-const WORKSPACES: { key: Workspace; label: string }[] = [
-  { key: "profile", label: "Profile" },
-  { key: "models", label: "Models" },
-  { key: "hand-test", label: "Hand Test" },
-  { key: "batch", label: "Batch Test" },
-  { key: "rank", label: "Rank" },
-  { key: "handtraps", label: "Handtraps" },
-  { key: "compare", label: "Compare" },
+const WORKSPACE_LABELS: Record<Workspace, string> = {
+  profile: "Profile",
+  scorecard: "Scorecard",
+  models: "Models",
+  "hand-test": "Hand Test",
+  batch: "Batch Test",
+  rank: "Rank",
+  handtraps: "Handtraps",
+  compare: "Compare",
+};
+
+type Step = "define" | "test" | "analyze";
+
+/** The workspaces grouped by what you are doing: describe the deck, try hands, read the results. */
+const STEPS: { key: Step; label: string; workspaces: Workspace[] }[] = [
+  { key: "define", label: "Define", workspaces: ["models", "handtraps", "rank"] },
+  { key: "test", label: "Test", workspaces: ["hand-test", "batch"] },
+  { key: "analyze", label: "Analyze", workspaces: ["profile", "scorecard", "compare"] },
 ];
+
+const stepOf = (workspace: Workspace): (typeof STEPS)[number] =>
+  STEPS.find((step) => step.workspaces.includes(workspace)) ?? STEPS[0]!;
 
 const WORKSPACE_ID = "workspace";
 
@@ -66,7 +87,7 @@ function formatDelta(value: number): string {
 }
 
 export function App() {
-  // First run only: with no saved draft the deck comes from /default.ydk.
+  // First run only: with no saved draft the deck comes from /default.mapping.json, else /default.ydk.
   const [hadDraft] = useState(() => loadStored() !== null);
   const [doc, setDoc] = useState<MappingDocument>(
     () => loadStored() ?? createDocument("untitled"),
@@ -99,13 +120,21 @@ export function App() {
   // The shuffled deck order behind the drawn hand, kept so it survives tab switches.
   const [handOrder, setHandOrder] = useState<number[] | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
+  // The workspace last open in each step, so returning to a step puts you back where you were.
+  const lastInStep = useRef<Partial<Record<Step, Workspace>>>({});
+  const goTo = (next: Workspace) => {
+    lastInStep.current[stepOf(next).key] = next;
+    setWorkspace(next);
+  };
+  const step = stepOf(workspace);
   // Which Models view opens when the next-step button sends you there.
-  const [modelsStart, setModelsStart] = useState<ModelsView>("groups");
+  const [modelsStart, setModelsStart] = useState<ModelsView>("outcomes");
   const [status, setStatus] = useState("");
   const [theme, setTheme] = useTheme();
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
   const view = useMemo(
-    () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
+    // Starter, Extender and Brick come from the Hand Conditions, so every workspace reads them.
+    () => withDerivedLabels(applyConfiguration(doc, doc.active_configuration_id, extraIds)),
     [doc, extraIds],
   );
   const activeConfig = findConfiguration(doc, doc.active_configuration_id);
@@ -121,14 +150,43 @@ export function App() {
   const loadDefault = () => {
     void loadDefaultDeck().then((deck) => {
       if (!deck) {
-        setStatus("Could not load default.ydk.");
+        setStatus("Could not load the default deck.");
         return;
       }
       setDoc(deck);
       setResetKey((key) => key + 1);
       setTestedHand(null);
-      setStatus("Loaded the default deck from default.ydk.");
+      setStatus("Loaded the default deck.");
     });
+  };
+
+  // The decks in public/decks/, for the menu that opens one.
+  const [deckLibrary, setDeckLibrary] = useState<DeckEntry[]>([]);
+  useEffect(() => {
+    void loadDeckIndex().then((index) => setDeckLibrary(index.decks));
+  }, []);
+  // Opening a deck replaces the draft, so the deck you had is kept for an Undo until you edit the new one.
+  const [undoOpen, setUndoOpen] = useState<{ before: MappingDocument; opened: MappingDocument } | null>(null);
+  const openDeck = (entry: DeckEntry) => {
+    void loadDeckFile(entry.file).then((deck) => {
+      if (!deck) {
+        setStatus(`Could not open ${entry.name}.`);
+        return;
+      }
+      setUndoOpen({ before: doc, opened: deck });
+      setDoc(deck);
+      setResetKey((key) => key + 1);
+      setTestedHand(null);
+      setStatus(`Opened ${entry.name}.`);
+    });
+  };
+  const undoOpenDeck = () => {
+    if (!undoOpen) return;
+    setDoc(undoOpen.before);
+    setResetKey((key) => key + 1);
+    setTestedHand(null);
+    setStatus(`Went back to ${undoOpen.before.name || "the deck you had"}.`);
+    setUndoOpen(null);
   };
 
   useEffect(() => {
@@ -146,7 +204,7 @@ export function App() {
           ? deck
           : current,
       );
-      setStatus("Loaded the default deck from default.ydk.");
+      setStatus("Loaded the default deck.");
     });
     return () => {
       cancelled = true;
@@ -163,122 +221,148 @@ export function App() {
   return (
     <CardImagesContext.Provider value={imageIds}>
     <div className="app">
-      <header className="masthead">
-        <div className="brand">
+      <header className="topbar">
+        <div className="topbar-brand">
           <h1>MAPPING</h1>
-          <p className="tag">
-            Annotate Role and Opening Quality hypotheses per deck card, inspect
-            composition, then export configuration for YAPPING.
-          </p>
-          <div className="theme-switch" role="group" aria-label="Color theme">
-            {(
-              [
-                ["system", "device", "Match the device"],
-                ["light", "sun", "Light theme"],
-                ["dark", "moon", "Dark theme"],
-              ] as const
-            ).map(([option, icon, label]) => (
-              <IconButton
-                key={option}
-                icon={icon}
-                label={label}
-                aria-pressed={theme === option}
-                className={theme === option ? "on" : ""}
-                onClick={() => setTheme(option)}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="deck-meta">
-          <label>
-            Deck
-            <input
-              value={doc.name}
-              onChange={(event) => setDoc(setDeckName(doc, event.target.value))}
-            />
-          </label>
           <p className="counts">
             <span>{sectionSize(view.main)} main</span>
             <span>{sectionSize(view.extra)} extra</span>
             <span>{sectionSize(view.side)} side</span>
             {activeConfig ? <span>{configurationLabel(activeConfig)}</span> : null}
           </p>
-          <div className="row-actions">
-            <button
-              type="button"
-              onClick={() => {
-                setDoc(createDocument("untitled"));
-                setResetKey((key) => key + 1);
-                setTestedHand(null);
-                setStatus("Started an empty deck.");
-              }}
-            >
-              <Icon name="file" />
-              New deck
-            </button>
-            <ClearButton
-              label="Default deck"
-              confirmLabel="Replace"
-              message="Replace the current deck and models with default.ydk?"
-              onConfirm={loadDefault}
-            />
-            <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
-            <ClearButton
-              label={hasUserDefault ? "Update default" : "Set as default"}
-              confirmLabel="Save"
-              message={
-                hasUserDefault
-                  ? "Replace your saved default with this deck?"
-                  : "Make this deck, with its groups and Hand Goals, the one Default deck loads?"
-              }
-              onConfirm={() => {
-                if (saveUserDefault(doc)) {
-                  setHasUserDefault(true);
-                  setStatus("Saved as your default deck.");
-                } else {
-                  setStatus("Could not save the default deck in this browser.");
-                }
-              }}
-            />
-            {hasUserDefault ? (
-              <ClearButton
-                label="Reset default"
-                confirmLabel="Reset"
-                message="Forget your saved default and use default.ydk again?"
-                onConfirm={() => {
-                  clearUserDefault();
-                  setHasUserDefault(false);
-                  setStatus("Default deck is default.ydk again.");
-                }}
-              />
-            ) : null}
-            <button
-              type="button"
-              className="primary"
-              onClick={() => {
-                download(
-                  `${slug(doc.name)}.ydk`,
-                  serializeYdk({ main: view.main, extra: view.extra, side: view.side }),
-                );
-                setStatus("Saved YDK");
-              }}
-            >
-              <Icon name="download" />
-              Save YDK
-            </button>
-          </div>
+        </div>
+        <label className="topbar-name">
+          Deck
+          <input
+            value={doc.name}
+            onChange={(event) => setDoc(setDeckName(doc, event.target.value))}
+          />
+        </label>
+        <DeckPicker decks={deckLibrary} currentName={doc.name} onOpen={openDeck} />
+        <div className="topbar-actions">
+          <LoadFileButton doc={doc} onChange={setDoc} onStatus={setStatus} />
+          <ClearMenu doc={doc} onChange={setDoc} onStatus={setStatus} />
+          <Menu label="More">
+            {(close) => (
+              <div className="menu-list">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDoc(createDocument("untitled"));
+                    setResetKey((key) => key + 1);
+                    setTestedHand(null);
+                    setStatus("Started an empty deck.");
+                    close();
+                  }}
+                >
+                  <Icon name="file" />
+                  New deck
+                </button>
+                <ClearButton
+                  label="Default deck"
+                  confirmLabel="Replace"
+                  message="Replace the current deck and models with the default deck?"
+                  onConfirm={() => {
+                    loadDefault();
+                    close();
+                  }}
+                />
+                <ClearButton
+                  label={hasUserDefault ? "Update default" : "Set as default"}
+                  confirmLabel="Save"
+                  message={
+                    hasUserDefault
+                      ? "Replace your saved default with this deck?"
+                      : "Make this deck, with its groups and Hand Goals, the one Default deck loads?"
+                  }
+                  onConfirm={() => {
+                    if (saveUserDefault(doc)) {
+                      setHasUserDefault(true);
+                      setStatus("Saved as your default deck.");
+                    } else {
+                      setStatus("Could not save the default deck in this browser.");
+                    }
+                    close();
+                  }}
+                />
+                {hasUserDefault ? (
+                  <ClearButton
+                    label="Reset default"
+                    confirmLabel="Reset"
+                    message="Forget your saved default and use the default files again?"
+                    onConfirm={() => {
+                      clearUserDefault();
+                      setHasUserDefault(false);
+                      setStatus("Default deck is the default files again.");
+                      close();
+                    }}
+                  />
+                ) : null}
+                <div className="theme-switch" role="group" aria-label="Color theme">
+                  {(
+                    [
+                      ["system", "device", "Match the device"],
+                      ["light", "sun", "Light theme"],
+                      ["dark", "moon", "Dark theme"],
+                    ] as const
+                  ).map(([option, icon, label]) => (
+                    <IconButton
+                      key={option}
+                      icon={icon}
+                      label={label}
+                      aria-pressed={theme === option}
+                      className={theme === option ? "on" : ""}
+                      onClick={() => setTheme(option)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </Menu>
+          <Menu label="Export">
+            {(close) => (
+              <div className="menu-list">
+                <button
+                  type="button"
+                  onClick={() => {
+                    download(
+                      `${slug(doc.name)}.ydk`,
+                      serializeYdk({ main: view.main, extra: view.extra, side: view.side }),
+                    );
+                    setStatus("Saved YDK");
+                    close();
+                  }}
+                >
+                  <Icon name="download" />
+                  Save YDK
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    download(`${slug(doc.name)}.yapping.json`, serializeYapping(view));
+                    setStatus("Exported YAPPING archetype JSON");
+                    close();
+                  }}
+                >
+                  <Icon name="download" />
+                  Export for YAPPING
+                </button>
+              </div>
+            )}
+          </Menu>
+          <SaveMappingButton doc={doc} onStatus={setStatus} />
         </div>
       </header>
-      <ImportExport
-        doc={doc}
-        exportDoc={view}
-        catalog={catalog}
-        extraIds={extraIds}
-        onChange={setDoc}
-        onStatus={setStatus}
-      />
       <p className="status" role="status">
         {status}
+        {undoOpen && doc === undoOpen.opened ? (
+          <>
+            {" "}
+            <button type="button" className="status-undo" onClick={undoOpenDeck}>
+              Undo
+            </button>
+          </>
+        ) : null}
       </p>
       <div className="jump-bar">
         <span>
@@ -308,17 +392,29 @@ export function App() {
           onStatus={setStatus}
         />
         <aside id={WORKSPACE_ID}>
-          <nav className="context-presets workspace-nav" aria-label="Workspace">
-            {WORKSPACES.map((entry) => (
+          <nav className="context-presets workspace-nav step-nav" aria-label="Step">
+            {STEPS.map((entry) => (
               <button
                 key={entry.key}
                 type="button"
-                className={`context-chip${
-                  workspace === entry.key ? " on" : ""
-                }`}
-                onClick={() => setWorkspace(entry.key)}
+                className={`context-chip${step.key === entry.key ? " on" : ""}`}
+                aria-pressed={step.key === entry.key}
+                onClick={() => goTo(lastInStep.current[entry.key] ?? entry.workspaces[0]!)}
               >
                 {entry.label}
+              </button>
+            ))}
+          </nav>
+          <nav className="context-presets workspace-sub" aria-label="Workspace">
+            {step.workspaces.map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={`context-chip${workspace === key ? " on" : ""}`}
+                aria-pressed={workspace === key}
+                onClick={() => goTo(key)}
+              >
+                {WORKSPACE_LABELS[key]}
               </button>
             ))}
           </nav>
@@ -341,11 +437,12 @@ export function App() {
                 doc={view}
                 onDefineGoal={() => {
                   setModelsStart("outcomes");
-                  setWorkspace("models");
+                  goTo("models");
                 }}
-                onTestHand={() => setWorkspace("hand-test")}
+                onTestHand={() => goTo("hand-test")}
               />
               <GoalOdds doc={view} />
+              <ScorecardSummary doc={view} onOpen={() => goTo("scorecard")} />
             </>
           ) : null}
 
@@ -413,7 +510,7 @@ export function App() {
               onOpenInTester={(hand) => {
                 setTestedHand(hand);
                 setHandOrder(null);
-                setWorkspace("hand-test");
+                goTo("hand-test");
                 requestAnimationFrame(() =>
                   document.getElementById("hand-test-top")?.scrollIntoView({ block: "start" }),
                 );
@@ -424,6 +521,8 @@ export function App() {
           {workspace === "handtraps" ? (
             <HandtrapPanel doc={view} catalog={catalog} onChange={changeView} />
           ) : null}
+
+          {workspace === "scorecard" ? <ScorecardPanel doc={view} /> : null}
 
           {workspace === "compare" ? (
             <ComparePanel

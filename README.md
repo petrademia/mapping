@@ -87,6 +87,16 @@ Opening Quality:   Going First:  neutral
 - **extender** — meaningful additional engine capability when some access already exists. May coexist with starter.
 - **interaction** — meaningful ability to interact with the opponent from the relevant opening-hand context. Subtypes (hand trap, board breaker, etc.) are out of v0.
 
+**Starter, Extender and Brick are read from your Hand Conditions, not tagged by hand.** Only conditions that belong to a Hand Goal count:
+
+- A **starter** satisfies a condition on its own (one requirement, needing one copy). Every card of a Group requirement counts.
+- An **extender** is needed together with another card (two or more requirements, or two copies of one card). A card can be both.
+- **Which Hand Goal the labels read.** Above the deck, "Starter, Extender and Brick are read from" picks one Hand Goal; only its Hand Conditions count, so a card is an Extender only when that goal needs it with another card, and a card in none of its routes is a Brick. "Every Hand Goal" reads them all, as before, which makes almost every card an Extender through broad Groups. Saved as `label_goal_id`.
+- A **brick** is in none of your routes and is not an Interaction card. Opening Quality you set by hand always wins; derived bricks only fill in where it is not set.
+- Role requirements, exclusions and requirements that only ask for fewer cards are ignored when deriving.
+- **Interaction** is the main role you tag, and **Lingering handtrap** (both turn orders), **Lingering handtrap, going second**, **Board breaker** and **Board breaker, going second** are the others. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
+- Nothing derived is saved: it is how the workspaces and the YAPPING export see the deck. The card editor shows the derived labels read-only.
+
 ### Opening quality definitions (hypotheses)
 
 - **desirable** — naturally opening the card is generally desirable in this deck.
@@ -248,6 +258,14 @@ why each predicate passed or failed.
   beside the button). Each Hand Goal that holds then shows whether it survives
   those handtraps, and the cards they would negate are greyed under a red
   cross in your hand.
+- **Hand quality**: the tested hand run through the Scorecard's checks (meets
+  the Hand Goal, holds at most N bricks, survives the worst opponent hand,
+  holds an Interaction card), with the same weights. The rating is the weighted
+  share of those checks it passes, shown next to the deck average. Averaged
+  over every possible hand of that size it equals the deck's combined number
+  (the tests check this exactly), so a hand above the average is above what the
+  deck gives you. A check the deck cannot measure is left out, the same as in
+  the Scorecard. It rates the hand by your models, not by how it plays.
 - **Condition trace**: every requirement, exclusion, and distinct-card
   constraint shows PASS/FAIL. Requirements and exclusions include actual count
   and contributing cards; distinct constraints show eligible names and, when
@@ -267,13 +285,85 @@ why each predicate passed or failed.
 
 ### Workspaces
 
-The right rail is organized into three workspaces so modeling editors never
-compete with analysis results for vertical space:
+The right rail has three steps, each with its own workspaces, so modeling
+editors never compete with analysis results for vertical space:
 
-- **Profile** - Analysis Context, Deck Profile, Taxonomy / Annotation Analysis.
-- **Models** - a sub-navigated workspace: [Groups] [Hand Conditions]
-  [Hand Goals].
-- **Hand Test** - evaluate one exact hand against the model.
+- **Define** - describe the deck. **Models** (Hand Goals, Hand Conditions,
+  Groups), **Handtraps** and **Rank**.
+- **Test** - try hands. **Hand Test** evaluates one exact hand against the
+  model, with the opponent's handtraps; **Batch Test** deals many.
+- **Analyze** - read the results. **Profile** (Analysis Context, Deck Profile,
+  Card Impact, roles), **Scorecard** and **Compare**.
+
+The **Scorecard** measures one Hand Goal going first (the five-card opening
+hand) and going second (six cards, after the first draw), in terms of how the
+Main Deck's slots are spent. All numbers are exact over every possible hand:
+
+- **Opens** - hands that meet the Hand Goal.
+- **Clean** - hands that meet it holding at most N bricks, where a brick is a
+  card whose Opening Quality for that turn order is Undesirable. The table
+  under it shows 0 to 3 bricks, so you can see how many bricks the deck can
+  carry before the goal suffers.
+- **Resilient** - hands that still meet it after the opponent's handtraps, worst
+  case over the handtraps and pairs in the Handtraps tab.
+- **Interaction** - hands with at least one card marked with the Interaction role.
+- **Breaking** - hands with enough board breakers, cards that destroy, banish or bounce the
+  opponent's cards on your own turn. Mark such a card "Board breaker" to count it in both turn
+  orders, or "Board breaker, going second" to count it only going second, since going first
+  there is no board yet. "Board breakers a hand needs" in Settings (default 1) sets the bar. A
+  card that only breaks a board with a partner (such as Jupredo with another Power Patron
+  monster) is a Hand Condition in a Hand Goal instead: choose that goal in "Board breaking also
+  counts the Hand Goal" above the deck, and a hand meeting it counts too, once, with the tagged
+  breakers. A Hand Goal has no turn order, so it counts in both. It says how often you hold
+  enough breakers, not how much a breaker is worth. It has weight 0
+  until you set one, so the combined numbers do not change by default, and it is never the
+  weakest part nor reported as missing. A Board breaker is not counted as a Brick.
+- **Match-weighted push** - the interruption curves weighted over a best-of-three, shown in
+  the Profile summary and under the interruption table. Game 1 is a die roll. After that the
+  loser chooses to go first, so you go first in game 2 exactly when you lost game 1, and a third
+  game is played when the match is split. Each game is won with the win rate you set (default
+  50%), which gives how often you go first (about 46% to 54%). The opponent may hold 1 to 2
+  handtraps in most games and 1 to 3 when you go first after a loss, because they have sided in
+  against you; both counts are settings. Each kind of game uses the survival averaged over its
+  range, going first or second. It is reported only and does not change the combined number.
+- **Disruption** - hands with enough disruption points. A one-shot Interaction card
+  is worth 1 point. A lingering handtrap, whose effect stays on for the opponent's
+  whole turn (Droll & Lock Bird), is worth more, because it keeps taxing the opponent
+  and they tend to end on a smaller board. Mark such a card "Lingering handtrap" to
+  count it in both turn orders, or "Lingering handtrap, going second" to count it only
+  going second (Mulcharmy, which need you to control no cards). In Settings, "A
+  lingering handtrap is worth" sets its points (default 2) and "Disruption points a hand
+  needs" sets the bar (default 2), so by default one lingering card is enough and one
+  Ash is not. A card marked both Interaction and lingering counts once, as lingering.
+  The number is exact: how often a hand reaches that many points. How much a lingering
+  handtrap is really worth is your judgement; the model does not measure the opponent's
+  board. It has weight 0 until you set one, so the combined numbers do not change by
+  default, and it is never the weakest part nor reported as missing.
+- **1 to 2 and 1 to 3 handtraps** - two extra columns on the interruption table:
+  the average of the "after 1, 2 (and 3)" results, each count weighted equally.
+  It is the survival to expect if the opponent holds that many handtraps (for
+  example 1 to 2 in game 1, and 1 to 3 after they side in more). The Profile
+  summary shows the same averages.
+- **Interruption curve** - hands that still meet the Hand Goal after 0, 1, 2 and 3
+  interruptions, where each interruption stops any one card in hand and the
+  opponent picks the one that hurts most. It needs no handtrap defined. A hand
+  with one route ends its turn on the first interruption; two independent
+  routes (for example two starters that do not need each other) take one, not
+  two. The Scorecard also shows the share of hands that meet the goal with only
+  one route. A second copy of a card counts as a backup here, and so does
+  another route, unless you marked their Group as a choke point in Models.
+- The Profile view opens with **Quality at a glance**: one combined number for
+  going first and one for going second, the weakest measured number in each,
+  and what is not measured yet and how to measure it. It is a summary of the
+  Scorecard, so it is only as complete as your models.
+- A slot mix per turn order (desirable, neutral, bricks, not set), and a
+  combined number per turn order and overall. The combined numbers are weighted
+  means; the weights are yours (kept in this browser), and a number that cannot
+  be measured, or has weight 0, is left out. They measure how reliably you reach
+  your plan, not how often you win.
+
+The app opens on Profile, whose next-step card points to Define. Returning to a
+step puts you back on the workspace you last used in it.
 
 ### Deck Profile
 
@@ -322,6 +412,28 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
 - The selected configuration drives Profile, Models, Hand Test, the header
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
+- **The top bar** is one strip: the deck name, Open a deck, the counts, then Load file, Clear,
+  More (New deck, Default deck, Set as default, theme), Export (Save YDK, Export for YAPPING) and
+  Save mapping. Paste a deck list sits under the card search, and Card labels (what the Starter,
+  Extender and Brick dots and Board breaking are read from) is one line above the deck that opens
+  to its two menus.
+- **Save mapping** on the dev server (`npm run dev`) overwrites the file in `public/decks/` that
+  holds a deck with the same name, instead of downloading a copy. A deck no file is named after
+  is downloaded as before and the status says why. A built or hosted copy always downloads. The
+  dev server writes only into that folder, only to a file already named after the deck, only
+  for a page on the same server, and the browser tests stub it.
+- **Open a deck.** "Open a deck" in the header lists the decks in `public/decks/` and opens one
+  at once, with its cards, Groups, Hand Goals and tags. The status line then offers Undo, which puts
+  back the deck you had with any edits you had not saved; it goes away when you edit the new deck. Each deck is a `.mapping.json`
+  file there (a `.ydk` beside it is optional). `public/decks/index.json` lists them and names the
+  default; after adding, renaming or removing a deck, run `npm run decks:index` to rewrite it
+  (a test fails when it is out of date). The menu is hidden when there is no index.
+- **Loading a deck list over a deck.** Load file with a `.ydk` or `.txt`, or Paste a deck
+  list and Replace deck, swaps the cards and keeps your Groups, Hand Conditions and Hand
+  Goals. A card that is still in the new list keeps its tags (roles, Opening Quality) and any
+  stored name, taken from the same section when it was there, else from another. Cards that
+  were not in the deck start without tags, and Post-Side lists are dropped. A mapping file
+  loads the whole deck with its models, as it was saved.
 
 ### Handtrap versus
 
@@ -336,6 +448,37 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   opponent always chooses the copy that hurts the goal most, or does nothing
   when that is better for them, so every number is the worst case.
 - A pair applies two negations, one per handtrap, each on its own copy.
+- **Who the opponent goes for.** A handtrap's own list says which of your cards
+  it can stop. In the Handtraps tab you can also give an ordered priority list
+  of cards or Groups the opponent tends to use a handtrap on first (for example
+  "every route that ends at Medius's effect", then Terminus, then Curtain). Each
+  handtrap then goes to the first listed target it can stop and you hold,
+  whether or not that breaks your plan; a card that is not listed is never hit,
+  and a handtrap with nothing listed in reach falls back to the worst case. For
+  a Group target you choose which of its cards is the one stopped, unless the
+  Group is a choke point. This does not replace the worst case: the Scorecard's
+  interruption table shows both opponents, and neither changes the combined
+  number. A card ranked above the real target and cheap to lose is bait.
+- **Choke points.** Some cards share one bottleneck: your one Normal Summon a
+  turn, or a once-per-turn effect that several routes all run through (for
+  example Tinia, Corruption, Finite and Citrinitas all end at one Citrinitas
+  effect). In Models, Groups, put those cards in a Group and mark it "Only one
+  of these can complete a turn". You can mark several Groups. Only one card of
+  a marked Group can be used in a turn, so a second card is no backup for the
+  one that was stopped, and a goal that needs two of them at once cannot be
+  met. For each Group you choose which card to use, then the opponent answers,
+  and a goal survives when some choice survives every answer. Without a marked
+  Group, copies and routes back each other up as before. Files saved with the
+  earlier single "Normal Summon Group" are read as one marked Group.
+- **Still works after N interruptions.** A line you tested that has a second path
+  (for example Graflare with an Artmage Spell that stays on the field) can be
+  marked on its Hand Condition in Models, Hand Conditions, as surviving 1, 2 or 3
+  interruptions. A hand that meets a marked condition counts as surviving that many
+  stops, whichever cards or effects the opponent picks, in the handtrap numbers, the
+  Scorecard interruption table and the Hand test. More stops than the mark are worked
+  out as usual. The model cannot check your claim, so mark only lines you tested.
+  Saved as `survives_interruptions` on the condition and left out when off; files saved
+  earlier with `survives_one_interruption: true` read as 1.
 - Results are exact over every possible hand (same method as Hand Goals): for
   each goal, the chance it holds and survives, with the exact hand count and
   the drop in points against no handtrap.
@@ -532,4 +675,4 @@ MyCard's English data can lag behind new sets (its newest en-US commit was 22 Se
 
 **Card images** are optional and local. `npm run fetch-images -- --demo [deck.ydk ...]` downloads small images for the card ids found in the files you name into `public/cards/` and writes `public/cards/index.json`. The image host (YGOPRODeck) asks users to download each image once rather than hotlink it, so the script is throttled, skips existing files, and stops on HTTP 403/429. `public/cards/` is gitignored; cards without an image show an empty placeholder box.
 
-On first run (no saved draft in the browser) the app loads `public/default.ydk`; replace that file to change the starting deck. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.
+On first run (no saved draft in the browser) the app loads the default deck: the one you set with **Set as default** in this browser, else the deck `public/decks/index.json` names as its default (a mapping, with its Groups, Hand Goals and tags), else `public/default.ydk` (cards only). **Default deck** in the header loads the same one over the current deck. Replace those files to change the starting deck. The `public/decks/` folder holds the builds being compared, each as a `.mapping.json` (cards with Groups, Hand Goals and tags) and a `.ydk` (cards only): **Power Patron Ars Magna Artmage** (the default) and **Power Patron Ars Magna Light and Darkness Ritual**. Open either from "Open a deck" in the header. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.

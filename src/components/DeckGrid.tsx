@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { deriveLabels, type DerivedLabels } from "../lib/derivedLabels";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import {
@@ -12,6 +13,7 @@ import {
   type MappingCard,
   type MappingDocument,
 } from "../lib/document";
+import { allowedCopies, copiesInDeck, type Banlist, type Format } from "../lib/banlist";
 import { canMoveTo, moveCopy, reorderCard } from "../lib/deckMove";
 import { isRanked, rankFor } from "../lib/cardRank";
 import { SORT_LABELS, sortCards, sortsFor, type DeckSort } from "../lib/deckSort";
@@ -22,6 +24,8 @@ import { IconButton } from "./IconButton";
 import { OpeningQualityEditor } from "./OpeningQualityEditor";
 import { QuantityEditor } from "./QuantityEditor";
 import { RoleEditor } from "./RoleEditor";
+
+const DECK_SECTIONS: readonly DeckSection[] = ["main", "extra", "side"];
 
 const TITLES: Record<DeckSection, string> = {
   main: "Main Deck",
@@ -35,6 +39,9 @@ interface Props {
   onChange: (doc: MappingDocument) => void;
   /** Extra Deck monster ids; decides which sections a dragged card may enter. */
   extraIds?: ExtraDeckIds;
+  /** With the format, how many copies of a card the deck may hold (3, or less if limited). */
+  banlist?: Banlist;
+  format?: Format;
 }
 
 const SORT_KEY = "mapping.deckSort";
@@ -60,11 +67,22 @@ interface Selection {
   cardId: number;
 }
 
-function RolePips({ card }: { card: MappingCard }) {
-  if (card.taxonomy.roles.length === 0) return null;
+/** The roles shown on a tile: Interaction as tagged, Starter and Extender as read from the Hand Conditions. */
+function shownRoles(card: MappingCard, derived: DerivedLabels | undefined): readonly string[] {
+  if (!derived) return card.taxonomy.roles;
+  return [
+    ...(derived.starter ? ["starter"] : []),
+    ...(derived.extender ? ["extender"] : []),
+    ...(card.taxonomy.roles.includes("interaction") ? ["interaction"] : []),
+  ];
+}
+
+function RolePips({ card, derived }: { card: MappingCard; derived: DerivedLabels | undefined }) {
+  const roles = shownRoles(card, derived);
+  if (roles.length === 0) return null;
   return (
     <span className="tile-pips" aria-hidden="true">
-      {card.taxonomy.roles.map((role) => (
+      {roles.map((role) => (
         <span key={role} className="tile-pip" data-role={role} />
       ))}
     </span>
@@ -76,19 +94,33 @@ function DetailRow({
   section,
   card,
   doc,
+  derived,
   catalog,
+  extraIds,
+  banlist,
+  format,
   onChange,
   onClose,
 }: {
   section: DeckSection;
   card: MappingCard;
   doc: MappingDocument;
+  /** Starter, Extender and Brick for this card; null when no Hand Goal exists to read them from. */
+  derived: DerivedLabels | null;
   catalog: Catalog;
+  extraIds: ExtraDeckIds;
+  banlist: Banlist;
+  format: Format;
   onChange: (doc: MappingDocument) => void;
   onClose: () => void;
 }): ReactNode {
   const ref = useRef<HTMLLIElement>(null);
   const name = displayName(card.card_id, card.name, catalog);
+  // Where one copy may go: Extra Deck monsters only to Extra or Side, every other card to Main or Side.
+  // Copies this row may hold: what the format allows, less the copies in the other sections. Never
+  // below one, so a deck that is already over can still be reduced but not raised.
+  const room = Math.max(1, allowedCopies(banlist, format, card.card_id) - (copiesInDeck(doc, card.card_id) - card.quantity));
+  const targets = DECK_SECTIONS.filter((target) => target !== section && canMoveTo(card.card_id, target, extraIds));
 
   // Opening the editor must never leave it off screen.
   useEffect(() => {
@@ -104,6 +136,7 @@ function DetailRow({
           <span className="deck-detail-actions">
             <QuantityEditor
               value={card.quantity}
+              max={room}
               onChange={(quantity) => {
                 if (quantity <= 0) {
                   onChange(removeCard(doc, section, card.card_id));
@@ -124,10 +157,30 @@ function DetailRow({
             <IconButton icon="x" label="Close" onClick={onClose} />
           </span>
         </div>
+        {targets.length > 0 ? (
+          <div className="deck-detail-move" role="group" aria-label="Move one copy">
+            <span className="taxonomy-label">Move one copy to</span>
+            {targets.map((target) => (
+              <button
+                key={target}
+                type="button"
+                aria-label={`Move one ${name} to ${TITLES[target]}`}
+                onClick={() => {
+                  onChange(moveCopy(doc, section, target, card.card_id, extraIds));
+                  // The row is gone from this section once its last copy has left.
+                  if (card.quantity <= 1) onClose();
+                }}
+              >
+                {TITLES[target]}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {section !== "extra" ? (
           <div className="taxonomy-cell">
             <RoleEditor
               roles={card.taxonomy.roles}
+              derived={derived}
               onChange={(roles) => onChange(setCardRoles(doc, section, card.card_id, roles))}
             />
             <OpeningQualityEditor
@@ -151,11 +204,12 @@ function DetailRow({
  * under that row (no scrolling to the end of the section). Extra Deck cards
  * are never drawn, so they have no roles or opening quality to edit.
  */
-export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props) {
+export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist = {}, format = "ocg" }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
   // A sort only changes how a section is shown; it never touches the deck itself.
   const [sorts, setSorts] = useState<Record<DeckSection, DeckSort>>(readSorts);
-  const chooseSort = (section: DeckSection, sort: DeckSort) =>
+  const chooseSort = (section: DeckSection, sort: DeckSort) => {
+    setBlockedSection((current) => (current === section ? null : current));
     setSorts((current) => {
       const next = { ...current, [section]: sort };
       try {
@@ -165,6 +219,9 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
       }
       return next;
     });
+  };
+  // Starter, Extender and Brick, read from the Hand Conditions (empty until a Hand Goal exists).
+  const labels = useMemo(() => deriveLabels(doc), [doc]);
   const turn = doc.analysis.turn_order;
   const rankOrder = isRanked(doc, turn) ? rankFor(doc, turn) : null;
   // Drag a tile to reorder inside a section, or onto another section to move one copy.
@@ -173,8 +230,35 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
   // drag, so the source is dimmed with a data attribute instead.
   const dragRef = useRef<Selection | null>(null);
   const [over, setOver] = useState<{ section: DeckSection; cardId: number | null } | null>(null);
+  // A section a card was dragged inside while it is sorted: it cannot be reordered, so it says so.
+  const [blockedSection, setBlockedSection] = useState<DeckSection | null>(null);
+  // The tile being dragged. Dimming is done on the elements, not in state, because re-rendering the
+  // dragged tile as the drag starts makes the browser cancel it.
+  const dragEl = useRef<HTMLElement | null>(null);
+  /**
+   * Reordering inside a section moves every copy of a card, since the copies are one row, so all of
+   * them are dimmed while the drag is over its own section. Over another section only one copy moves,
+   * so only the tile being dragged is dimmed.
+   */
+  const showGroup = (together: boolean) => {
+    const source = dragRef.current;
+    const tile = dragEl.current;
+    if (!source || !tile) return;
+    tile
+      .closest("section")
+      ?.querySelectorAll<HTMLElement>(`li[data-card="${source.cardId}"]`)
+      .forEach((copy) => {
+        if (together || copy === tile) copy.setAttribute("data-dragging", "true");
+        else copy.removeAttribute("data-dragging");
+      });
+  };
 
   const endDrag = () => {
+    dragEl.current
+      ?.closest("section")
+      ?.querySelectorAll("li[data-dragging]")
+      .forEach((copy) => copy.removeAttribute("data-dragging"));
+    dragEl.current = null;
     dragRef.current = null;
     setOver(null);
   };
@@ -186,11 +270,15 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
     return canMoveTo(source.cardId, section, extraIds);
   };
   const overTile = (event: DragEvent, section: DeckSection, cardId: number | null) => {
-    if (!accepts(section)) return;
+    if (!accepts(section)) {
+      if (dragRef.current?.section === section && blockedSection !== section) setBlockedSection(section);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
     if (over?.section !== section || over.cardId !== cardId) setOver({ section, cardId });
+    showGroup(dragRef.current?.section === section);
   };
   const dropOn = (event: DragEvent, section: DeckSection, cardId: number | null) => {
     const source = dragRef.current;
@@ -199,6 +287,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
     event.stopPropagation();
     if (source.section === section) {
       onChange(reorderCard(doc, section, source.cardId, cardId));
+      setBlockedSection(null);
     } else {
       onChange(moveCopy(doc, source.section, section, source.cardId, extraIds));
     }
@@ -268,6 +357,14 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                 />
               ) : null}
             </header>
+            {blockedSection === section && sort !== "built" ? (
+              <p className="deck-sort-hint" aria-live="polite">
+                This section is sorted by {SORT_LABELS[sort]}, so cards cannot be dragged into a new order here.{" "}
+                <button type="button" onClick={() => chooseSort(section, "built")}>
+                  Use As built
+                </button>
+              </p>
+            ) : null}
             {cards.length === 0 ? (
               <p className="empty">No cards in this section.</p>
             ) : (
@@ -284,6 +381,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                           ? "drop-before"
                           : undefined
                       }
+                      data-card={card.card_id}
                       onDragOver={(event) => overTile(event, section, card.card_id)}
                       draggable
                       onDragStart={(event) => {
@@ -291,6 +389,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         event.dataTransfer.setData("text/plain", name);
                         dragRef.current = { section, cardId: card.card_id };
                         const source = event.currentTarget;
+                        dragEl.current = source;
                         window.setTimeout(() => source.setAttribute("data-dragging", "true"), 0);
                       }}
                       onDragEnd={(event) => {
@@ -312,7 +411,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         onClick={() => toggle(section, card.card_id)}
                       >
                         <CardFrame cardId={card.card_id} name={name} />
-                        {section !== "extra" ? <RolePips card={card} /> : null}
+                        {section !== "extra" ? <RolePips card={card} derived={labels.get(card.card_id)} /> : null}
                         <span className="tile-name">{name}</span>
                       </button>
                     </li>
@@ -324,7 +423,11 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         section={section}
                         card={card}
                         doc={doc}
+                        derived={labels.get(card.card_id) ?? null}
                         catalog={catalog}
+                        extraIds={extraIds}
+                        banlist={banlist}
+                        format={format}
                         onChange={onChange}
                         onClose={() => setSelected(null)}
                       />,

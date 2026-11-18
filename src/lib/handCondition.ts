@@ -42,7 +42,17 @@ export interface HandCondition {
   excludes: ConditionRequirement[];
   /** Optional distinct-by-card-name constraints over presence (`≥ 1`) requirements. */
   distinct_constraints?: DistinctMatchConstraint[];
+  /**
+   * How many interruptions (1 to MAX_SURVIVED_INTERRUPTIONS) the line still finishes through, because
+   * it has a second path: the opponent stops that many cards or effects, whichever they pick. Used
+   * only by the handtrap and interruption numbers; more stops than this are worked out as usual.
+   * Omitted when off. Files saved earlier with `survives_one_interruption: true` read as 1.
+   */
+  survives_interruptions?: number;
 }
+
+/** The most interruptions a Hand Condition can be marked as surviving, the length of the interruption curve. */
+export const MAX_SURVIVED_INTERRUPTIONS = 3;
 
 export type ConditionRequirementDraft = ConditionRequirement;
 
@@ -160,6 +170,11 @@ export function normalizeDistinctMatchConstraint(
   return { id, requirement_ids, distinct_by };
 }
 
+/** A usable "survives this many interruptions" value: a whole number from 1 up, else 0 (off). */
+function survivedStops(value: number | undefined): number {
+  return Number.isInteger(value) && value! >= 1 ? Math.min(value!, MAX_SURVIVED_INTERRUPTIONS) : 0;
+}
+
 export function normalizeHandCondition(raw: HandCondition): HandCondition {
   const id = raw.id.trim();
   if (!id) throw new Error("hand condition id is required");
@@ -184,6 +199,9 @@ export function normalizeHandCondition(raw: HandCondition): HandCondition {
     requirements,
     excludes,
     distinct_constraints,
+    ...(survivedStops(raw.survives_interruptions) > 0
+      ? { survives_interruptions: survivedStops(raw.survives_interruptions) }
+      : {}),
   };
   return notes === undefined ? base : { ...base, notes };
 }
@@ -298,6 +316,12 @@ export function parseHandCondition(raw: unknown): HandCondition {
     requirements,
     excludes,
     distinct_constraints,
+    survives_interruptions:
+      typeof record.survives_interruptions === "number"
+        ? record.survives_interruptions
+        : record.survives_one_interruption === true
+          ? 1
+          : 0,
   });
 }
 
