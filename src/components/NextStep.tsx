@@ -70,25 +70,39 @@ export function GoalOdds({ doc }: { doc: MappingDocument }) {
   );
 
   const rows = (analysis?.sets ?? []).filter((set) => set.conditionIds.length > 0);
-  if (!analysis || rows.length === 0) return null;
+  const goals = doc.hand_condition_sets.filter((set) => set.condition_ids.length > 0);
+  // Before the first count arrives the panel is already there, with every goal named and its
+  // numbers still to come, so the panels below it do not jump when the odds fill in.
+  const counting = !analysis && goals.length > 0 && deck > 0 && sample <= deck;
+  if (!counting && (!analysis || rows.length === 0)) return null;
   return (
-    <section className="panel goal-odds" aria-label="Hand Goal odds" aria-busy={pending}>
+    <section className="panel goal-odds" aria-label="Hand Goal odds" aria-busy={pending || counting}>
       <header>
         <h2>Hand Goals</h2>
         <p className="note">{analysisContextLabel(context, opening)}</p>
       </header>
       <ul className="odds-list">
-        {rows.map((set) => (
-          <li key={set.id} className="odds-row">
-            <span className="odds-name">{set.name || "Untitled hand goal"}</span>
-            <span className="odds-value">
-              <span className="odds-percent">{formatPercent(set.union)}</span>
-              <span className="odds-fraction">
-                {set.unionWeight.toLocaleString("en-US")} / {analysis.total.toLocaleString("en-US")}
-              </span>
-            </span>
-          </li>
-        ))}
+        {analysis
+          ? rows.map((set) => (
+              <li key={set.id} className="odds-row">
+                <span className="odds-name">{set.name || "Untitled hand goal"}</span>
+                <span className="odds-value">
+                  <span className="odds-percent">{formatPercent(set.union)}</span>
+                  <span className="odds-fraction">
+                    {set.unionWeight.toLocaleString("en-US")} / {analysis.total.toLocaleString("en-US")}
+                  </span>
+                </span>
+              </li>
+            ))
+          : goals.map((set) => (
+              <li key={set.id} className="odds-row">
+                <span className="odds-name">{set.name || "Untitled hand goal"}</span>
+                <span className="odds-value">
+                  <span className="odds-percent">&hellip;</span>
+                  <span className="odds-fraction">&nbsp;</span>
+                </span>
+              </li>
+            ))}
       </ul>
     </section>
   );

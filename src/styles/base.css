@@ -131,6 +131,8 @@ button.ghost:hover:not(:disabled) { color: var(--ink); background-color: var(--s
 }
 .context-presets { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0 var(--space-1); }
 .context-presets .chip.context-chip, .analysis-context-panel .context-chip { padding: var(--space-2) var(--space-3); }
+/* The three turn orders share a row, or stack at one width, instead of three ragged lengths. */
+.context-presets[aria-label="Analysis context"] .chip.context-chip { flex: 1 1 auto; text-align: center; }
 .context-chip.on, .chip.on {
   background-color: color-mix(in srgb, var(--accent) 16%, var(--paper));
   border-color: var(--accent);

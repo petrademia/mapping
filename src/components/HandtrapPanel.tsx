@@ -186,9 +186,8 @@ export function HandtrapPanel({ doc, catalog, onChange }: Props) {
       </header>
       <p className="note">
         Pick the handtraps your opponent may hold and the cards of yours each
-        can stop. For every Hand Goal you see how often it still holds when
-        the opponent uses the handtrap on the card that hurts most. Two
-        handtraps in a pair stop two cards.
+        can stop. Each Hand Goal then shows how often it still holds when the
+        opponent uses the handtrap on the card that hurts most.
       </p>
 
       <h3 className="panel-subhead">How your Hand Goals hold up</h3>
@@ -288,6 +287,7 @@ export function HandtrapPanel({ doc, catalog, onChange }: Props) {
       <HitPriorityEditor doc={doc} catalog={catalog} onChange={onChange} />
 
       <h3 className="panel-subhead">Pairs the opponent holds together</h3>
+      <p className="note">Two handtraps in a pair stop two cards.</p>
       {doc.handtraps.length === 0 ? (
         <p className="empty">Add a handtrap to make a pair.</p>
       ) : (
