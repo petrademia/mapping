@@ -220,8 +220,33 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
   const [over, setOver] = useState<{ section: DeckSection; cardId: number | null } | null>(null);
   // A section a card was dragged inside while it is sorted: it cannot be reordered, so it says so.
   const [blockedSection, setBlockedSection] = useState<DeckSection | null>(null);
+  // The tile being dragged. Dimming is done on the elements, not in state, because re-rendering the
+  // dragged tile as the drag starts makes the browser cancel it.
+  const dragEl = useRef<HTMLElement | null>(null);
+  /**
+   * Reordering inside a section moves every copy of a card, since the copies are one row, so all of
+   * them are dimmed while the drag is over its own section. Over another section only one copy moves,
+   * so only the tile being dragged is dimmed.
+   */
+  const showGroup = (together: boolean) => {
+    const source = dragRef.current;
+    const tile = dragEl.current;
+    if (!source || !tile) return;
+    tile
+      .closest("section")
+      ?.querySelectorAll<HTMLElement>(`li[data-card="${source.cardId}"]`)
+      .forEach((copy) => {
+        if (together || copy === tile) copy.setAttribute("data-dragging", "true");
+        else copy.removeAttribute("data-dragging");
+      });
+  };
 
   const endDrag = () => {
+    dragEl.current
+      ?.closest("section")
+      ?.querySelectorAll("li[data-dragging]")
+      .forEach((copy) => copy.removeAttribute("data-dragging"));
+    dragEl.current = null;
     dragRef.current = null;
     setOver(null);
   };
@@ -241,6 +266,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
     if (over?.section !== section || over.cardId !== cardId) setOver({ section, cardId });
+    showGroup(dragRef.current?.section === section);
   };
   const dropOn = (event: DragEvent, section: DeckSection, cardId: number | null) => {
     const source = dragRef.current;
@@ -343,6 +369,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                           ? "drop-before"
                           : undefined
                       }
+                      data-card={card.card_id}
                       onDragOver={(event) => overTile(event, section, card.card_id)}
                       draggable
                       onDragStart={(event) => {
@@ -350,6 +377,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set() }: Props
                         event.dataTransfer.setData("text/plain", name);
                         dragRef.current = { section, cardId: card.card_id };
                         const source = event.currentTarget;
+                        dragEl.current = source;
                         window.setTimeout(() => source.setAttribute("data-dragging", "true"), 0);
                       }}
                       onDragEnd={(event) => {

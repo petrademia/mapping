@@ -1277,6 +1277,57 @@ test.describe("Dragging cards in the deck", () => {
     await expect(page.locator(".counts")).toContainText(`${DEFAULT.extra} extra`);
   });
 
+  test("dragging inside a section dims every copy of the card, since they all move; over another section only one", async ({ page }) => {
+    // Tall enough that every section is on screen, since drag events only reach what is visible.
+    await page.setViewportSize({ width: 1280, height: 2600 });
+    await openApp(page);
+    await settled(page);
+    const main = section(page, "Main Deck");
+    await page.getByLabel("Sort Main Deck").selectOption("built");
+    // A card with several copies, whose copies sit side by side as one row.
+    const copy = main.getByRole("button", { name: /^Edit .*, copy 1 of [23]$/ }).first();
+    const label = (await copy.getAttribute("aria-label"))!;
+    const copies = Number(/of (\d)$/.exec(label)![1]);
+    const tile = copy.locator("xpath=ancestor::li[1]");
+    const cardId = (await tile.getAttribute("data-card"))!;
+    const group = main.locator(`li[data-card="${cardId}"]`);
+    await expect(group).toHaveCount(copies);
+
+    const aim = async (locator: ReturnType<Page["locator"]>) => {
+      const box = (await locator.boundingBox())!;
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    };
+    const from = await aim(copy);
+    const sameSection = await aim(main.locator(".deck-tile").nth(25));
+    const other = await aim(section(page, "Side Deck").locator(".deck-tile").first());
+    // The browser reports a drag over a spot only as the pointer moves, so nudge it until the page has answered.
+    const hover = async (at: { x: number; y: number }, check: () => Promise<void>) => {
+      let nudge = 0;
+      await expect(async () => {
+        nudge += 1;
+        await page.mouse.move(at.x + (nudge % 3), at.y + (nudge % 2));
+        await check();
+      }).toPass();
+    };
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 5, from.y + 5, { steps: 4 });
+    // Over its own section: every copy is dimmed, because all of them move.
+    await hover(sameSection, async () => {
+      for (let i = 0; i < copies; i += 1) await expect(group.nth(i)).toHaveAttribute("data-dragging", "true", { timeout: 400 });
+    });
+
+    // Over another section: one copy moves, so only the tile being dragged stays dimmed.
+    await hover(other, async () => {
+      await expect(group.first()).toHaveAttribute("data-dragging", "true", { timeout: 400 });
+      for (let i = 1; i < copies; i += 1) await expect(group.nth(i)).not.toHaveAttribute("data-dragging", "true", { timeout: 400 });
+    });
+
+    await page.mouse.up();
+    await expect(page.locator(".deck-tile[title]").first()).toBeVisible();
+    await expect(main.locator("li[data-dragging]")).toHaveCount(0);
+  });
+
   test("dragging inside a sorted section says why it cannot reorder, and As built fixes it", async ({ page }) => {
     await openApp(page);
     await settled(page);
