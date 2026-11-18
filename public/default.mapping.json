@@ -1014,6 +1014,22 @@
       "distinct_constraints": []
     },
     {
+      "id": "terminus-alone",
+      "name": "Terminus alone",
+      "notes": "Terminus sends a Power Patron to the GY and adds a DARK Fairy from the Deck, such as Medius or Vidolium. It starts the turn on its own.",
+      "requirements": [
+        {
+          "id": "tm1",
+          "kind": "card",
+          "card_id": 25661743,
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
       "id": "plugging-pp",
       "name": "Portal Plugging + a Power Patron monster",
       "notes": "A starter you described: Plugging, discarding a Power Patron monster.",
@@ -1160,14 +1176,15 @@
     {
       "id": "goal-any",
       "name": "Any one-card start",
-      "notes": "Medius, Vidolium, Pendulum Treasure or an Ars Magna starter. The headline goal: edit it to match what you count as a start.",
+      "notes": "One card starts it: Medius, Vidolium, Pendulum Treasure, an Ars Magna starter (Finite and the Infinite, or Corruption and the Purification), Citrinitas or Terminus. The headline goal. Treasure + a Power Patron monster is listed too: it starts nothing new (Treasure alone already does), but you tested that it survives 2 interruptions, so it is here to count that.",
       "condition_ids": [
         "medius-alone",
         "vidolium-alone",
         "treasure-alone",
         "ars-magna-alone",
-        "tinia-alone",
-        "citrinitas-alone"
+        "citrinitas-alone",
+        "terminus-alone",
+        "treasure-pp"
       ],
       "aggregation": "any"
     },
@@ -1200,6 +1217,7 @@
         "tinia-alone",
         "plugging-pp",
         "citrinitas-alone",
+        "terminus-alone",
         "treasure-pp",
         "graflare-stays"
       ],
