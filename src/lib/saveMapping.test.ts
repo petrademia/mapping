@@ -74,7 +74,7 @@ describe("the default deck's mapping file", () => {
 
   it("is saved in the app's own format, so saving it back changes nothing", () => {
     const doc = deckFromMappingText(mappingText)!;
-    expect(serializeMapping(doc).trim()).toBe(mappingText.trim());
+    expect(serializeMapping(doc).trim()).toBe(mappingText.replace(/\r\n/g, "\n").trim());
   });
 
   it("is not read from a page that is not a mapping", () => {

@@ -9,6 +9,7 @@ import { ScorecardPanel } from "./components/ScorecardPanel";
 import { ScorecardSummary } from "./components/ScorecardSummary";
 import { withDerivedLabels } from "./lib/derivedLabels";
 import { HandtrapPanel } from "./components/HandtrapPanel";
+import { DeckTuningPanel } from "./components/DeckTuningPanel";
 import { RankPanel } from "./components/RankPanel";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { HandBatchPanel } from "./components/HandBatchPanel";
@@ -54,7 +55,7 @@ import {
 import type { AnalysisContext } from "./lib/analysisContext";
 import { loadStored, saveStored } from "./lib/persistence";
 
-type Workspace = "profile" | "scorecard" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps";
+type Workspace = "profile" | "scorecard" | "models" | "hand-test" | "batch" | "rank" | "compare" | "handtraps" | "tuning";
 
 const WORKSPACE_LABELS: Record<Workspace, string> = {
   profile: "Profile",
@@ -64,6 +65,7 @@ const WORKSPACE_LABELS: Record<Workspace, string> = {
   batch: "Batch Test",
   rank: "Rank",
   handtraps: "Handtraps",
+  tuning: "Deck Tuning",
   compare: "Compare",
 };
 
@@ -73,7 +75,7 @@ type Step = "define" | "test" | "analyze";
 const STEPS: { key: Step; label: string; workspaces: Workspace[] }[] = [
   { key: "define", label: "Define", workspaces: ["models", "handtraps", "rank"] },
   { key: "test", label: "Test", workspaces: ["hand-test", "batch"] },
-  { key: "analyze", label: "Analyze", workspaces: ["profile", "scorecard", "compare"] },
+  { key: "analyze", label: "Analyze", workspaces: ["profile", "scorecard", "tuning", "compare"] },
 ];
 
 const stepOf = (workspace: Workspace): (typeof STEPS)[number] =>
@@ -120,9 +122,11 @@ export function App() {
   // The shuffled deck order behind the drawn hand, kept so it survives tab switches.
   const [handOrder, setHandOrder] = useState<number[] | null>(null);
   const [workspace, setWorkspace] = useState<Workspace>("profile");
+  const [tuningPreview, setTuningPreview] = useState<MappingDocument | null>(null);
   // The workspace last open in each step, so returning to a step puts you back where you were.
   const lastInStep = useRef<Partial<Record<Step, Workspace>>>({});
   const goTo = (next: Workspace) => {
+    if (next !== "compare") setTuningPreview(null);
     lastInStep.current[stepOf(next).key] = next;
     setWorkspace(next);
   };
@@ -132,11 +136,11 @@ export function App() {
   const [status, setStatus] = useState("");
   const [theme, setTheme] = useTheme();
   // Workspaces and exports read the active configuration; `doc` stays Pre-Side.
-  const view = useMemo(
-    // Starter, Extender and Brick come from the Hand Conditions, so every workspace reads them.
-    () => withDerivedLabels(applyConfiguration(doc, doc.active_configuration_id, extraIds)),
+  const activeDeck = useMemo(
+    () => applyConfiguration(doc, doc.active_configuration_id, extraIds),
     [doc, extraIds],
   );
+  const view = useMemo(() => withDerivedLabels(activeDeck), [activeDeck]);
   const activeConfig = findConfiguration(doc, doc.active_configuration_id);
   // A new turn order changes how many cards a hand holds, so a drawn hand no longer fits.
   const changeContext = (context: AnalysisContext) => {
@@ -522,6 +526,20 @@ export function App() {
             <HandtrapPanel doc={view} catalog={catalog} onChange={changeView} />
           ) : null}
 
+          {workspace === "tuning" ? (
+            <DeckTuningPanel
+              key={resetKey}
+              doc={activeDeck}
+              catalog={catalog}
+              extraIds={extraIds}
+              banlist={banlist}
+              format={format}
+              onPreview={(deck) => {
+                setTuningPreview({ ...deck, configurations: [], active_configuration_id: null });
+                goTo("compare");
+              }}
+            />
+          ) : null}
           {workspace === "scorecard" ? <ScorecardPanel doc={view} /> : null}
 
           {workspace === "compare" ? (
@@ -530,10 +548,13 @@ export function App() {
               doc={view}
               catalog={catalog}
               decks={deckLibrary}
+              initialDeck={tuningPreview}
               onUse={(deck) => {
+                setTuningPreview(null);
                 setDoc(deck);
                 setResetKey((key) => key + 1);
                 setTestedHand(null);
+                setHandOrder(null);
                 setStatus("Replaced the deck with the compared deck.");
               }}
             />

@@ -212,6 +212,12 @@
 .compare-table .delta.gain { color: var(--pass); }
 .compare-table .delta.loss { color: var(--danger); }
 
+.tuning-controls { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.tuning-controls label, .tuning-search { display: grid; gap: var(--space-1); }
+.tuning-options { min-inline-size: 0; margin-block: var(--space-3); }
+.tuning-options label:not(.tuning-search) { display: inline-flex; gap: var(--space-1); margin-inline-end: var(--space-3); }
+.tuning-results { overflow-x: auto; }
+
 /* ---- Popovers and inline confirms -------------------------------------- */
 .clear-menu { position: relative; display: inline-block; }
 .clear-menu > button[aria-expanded="true"] { border-color: var(--accent); }
