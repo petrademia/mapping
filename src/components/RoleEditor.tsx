@@ -48,7 +48,7 @@ export function RoleEditor({ roles, onChange, derived }: Props) {
           title="A lingering handtrap: its effect taxes or blocks the opponent all turn, so they go on with a smaller board (Droll & Lock Bird). Works in either turn order"
           onClick={() => onChange(toggleRole(roles, "lingering"))}
         >
-          Lingering
+          Lingering handtrap
         </button>
         <button
           type="button"
@@ -58,7 +58,27 @@ export function RoleEditor({ roles, onChange, derived }: Props) {
           title="A lingering handtrap that only works going second, because you must control no cards (Mulcharmy). It taxes the opponent all turn"
           onClick={() => onChange(toggleRole(roles, "lingering_second"))}
         >
-          Lingering, going second
+          Lingering handtrap, going second
+        </button>
+        <button
+          type="button"
+          className={roles.includes("breaker") ? "chip on" : "chip"}
+          data-role="breaker"
+          aria-pressed={roles.includes("breaker")}
+          title="A board breaker: it destroys, banishes or bounces the opponent's cards on your turn. Counts in either turn order"
+          onClick={() => onChange(toggleRole(roles, "breaker"))}
+        >
+          Board breaker
+        </button>
+        <button
+          type="button"
+          className={roles.includes("breaker_second") ? "chip on" : "chip"}
+          data-role="breaker_second"
+          aria-pressed={roles.includes("breaker_second")}
+          title="A board breaker that is only worth it going second, since going first there is no board yet"
+          onClick={() => onChange(toggleRole(roles, "breaker_second"))}
+        >
+          Board breaker, going second
         </button>
       </div>
       {derived ? (

@@ -39,8 +39,10 @@ const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
   starter: "Starter",
   extender: "Extender",
   interaction: "Interaction",
-  lingering: "Lingering disruption",
-  lingering_second: "Lingering disruption, going second",
+  lingering: "Lingering handtrap",
+  lingering_second: "Lingering handtrap, going second",
+  breaker: "Board breaker",
+  breaker_second: "Board breaker, going second",
 };
 
 const QUALITY_LABELS: { key: "desirable" | "neutral" | "undesirable" | "unclassified"; label: string }[] = [
@@ -241,8 +243,8 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
   }, [hand, doc, scoreSettings, context.turn_order, deckScore]);
 
   const roleCounts = useMemo(() => {
-    if (!hand) return { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0 };
-    const counts = { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0 };
+    if (!hand) return { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0 };
+    const counts = { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0 };
     for (const card of doc.main) {
       const copies = hand.card_counts[card.card_id] ?? 0;
       if (copies === 0) continue;

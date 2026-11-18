@@ -17,7 +17,9 @@
       "card_id": 60946049,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "breaker_second"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -193,7 +195,9 @@
       "card_id": 43871165,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "breaker_second"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null

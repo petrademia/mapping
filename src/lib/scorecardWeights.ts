@@ -18,7 +18,7 @@ export function parseSettings(raw: string | null): ScorecardSettings {
       const n = value[key];
       return typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= max ? n : DEFAULT_SETTINGS[key];
     };
-    const atLeast1 = (key: "lingeringWorth" | "disruptionNeeded"): number => {
+    const atLeast1 = (key: "lingeringWorth" | "disruptionNeeded" | "breakersNeeded"): number => {
       const n = value[key];
       return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= MAX_DISRUPTION_POINTS ? n : DEFAULT_SETTINGS[key];
     };
@@ -32,11 +32,13 @@ export function parseSettings(raw: string | null): ScorecardSettings {
       resilient: read("resilient", 10),
       interaction: read("interaction", 10),
       lingering: read("lingering", 10),
+      breaking: read("breaking", 10),
       first: read("first", 10),
       second: read("second", 10),
       brickTolerance: read("brickTolerance", BRICK_CURVE_MAX),
       lingeringWorth: atLeast1("lingeringWorth"),
       disruptionNeeded: atLeast1("disruptionNeeded"),
+      breakersNeeded: atLeast1("breakersNeeded"),
       winRate: between("winRate", 1, 99),
       handtrapsAfterLoss: between("handtrapsAfterLoss", 1, INTERRUPTION_CURVE_MAX),
       handtrapsOtherwise: between("handtrapsOtherwise", 1, INTERRUPTION_CURVE_MAX),

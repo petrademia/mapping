@@ -19,7 +19,7 @@ interface Props {
   doc: MappingDocument;
 }
 
-type WeightKey = "opens" | "clean" | "resilient" | "interaction" | "lingering" | "first" | "second";
+type WeightKey = "opens" | "clean" | "resilient" | "interaction" | "lingering" | "breaking" | "first" | "second";
 
 const NUMBER_WEIGHTS: { key: WeightKey; label: string }[] = [
   { key: "opens", label: "Opens" },
@@ -27,6 +27,7 @@ const NUMBER_WEIGHTS: { key: WeightKey; label: string }[] = [
   { key: "resilient", label: "Resilient" },
   { key: "interaction", label: "Interaction" },
   { key: "lingering", label: "Disruption" },
+  { key: "breaking", label: "Breaking" },
 ];
 
 function Meter({ value, label }: { value: number; label: string }) {
@@ -105,6 +106,12 @@ function Turn({ title, turn, tolerance }: { title: string; turn: TurnScore; tole
           value={turn.lingering}
           note="hands with enough disruption points, a lingering handtrap counting for more than a one-shot card; not counted unless you give it a weight"
           missing="no lingering handtrap works in this turn order"
+        />
+        <Row
+          label="Breaking"
+          value={turn.breaking}
+          note="hands with enough board breakers, cards that destroy or banish the opponent's cards on your turn; not counted unless you give it a weight"
+          missing="no board breaker works in this turn order"
         />
       </dl>
       <p className="scorecard-slots">
@@ -407,6 +414,21 @@ export function ScorecardPanel({ doc }: Props) {
           </p>
           <div className="scorecard-weights">
             <label>
+              Board breakers a hand needs
+              <select
+                value={settings.breakersNeeded}
+                onChange={(event) => set({ breakersNeeded: Math.max(1, whole(event.target.value, MAX_DISRUPTION_POINTS)) })}
+              >
+                {Array.from({ length: MAX_DISRUPTION_POINTS }, (_, k) => (
+                  <option key={k + 1} value={k + 1}>
+                    {k + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="scorecard-weights">
+            <label>
               Your chance to win a game, %
               <input
                 type="number"
@@ -522,13 +544,19 @@ export function ScorecardPanel({ doc }: Props) {
               </li>
               <li>
                 Disruption counts points in your hand. A one-shot Interaction card is worth 1. A
-                card marked Lingering disruption (a handtrap whose effect stays on for the opponent's
+                card marked Lingering handtrap (a handtrap whose effect stays on for the opponent's
                 whole turn, such as Droll &amp; Lock Bird) is worth the points you set, in both turn
-                orders, and a card marked Lingering disruption, going second (Mulcharmy, which need
+                orders, and a card marked Lingering handtrap, going second (Mulcharmy, which need
                 you to control no cards) only going second. It keeps taxing the opponent all turn,
                 so they tend to end on a smaller board than after a one-shot handtrap; how many
                 points that is worth is your judgement. The number says how often a hand reaches the
                 points you ask for, not how much it hurts the opponent. It has weight 0 until you set one.
+              </li>
+              <li>
+                Breaking counts cards marked Board breaker (they destroy, banish or bounce the opponent's
+                cards on your turn) in both turn orders, and cards marked Board breaker, going second
+                only going second, since going first there is no board yet. It says how often you hold
+                the number you ask for, not how much a breaker is worth. It has weight 0 until you set one.
               </li>
               <li>These measure how reliably you reach your plan, not how often you win.</li>
             </ul>

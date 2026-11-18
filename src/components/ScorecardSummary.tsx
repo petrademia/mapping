@@ -10,7 +10,8 @@ const HOW_TO_MEASURE = {
   clean: "mark bricks as Undesirable",
   resilient: "add a handtrap in the Handtraps tab",
   interaction: "mark Interaction cards",
-  lingering: "mark Lingering disruption cards",
+  lingering: "mark Lingering handtrap cards",
+  breaking: "mark Board breaker cards",
 } as const;
 
 function Tile({ title, turn }: { title: string; turn: TurnScore }) {

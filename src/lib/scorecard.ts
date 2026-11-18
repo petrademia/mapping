@@ -32,6 +32,8 @@ export interface ScorecardWeights {
   interaction: number;
   /** Off by default: the headline stays the same until you choose to count it. */
   lingering: number;
+  /** Off by default too: how much holding board breakers counts toward the combined number. */
+  breaking: number;
   /** How much going first and going second each count toward the overall number. */
   first: number;
   second: number;
@@ -43,6 +45,7 @@ export const DEFAULT_WEIGHTS: ScorecardWeights = {
   resilient: 1,
   interaction: 1,
   lingering: 0,
+  breaking: 0,
   first: 1,
   second: 1,
 };
@@ -54,6 +57,8 @@ export interface ScorecardSettings extends ScorecardWeights {
   lingeringWorth: number;
   /** Points a hand needs to count as disrupting. */
   disruptionNeeded: number;
+  /** Board breakers a hand needs to count as able to break a board (1 to MAX_DISRUPTION_POINTS). */
+  breakersNeeded: number;
   /** Your chance to win any one game, in percent (1 to 99), for how often you go first or second. */
   winRate: number;
   /** Most handtraps to expect going first after a loss, when the opponent has sided against you (1 to 3). */
@@ -67,6 +72,7 @@ export const DEFAULT_SETTINGS: ScorecardSettings = {
   brickTolerance: 1,
   lingeringWorth: 2,
   disruptionNeeded: 2,
+  breakersNeeded: 1,
   winRate: 50,
   handtrapsAfterLoss: 3,
   handtrapsOtherwise: 2,
@@ -204,6 +210,8 @@ export interface TurnScore {
   interaction: number | null;
   /** P(disruption points >= the number needed); null when no lingering handtrap is usable this turn order. */
   lingering: number | null;
+  /** P(holding at least `breakersNeeded` board breakers usable this turn order); null when none is usable. */
+  breaking: number | null;
   /** Weighted mean of the numbers that exist; null when no weight is left. */
   combined: number | null;
   notes: string[];
@@ -229,12 +237,13 @@ export const COMPONENT_LABELS = {
   resilient: "Resilient",
   interaction: "Interaction",
   lingering: "Disruption",
+  breaking: "Breaking",
 } as const;
 
 export type ComponentKey = keyof typeof COMPONENT_LABELS;
 
 /** Extra measures: shown, but not the weakest part and not reported as missing. */
-const OPTIONAL_KEYS: readonly ComponentKey[] = ["lingering"];
+const OPTIONAL_KEYS: readonly ComponentKey[] = ["lingering", "breaking"];
 const CORE_KEYS = (Object.keys(COMPONENT_LABELS) as ComponentKey[]).filter((key) => !OPTIONAL_KEYS.includes(key));
 
 /** The measured number that is lowest for a turn order: the place to look first. */
@@ -268,7 +277,16 @@ export function atLeastOne(deck: number, special: number, sample: number): numbe
   return 1 - none;
 }
 
-const NUMBER_KEYS = ["opens", "clean", "resilient", "interaction", "lingering"] as const;
+const NUMBER_KEYS = ["opens", "clean", "resilient", "interaction", "lingering", "breaking"] as const;
+
+/** Board breakers that count in a turn order: "both" ones, plus "going second only" ones going second. */
+export function breakerCopies(doc: MappingDocument, turnOrder: TurnOrder): number {
+  return doc.main.reduce((sum, card) => {
+    const roles = card.taxonomy.roles;
+    const counts = roles.includes("breaker") || (turnOrder === "going_second" && roles.includes("breaker_second"));
+    return counts ? sum + card.quantity : sum;
+  }, 0);
+}
 
 /**
  * The disruption cards that work in a turn order: lingering handtraps (the "both" ones, plus the
@@ -287,6 +305,18 @@ export function disruptionCards(doc: MappingDocument, turnOrder: TurnOrder): { o
     }
   }
   return { oneShot, lingering };
+}
+
+/** P(at least `needed` of `special` cards among `sample` drawn from `deck`), exact. */
+export function atLeastCopies(deck: number, special: number, sample: number, needed: number): number {
+  if (needed <= 0) return 1;
+  if (special < needed || sample < needed || sample > deck) return 0;
+  const total = choose(deck, sample);
+  let hits = 0;
+  for (let k = needed; k <= Math.min(special, sample); k += 1) {
+    hits += choose(special, k) * choose(deck - special, sample - k);
+  }
+  return hits / total;
 }
 
 function choose(n: number, k: number): number {
@@ -510,6 +540,8 @@ function turnScore(
           settings.lingeringWorth,
           settings.disruptionNeeded,
         );
+  const breakers = breakerCopies(doc, turnOrder);
+  const breaking = breakers === 0 ? null : atLeastCopies(mainSize, breakers, sample, settings.breakersNeeded);
 
   return {
     turnOrder,
@@ -527,7 +559,8 @@ function turnScore(
     resilientPriority,
     interaction,
     lingering,
-    combined: combine({ opens, clean, resilient, interaction, lingering }, settings),
+    breaking,
+    combined: combine({ opens, clean, resilient, interaction, lingering, breaking }, settings),
     notes,
   };
 }

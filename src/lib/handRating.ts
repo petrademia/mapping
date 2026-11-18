@@ -127,6 +127,22 @@ export function rateHand(
     });
   }
 
+  if (turn.breaking !== null) {
+    let inHand = 0;
+    for (const card of doc.main) {
+      const roles = card.taxonomy.roles;
+      if (roles.includes("breaker") || (turn.turnOrder === "going_second" && roles.includes("breaker_second"))) {
+        inHand += counts[card.card_id] ?? 0;
+      }
+    }
+    checks.push({
+      key: "breaking",
+      label: COMPONENT_LABELS.breaking,
+      passed: inHand >= settings.breakersNeeded,
+      detail: `${inHand} board ${inHand === 1 ? "breaker" : "breakers"} in hand, needs ${settings.breakersNeeded}`,
+    });
+  }
+
   const numbers: Partial<Record<ComponentKey, number | null>> = {};
   for (const check of checks) numbers[check.key] = check.passed === null ? null : check.passed ? 1 : 0;
   return { checks, score: combine(numbers, settings), deckAverage: turn.combined };

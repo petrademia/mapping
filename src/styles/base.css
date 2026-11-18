@@ -35,6 +35,7 @@ h1 {
 [data-role="extender"] { --swatch: var(--extender); }
 [data-role="interaction"] { --swatch: var(--interaction); }
 [data-role="lingering"], [data-role="lingering_second"] { --swatch: var(--interaction); }
+[data-role="breaker"], [data-role="breaker_second"] { --swatch: var(--extender); }
 [data-quality="desirable"] { --swatch: var(--desirable); }
 [data-quality="neutral"] { --swatch: var(--neutral); }
 [data-quality="undesirable"] { --swatch: var(--undesirable); }

@@ -543,9 +543,9 @@ test.describe("Deck view", () => {
     await expect(detail.getByRole("button", { name: "Interaction" })).toBeInViewport();
     await detail.getByRole("button", { name: "Interaction" }).click();
     await expect(detail.getByRole("button", { name: "Interaction" })).toHaveAttribute("aria-pressed", "true");
-    // Lingering disruption is tagged by hand too, for both turn orders or going second only.
-    const lingering = detail.getByRole("button", { name: "Lingering", exact: true });
-    const lingeringSecond = detail.getByRole("button", { name: "Lingering, going second", exact: true });
+    // A Lingering handtrap is tagged by hand too, for both turn orders or going second only.
+    const lingering = detail.getByRole("button", { name: "Lingering handtrap", exact: true });
+    const lingeringSecond = detail.getByRole("button", { name: "Lingering handtrap, going second", exact: true });
     await lingering.click();
     await lingeringSecond.click();
     await expect(lingering).toHaveAttribute("aria-pressed", "true");
@@ -553,6 +553,14 @@ test.describe("Deck view", () => {
     await lingering.click();
     await expect(lingering).toHaveAttribute("aria-pressed", "false");
     await expect(lingeringSecond).toHaveAttribute("aria-pressed", "true");
+    // So is a Board breaker, in both turn orders or going second only.
+    const breaker = detail.getByRole("button", { name: "Board breaker", exact: true });
+    const breakerSecond = detail.getByRole("button", { name: "Board breaker, going second", exact: true });
+    await breakerSecond.click();
+    await expect(breakerSecond).toHaveAttribute("aria-pressed", "true");
+    await expect(breaker).toHaveAttribute("aria-pressed", "false");
+    await breaker.click();
+    await expect(breaker).toHaveAttribute("aria-pressed", "true");
     // Starter and Extender are not tagged by hand: there is no button for them.
     await expect(detail.getByRole("button", { name: "Starter" })).toHaveCount(0);
     await expect(detail.getByRole("button", { name: "Extender" })).toHaveCount(0);

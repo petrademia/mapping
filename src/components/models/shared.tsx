@@ -16,8 +16,10 @@ export const ROLE_LABELS: Record<Role, string> = {
   starter: "Starter",
   extender: "Extender",
   interaction: "Interaction",
-  lingering: "Lingering disruption",
-  lingering_second: "Lingering disruption, going second",
+  lingering: "Lingering handtrap",
+  lingering_second: "Lingering handtrap, going second",
+  breaker: "Board breaker",
+  breaker_second: "Board breaker, going second",
 };
 
 export function EntityNotes({

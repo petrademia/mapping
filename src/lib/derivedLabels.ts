@@ -12,13 +12,16 @@ import { ROLES, type Role } from "./taxonomy";
  *   needing one card). Any card of a Group requirement counts.
  * - **Extender**: a card a condition needs together with another card (two or
  *   more requirements, or one copy and more). A card can be both.
- * - **Brick**: a card in none of your routes that is not an Interaction or Lingering card.
+ * - **Brick**: a card in none of your routes that is not an Interaction, Lingering or Board breaker card.
  *   Going first or second it is dead for the Hand Goals. Opening Quality you set
  *   by hand always wins.
  *
  * Role requirements and exclusions are ignored here, which also keeps this from
  * depending on its own result.
  */
+/** Roles you tag by hand that keep a card from being a Brick: it does its work outside the routes. */
+const DISRUPTIVE: ReadonlySet<Role> = new Set<Role>(["interaction", "lingering", "lingering_second", "breaker", "breaker_second"]);
+
 export interface DerivedLabels {
   starter: boolean;
   extender: boolean;
@@ -84,7 +87,7 @@ export function deriveLabels(doc: MappingDocument): Map<number, DerivedLabels> {
   }
   for (const card of doc.main) {
     const label = labels.get(card.card_id)!;
-    const disrupts = card.taxonomy.roles.some((role) => role === "interaction" || role === "lingering" || role === "lingering_second");
+    const disrupts = card.taxonomy.roles.some((role) => DISRUPTIVE.has(role));
     label.brick = !label.starter && !label.extender && !disrupts;
   }
   return labels;
@@ -105,8 +108,7 @@ export function withDerivedLabels(doc: MappingDocument): MappingDocument {
     if (!label) return card;
     const roles: Role[] = ROLES.filter(
       (role) =>
-        ((role === "interaction" || role === "lingering" || role === "lingering_second") &&
-          card.taxonomy.roles.includes(role)) ||
+        (DISRUPTIVE.has(role) && card.taxonomy.roles.includes(role)) ||
         (role === "starter" && label.starter) ||
         (role === "extender" && label.extender),
     );

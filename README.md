@@ -94,7 +94,7 @@ Opening Quality:   Going First:  neutral
 - **Which Hand Goal the labels read.** Above the deck, "Starter, Extender and Brick are read from" picks one Hand Goal; only its Hand Conditions count, so a card is an Extender only when that goal needs it with another card, and a card in none of its routes is a Brick. "Every Hand Goal" reads them all, as before, which makes almost every card an Extender through broad Groups. Saved as `label_goal_id`.
 - A **brick** is in none of your routes and is not an Interaction card. Opening Quality you set by hand always wins; derived bricks only fill in where it is not set.
 - Role requirements, exclusions and requirements that only ask for fewer cards are ignored when deriving.
-- **Interaction** is the main role you tag, and **Lingering disruption** (both turn orders) and **Lingering disruption, going second** are the other two. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
+- **Interaction** is the main role you tag, and **Lingering handtrap** (both turn orders), **Lingering handtrap, going second**, **Board breaker** and **Board breaker, going second** are the others. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
 - Nothing derived is saved: it is how the workspaces and the YAPPING export see the deck. The card editor shows the derived labels read-only.
 
 ### Opening quality definitions (hypotheses)
@@ -307,6 +307,13 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
   case over the handtraps and pairs in the Handtraps tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
+- **Breaking** - hands with enough board breakers, cards that destroy, banish or bounce the
+  opponent's cards on your own turn. Mark such a card "Board breaker" to count it in both turn
+  orders, or "Board breaker, going second" to count it only going second, since going first
+  there is no board yet. "Board breakers a hand needs" in Settings (default 1) sets the bar. It
+  says how often you hold enough breakers, not how much a breaker is worth. It has weight 0
+  until you set one, so the combined numbers do not change by default, and it is never the
+  weakest part nor reported as missing. A Board breaker is not counted as a Brick.
 - **Match-weighted push** - the interruption curves weighted over a best-of-three, shown in
   the Profile summary and under the interruption table. Game 1 is a die roll. After that the
   loser chooses to go first, so you go first in game 2 exactly when you lost game 1, and a third
@@ -318,8 +325,8 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Disruption** - hands with enough disruption points. A one-shot Interaction card
   is worth 1 point. A lingering handtrap, whose effect stays on for the opponent's
   whole turn (Droll & Lock Bird), is worth more, because it keeps taxing the opponent
-  and they tend to end on a smaller board. Mark such a card "Lingering disruption" to
-  count it in both turn orders, or "Lingering disruption, going second" to count it only
+  and they tend to end on a smaller board. Mark such a card "Lingering handtrap" to
+  count it in both turn orders, or "Lingering handtrap, going second" to count it only
   going second (Mulcharmy, which need you to control no cards). In Settings, "A
   lingering handtrap is worth" sets its points (default 2) and "Disruption points a hand
   needs" sets the bar (default 2), so by default one lingering card is enough and one
