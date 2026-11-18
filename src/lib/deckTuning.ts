@@ -27,6 +27,9 @@ export function applyTuning(doc: MappingDocument, change: TuningChange): Mapping
   return next;
 }
 
+/** Each addition multiplies the swap search, so the shortlist is bounded. */
+export const MAX_ADDITIONS = 10;
+
 export interface TuningRequest {
   doc: MappingDocument;
   goalId: string;
@@ -51,6 +54,9 @@ export function tuneDeck({ doc, goalId, scenarios, cuts, additions, banlist, for
   const goals = doc.hand_condition_sets.filter((goal) => goal.id === goalId);
   const goal = goals[0];
   if (!goal) return { error: "Choose a Hand Goal." };
+  if (new Set(additions).size > MAX_ADDITIONS) {
+    return { error: `Shortlist at most ${MAX_ADDITIONS} additions.` };
+  }
   const sample = observedCards(analysisContextOf(doc), doc.analysis.opening_hand_size);
   const oddsFor = (deck: MappingDocument): Odds | null => {
     const result = analyzeVersus({ ...withDerivedLabels(deck), hand_condition_sets: goals }, scenarios);
@@ -66,6 +72,12 @@ export function tuneDeck({ doc, goalId, scenarios, cuts, additions, banlist, for
     return { error: "Deck Tuning requires at most 15 cards each in Extra and Side." };
   }
 
+  // A change is rejected only if it makes a card exceed its limit further than the
+  // current deck already does, so an existing violation does not hide every candidate.
+  const existing = new Map(deckViolations(doc, banlist, format).map((entry) => [entry.card_id, entry.copies]));
+  const worsens = (deck: MappingDocument) =>
+    deckViolations(deck, banlist, format).some((entry) => entry.copies > (existing.get(entry.card_id) ?? 0));
+
   const changes: TuningChange[] = [];
   for (const cut of new Set(cuts)) {
     if (!doc.main.some((card) => card.card_id === cut)) continue;
@@ -80,7 +92,7 @@ export function tuneDeck({ doc, goalId, scenarios, cuts, additions, banlist, for
   for (const change of changes) {
     const deck = applyTuning(doc, change);
     const size = sectionSize(deck.main);
-    if (size < Math.max(40, sample) || size > 60 || deckViolations(deck, banlist, format).length > 0) continue;
+    if (size < Math.max(40, sample) || size > 60 || worsens(deck)) continue;
     const odds = oddsFor(deck);
     if (odds) candidates.push({ change, size, odds });
   }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { analysisContextLabel } from "../lib/analysisContext";
 import { allowedCopies, copiesInDeck, type Banlist, type Format } from "../lib/banlist";
 import { displayName, searchCatalog, type Catalog } from "../lib/catalog";
-import { applyTuning, type TuningRequest, type TuningResult } from "../lib/deckTuning";
+import { applyTuning, MAX_ADDITIONS, type TuningRequest, type TuningResult } from "../lib/deckTuning";
 import { analysisContextOf, sectionSize, type MappingDocument } from "../lib/document";
 import { scenariosFor } from "../lib/handtrapVersus";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
@@ -74,6 +74,7 @@ export function DeckTuningPanel({ doc, catalog, extraIds, banlist, format, onPre
     ? searchCatalog(catalog, query.trim(), 100).filter((hit) => canAdd(hit.card_id)).slice(0, 8)
     : doc.main.filter((card) => canAdd(card.card_id)).slice(0, 8);
   const shortlist = additions.filter(canAdd);
+  const shortlistFull = shortlist.length >= MAX_ADDITIONS;
   const cuts = doc.main.some((card) => String(card.card_id) === cut)
     ? [Number(cut)]
     : doc.main.map((card) => card.card_id);
@@ -108,13 +109,13 @@ export function DeckTuningPanel({ doc, catalog, extraIds, banlist, format, onPre
           </div>
           <fieldset className="tuning-options">
             <legend>Addition shortlist</legend>
-            <p className="note">Each addition puts a new copy in Main. Shortlisted cards also enter the swap search.</p>
+            <p className="note">Each addition puts a new copy in Main. Shortlisted cards also enter the swap search. Up to {MAX_ADDITIONS} cards.</p>
             <label className="tuning-search">
               Search Main Deck cards
               <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
             </label>
             <div className="context-presets">
-              {hits.filter((hit) => !shortlist.includes(hit.card_id)).map((hit) => (
+              {(shortlistFull ? [] : hits.filter((hit) => !shortlist.includes(hit.card_id))).map((hit) => (
                 <button key={hit.card_id} type="button" onClick={() => {
                   setAdditions([...shortlist, hit.card_id]);
                   clearRun();
@@ -203,7 +204,7 @@ export function DeckTuningPanel({ doc, catalog, extraIds, banlist, format, onPre
                 </tbody>
               </table>
               {result.candidates.length === 0 ? (
-                <p className="empty">No candidates meet the 40–60 Main Deck size and format limits.</p>
+                <p className="empty">No candidates meet the 40–60 Main Deck size and format limits without adding further violations.</p>
               ) : null}
             </div>
           ) : null}

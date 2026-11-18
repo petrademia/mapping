@@ -281,7 +281,7 @@ export function ComparePanel({ doc, catalog, initialDeck = null, onUse, decks = 
               label="Use compared deck"
               confirmLabel="Replace"
               message={other === initialDeck
-                ? "Replace the Pre-Side deck with this tuned list? This clears existing Post-Side configurations."
+                ? "Replace the deck with this tuned list? The active configuration's cards become the Pre-Side deck, and existing Post-Side configurations are cleared."
                 : "Replace this deck with the compared deck? Your Groups and Hand Goals are kept."}
               onConfirm={() => {
                 if (other === initialDeck) onUse(other);

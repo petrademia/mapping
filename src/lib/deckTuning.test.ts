@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { applyTuning, tuneDeck, type TuningRequest } from "./deckTuning";
+import { applyTuning, MAX_ADDITIONS, tuneDeck, type TuningRequest } from "./deckTuning";
 import { createDocument, setQuantity, upsertHandCondition, upsertHandConditionSet } from "./document";
 import { combinations, ratioToNumber } from "./probability";
 
@@ -50,4 +50,21 @@ it("enforces deck size and copy limits across sections", () => {
   const full = tuneDeck(request(60));
   if ("error" in full) throw new Error(full.error);
   expect(full.candidates.map(({ change }) => change.kind)).toEqual(["swap", "cut"]);
+});
+
+it("still ranks changes when the deck already exceeds a limit, but not ones that worsen it", () => {
+  const input = request(41);
+  const over = { ...input, banlist: { tcg: { name: "test", limits: { "3": 0 } } }, format: "tcg" as const };
+  const result = tuneDeck(over);
+  if ("error" in result) throw new Error(result.error);
+  expect(result.candidates.map(({ change }) => change.kind)).toEqual(["swap", "add", "cut"]);
+  const worse = tuneDeck({ ...over, additions: [3], cuts: [2] });
+  if ("error" in worse) throw new Error(worse.error);
+  expect(worse.candidates.map(({ change }) => change)).toEqual([{ kind: "cut", cut: 2 }]);
+});
+
+it("rejects a shortlist larger than the cap", () => {
+  const input = request(41);
+  const result = tuneDeck({ ...input, additions: Array.from({ length: MAX_ADDITIONS + 1 }, (_, i) => 100 + i) });
+  expect(result).toEqual({ error: `Shortlist at most ${MAX_ADDITIONS} additions.` });
 });
