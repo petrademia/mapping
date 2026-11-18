@@ -5,7 +5,8 @@ import { ROLES, type Role } from "./taxonomy";
 /**
  * Starter, Extender and Brick, read from the Hand Conditions you wrote instead of
  * tagged by hand. Only conditions that belong to a Hand Goal count, because those
- * are the routes in your model.
+ * are the routes in your model. When `label_goal_id` names a Hand Goal, only that goal's
+ * conditions count; otherwise every Hand Goal's do.
  *
  * - **Starter**: a card that satisfies a condition on its own (one requirement,
  *   needing one card). Any card of a Group requirement counts.
@@ -35,7 +36,9 @@ function needed(op: string, count: number): number | null {
 export function deriveLabels(doc: MappingDocument): Map<number, DerivedLabels> {
   const conditionById = new Map(doc.hand_conditions.map((condition) => [condition.id, condition]));
   const used = new Set<string>();
-  for (const set of doc.hand_condition_sets) {
+  // Only the chosen Hand Goal counts, when one is chosen and still exists; else every Hand Goal does.
+  const chosen = doc.label_goal_id ? doc.hand_condition_sets.find((set) => set.id === doc.label_goal_id) : undefined;
+  for (const set of chosen ? [chosen] : doc.hand_condition_sets) {
     for (const id of set.condition_ids) if (conditionById.has(id)) used.add(id);
   }
   const labels = new Map<number, DerivedLabels>();

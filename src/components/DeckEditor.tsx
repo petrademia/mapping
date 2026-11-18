@@ -4,7 +4,7 @@ import {
   DECK_LIST_ID,
   findConfiguration,
 } from "../lib/configuration";
-import type { MappingDocument } from "../lib/document";
+import { setLabelGoal, type MappingDocument } from "../lib/document";
 import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
 import { DeckGrid } from "./DeckGrid";
 import { CardSearch } from "./CardSearch";
@@ -76,6 +76,25 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
           mapping, paste a list under <strong>Paste a deck list</strong>, or
           search a card on the right.
         </p>
+      ) : null}
+      {doc.hand_condition_sets.some((set) => set.condition_ids.length > 0) ? (
+        <label className="deck-label-goal">
+          Starter, Extender and Brick are read from
+          <select
+            aria-label="Read card labels from"
+            value={doc.label_goal_id ?? ""}
+            onChange={(event) => onChange(setLabelGoal(doc, event.target.value || null))}
+          >
+            <option value="">Every Hand Goal</option>
+            {doc.hand_condition_sets
+              .filter((set) => set.condition_ids.length > 0)
+              .map((set) => (
+                <option key={set.id} value={set.id}>
+                  {set.name || "Untitled hand goal"}
+                </option>
+              ))}
+          </select>
+        </label>
       ) : null}
       <DeckGrid
         doc={doc}

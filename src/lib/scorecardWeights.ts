@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { BRICK_CURVE_MAX, DEFAULT_SETTINGS, MAX_DISRUPTION_POINTS, type ScorecardSettings } from "./scorecard";
+import {
+  BRICK_CURVE_MAX,
+  DEFAULT_SETTINGS,
+  INTERRUPTION_CURVE_MAX,
+  MAX_DISRUPTION_POINTS,
+  type ScorecardSettings,
+} from "./scorecard";
 
 const KEY = "mapping.scorecard.settings";
 
@@ -16,6 +22,10 @@ export function parseSettings(raw: string | null): ScorecardSettings {
       const n = value[key];
       return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= MAX_DISRUPTION_POINTS ? n : DEFAULT_SETTINGS[key];
     };
+    const between = (key: "winRate" | "handtrapsAfterLoss" | "handtrapsOtherwise", min: number, max: number): number => {
+      const n = value[key];
+      return typeof n === "number" && Number.isInteger(n) && n >= min && n <= max ? n : DEFAULT_SETTINGS[key];
+    };
     return {
       opens: read("opens", 10),
       clean: read("clean", 10),
@@ -27,6 +37,9 @@ export function parseSettings(raw: string | null): ScorecardSettings {
       brickTolerance: read("brickTolerance", BRICK_CURVE_MAX),
       lingeringWorth: atLeast1("lingeringWorth"),
       disruptionNeeded: atLeast1("disruptionNeeded"),
+      winRate: between("winRate", 1, 99),
+      handtrapsAfterLoss: between("handtrapsAfterLoss", 1, INTERRUPTION_CURVE_MAX),
+      handtrapsOtherwise: between("handtrapsOtherwise", 1, INTERRUPTION_CURVE_MAX),
     };
   } catch {
     return DEFAULT_SETTINGS;

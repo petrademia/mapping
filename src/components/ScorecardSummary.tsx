@@ -1,5 +1,5 @@
 import type { MappingDocument } from "../lib/document";
-import { COMPONENT_LABELS, rangeMean, unmeasured, weakest, type TurnScore } from "../lib/scorecard";
+import { COMPONENT_LABELS, matchPush, rangeMean, unmeasured, weakest, type TurnScore } from "../lib/scorecard";
 import { useScorecard } from "../lib/useScorecard";
 import { useScorecardSettings } from "../lib/scorecardWeights";
 
@@ -77,6 +77,7 @@ export function ScorecardSummary({ doc, onOpen }: { doc: MappingDocument; onOpen
   if ("error" in result) return null;
 
   const missing = unmeasured(result.first).filter((key) => unmeasured(result.second).includes(key));
+  const match = matchPush(result.first, result.second, settings);
 
   return (
     <section className="panel summary" aria-label="Quality at a glance">
@@ -89,6 +90,13 @@ export function ScorecardSummary({ doc, onOpen }: { doc: MappingDocument; onOpen
         <Tile title="Going first" turn={result.first} />
         <Tile title="Going second" turn={result.second} />
       </div>
+      {match.value !== null ? (
+        <p className="summary-match">
+          Over a best-of-three, <strong>{percent(match.value)}</strong> of hands still reach the goal after the
+          interruptions to expect, going first {percent(match.goingFirstShare)} of the time. Set the win rate and
+          handtrap counts in the Scorecard.
+        </p>
+      ) : null}
       {missing.length > 0 ? (
         <p className="note">
           Not measured yet:{" "}

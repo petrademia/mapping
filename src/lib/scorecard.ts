@@ -54,6 +54,12 @@ export interface ScorecardSettings extends ScorecardWeights {
   lingeringWorth: number;
   /** Points a hand needs to count as disrupting. */
   disruptionNeeded: number;
+  /** Your chance to win any one game, in percent (1 to 99), for how often you go first or second. */
+  winRate: number;
+  /** Most handtraps to expect going first after a loss, when the opponent has sided against you (1 to 3). */
+  handtrapsAfterLoss: number;
+  /** Most handtraps to expect in every other game (1 to 3). */
+  handtrapsOtherwise: number;
 }
 
 export const DEFAULT_SETTINGS: ScorecardSettings = {
@@ -61,6 +67,9 @@ export const DEFAULT_SETTINGS: ScorecardSettings = {
   brickTolerance: 1,
   lingeringWorth: 2,
   disruptionNeeded: 2,
+  winRate: 50,
+  handtrapsAfterLoss: 3,
+  handtrapsOtherwise: 2,
 };
 
 /** The most points a lingering handtrap can be worth, and a hand can be asked for. */
@@ -71,6 +80,65 @@ export const BRICK_CURVE_MAX = 3;
 
 /** The interruption curve is measured for 0 up to this many interruptions. */
 export const INTERRUPTION_CURVE_MAX = 3;
+
+/** One kind of game in a best-of-three, with how often it happens and how many handtraps to expect. */
+export interface MatchSituation {
+  label: string;
+  turnOrder: "going_first" | "going_second";
+  /** Share of all games played, 0 to 1. */
+  share: number;
+  /** The opponent may hold from 1 up to this many handtraps. */
+  upTo: number;
+  /** Survival averaged over 1 to `upTo` interruptions; null when the curve does not reach that far. */
+  push: number | null;
+}
+
+export interface MatchPush {
+  /** The share-weighted mean of every situation's push; null when none could be measured. */
+  value: number | null;
+  /** Share of all games played in which you go first. */
+  goingFirstShare: number;
+  situations: MatchSituation[];
+}
+
+/**
+ * Push over a best-of-three, weighted by how often each situation happens. Game 1 is a die roll,
+ * so either order, with the baseline number of handtraps. After that the loser chooses, so you go
+ * first in game 2 exactly when you lost game 1, and the opponent who won has sided in against your
+ * first turn: more handtraps. A third game happens when the first two are split, and then you go
+ * first half the time. Each game is won with the same chance, `winRate`. Every number comes from
+ * the interruption curves, so the opponent stops whichever card hurts you most.
+ */
+export function matchPush(first: TurnScore, second: TurnScore, settings: ScorecardSettings): MatchPush {
+  const p = Math.min(0.99, Math.max(0.01, settings.winRate / 100));
+  const afterLoss = Math.min(INTERRUPTION_CURVE_MAX, Math.max(1, settings.handtrapsAfterLoss));
+  const otherwise = Math.min(INTERRUPTION_CURVE_MAX, Math.max(1, settings.handtrapsOtherwise));
+  const thirdGame = 2 * p * (1 - p); // the match is split 1-1 after two games
+  const plan: Omit<MatchSituation, "push">[] = [
+    { label: "Game 1, going first", turnOrder: "going_first", share: 0.5, upTo: otherwise },
+    { label: "Game 1, going second", turnOrder: "going_second", share: 0.5, upTo: otherwise },
+    { label: "Game 2, going first (you lost game 1)", turnOrder: "going_first", share: 1 - p, upTo: afterLoss },
+    { label: "Game 2, going second (you won game 1)", turnOrder: "going_second", share: p, upTo: otherwise },
+    { label: "Game 3, going first", turnOrder: "going_first", share: thirdGame / 2, upTo: afterLoss },
+    { label: "Game 3, going second", turnOrder: "going_second", share: thirdGame / 2, upTo: otherwise },
+  ];
+  const games = 1 + 1 + thirdGame;
+  const situations = plan.map((situation) => ({
+    ...situation,
+    share: situation.share / games,
+    push: rangeMean(situation.turnOrder === "going_first" ? first.interruptions : second.interruptions, 1, situation.upTo),
+  }));
+  const measured = situations.filter((situation) => situation.push !== null);
+  const covered = measured.reduce((sum, situation) => sum + situation.share, 0);
+  return {
+    value:
+      measured.length === 0 || covered === 0
+        ? null
+        : measured.reduce((sum, situation) => sum + situation.share * situation.push!, 0) / covered,
+    goingFirstShare: situations.filter((s) => s.turnOrder === "going_first").reduce((sum, s) => sum + s.share, 0),
+    situations,
+  };
+}
 
 /**
  * The average of a curve over a range of interruptions, each count weighted equally: the

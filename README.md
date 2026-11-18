@@ -91,6 +91,7 @@ Opening Quality:   Going First:  neutral
 
 - A **starter** satisfies a condition on its own (one requirement, needing one copy). Every card of a Group requirement counts.
 - An **extender** is needed together with another card (two or more requirements, or two copies of one card). A card can be both.
+- **Which Hand Goal the labels read.** Above the deck, "Starter, Extender and Brick are read from" picks one Hand Goal; only its Hand Conditions count, so a card is an Extender only when that goal needs it with another card, and a card in none of its routes is a Brick. "Every Hand Goal" reads them all, as before, which makes almost every card an Extender through broad Groups. Saved as `label_goal_id`.
 - A **brick** is in none of your routes and is not an Interaction card. Opening Quality you set by hand always wins; derived bricks only fill in where it is not set.
 - Role requirements, exclusions and requirements that only ask for fewer cards are ignored when deriving.
 - **Interaction** is the main role you tag, and **Lingering disruption** (both turn orders) and **Lingering disruption, going second** are the other two. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
@@ -306,6 +307,14 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
   case over the handtraps and pairs in the Handtraps tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
+- **Match-weighted push** - the interruption curves weighted over a best-of-three, shown in
+  the Profile summary and under the interruption table. Game 1 is a die roll. After that the
+  loser chooses to go first, so you go first in game 2 exactly when you lost game 1, and a third
+  game is played when the match is split. Each game is won with the win rate you set (default
+  50%), which gives how often you go first (about 46% to 54%). The opponent may hold 1 to 2
+  handtraps in most games and 1 to 3 when you go first after a loss, because they have sided in
+  against you; both counts are settings. Each kind of game uses the survival averaged over its
+  range, going first or second. It is reported only and does not change the combined number.
 - **Disruption** - hands with enough disruption points. A one-shot Interaction card
   is worth 1 point. A lingering handtrap, whose effect stays on for the opponent's
   whole turn (Droll & Lock Bird), is worth more, because it keeps taxing the opponent

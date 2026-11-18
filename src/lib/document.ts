@@ -72,6 +72,12 @@ export interface MappingDocument {
   /** id of the HandConditionSet that defines Modeled Engine Access. */
   engine_access_set_id: string | null;
   /**
+   * The Hand Goal Starter, Extender and Brick are read from. Only its Hand Conditions count, so a
+   * card is an Extender only when that goal needs it with another card. Absent means every Hand Goal
+   * counts, as before.
+   */
+  label_goal_id?: string | null;
+  /**
    * ids of the Groups whose cards share one bottleneck, such as the one Normal
    * Summon a turn or a once-per-turn effect every route runs through. Only one
    * card of such a Group can complete in a turn, so a second card is no backup for
@@ -636,7 +642,14 @@ export function removeHandConditionSet(
     ),
     engine_access_set_id:
       doc.engine_access_set_id === setId ? null : doc.engine_access_set_id,
+    label_goal_id: doc.label_goal_id === setId ? null : doc.label_goal_id,
   };
+}
+
+/** Choose the Hand Goal the card labels are read from; null reads every Hand Goal. */
+export function setLabelGoal(doc: MappingDocument, goalId: string | null): MappingDocument {
+  const known = goalId !== null && doc.hand_condition_sets.some((set) => set.id === goalId);
+  return { ...doc, label_goal_id: known ? goalId : null };
 }
 
 /**
@@ -890,6 +903,9 @@ export function parseMappingJson(text: string): MappingDocument {
     hand_conditions,
     hand_condition_sets,
     engine_access_set_id: engineAccessId,
+    ...(typeof data.label_goal_id === "string" && hand_condition_sets.some((set) => set.id === data.label_goal_id)
+      ? { label_goal_id: data.label_goal_id }
+      : {}),
     choke_point_group_ids: chokePointGroupIds,
     hit_priority: hitPriority,
     analysis: parsedAnalysis,
@@ -941,6 +957,7 @@ export function serializeMapping(doc: MappingDocument): string {
       aggregation: set.aggregation,
     })),
     engine_access_set_id: doc.engine_access_set_id,
+    ...(doc.label_goal_id ? { label_goal_id: doc.label_goal_id } : {}),
     choke_point_group_ids: [...doc.choke_point_group_ids],
     hit_priority: doc.hit_priority.map((target) => ({ ...target })),
     analysis: doc.analysis,

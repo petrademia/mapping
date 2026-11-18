@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import type { MappingDocument } from "../lib/document";
 import {
   BRICK_CURVE_MAX,
+  INTERRUPTION_CURVE_MAX,
   MAX_DISRUPTION_POINTS,
+  matchPush,
   rangeMean,
   scorableGoals,
   type ScorecardSettings,
@@ -125,6 +127,7 @@ export function ScorecardPanel({ doc }: Props) {
   const [settings, setSettings] = useScorecardSettings();
   const goals = useMemo(() => scorableGoals(doc), [doc]);
   const result = useScorecard(doc, goalId, settings);
+  const match = result !== null && !("error" in result) ? matchPush(result.first, result.second, settings) : null;
   const set = (patch: Partial<ScorecardSettings>) => setSettings({ ...settings, ...patch });
   const whole = (value: string, max: number): number =>
     Math.max(0, Math.min(max, Math.floor(Number(value) || 0)));
@@ -317,6 +320,45 @@ export function ScorecardPanel({ doc }: Props) {
             </details>
           ) : null}
 
+          {match !== null && match.value !== null ? (
+            <>
+              <h3 className="panel-subhead">Over a best-of-three</h3>
+              <p className="note">
+                How the interruptions above add up over a match, weighted by how often each kind of game
+                happens. Game 1 is a die roll. After that the loser chooses to go first, so you go first in
+                game 2 when you lost game 1, and the opponent who won has sided in handtraps against your
+                first turn. A third game is played when the match is split. Every game is assumed won with
+                the win rate below, and the opponent always stops the card that hurts you most.
+              </p>
+              <p className="scorecard-combined" role="status" aria-label="Match-weighted push">
+                <span className="outcome-primary">{percent(match.value)}</span>
+                <span className="explorer-notation">
+                  of hands still reach the goal, going first {percent(match.goingFirstShare)} of games
+                </span>
+              </p>
+              <table className="compare-table" aria-label="Push by kind of game">
+                <thead>
+                  <tr>
+                    <th scope="col">Game</th>
+                    <th scope="col">Share of games</th>
+                    <th scope="col">Handtraps to expect</th>
+                    <th scope="col">Still reach the goal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {match.situations.map((situation) => (
+                    <tr key={situation.label}>
+                      <th scope="row">{situation.label}</th>
+                      <td className="num">{percent(situation.share)}</td>
+                      <td className="num">{situation.upTo === 1 ? "1" : `1 to ${situation.upTo}`}</td>
+                      <td className="num">{situation.push === null ? "-" : percent(situation.push)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : null}
+
           <h3 className="panel-subhead">Settings</h3>
           <div className="scorecard-weights">
             <label>
@@ -362,6 +404,49 @@ export function ScorecardPanel({ doc }: Props) {
           <p className="note">
             A one-shot Interaction card is worth 1 point. With a lingering handtrap worth 2
             and 2 points needed, one lingering card is enough and one Ash is not.
+          </p>
+          <div className="scorecard-weights">
+            <label>
+              Your chance to win a game, %
+              <input
+                type="number"
+                min={1}
+                max={99}
+                step={1}
+                value={settings.winRate}
+                onChange={(event) => set({ winRate: Math.max(1, Math.min(99, whole(event.target.value, 99))) })}
+              />
+            </label>
+            <label>
+              Most handtraps going first after a loss
+              <select
+                value={settings.handtrapsAfterLoss}
+                onChange={(event) => set({ handtrapsAfterLoss: Math.max(1, whole(event.target.value, INTERRUPTION_CURVE_MAX)) })}
+              >
+                {Array.from({ length: INTERRUPTION_CURVE_MAX }, (_, k) => (
+                  <option key={k + 1} value={k + 1}>
+                    {k + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Most handtraps in every other game
+              <select
+                value={settings.handtrapsOtherwise}
+                onChange={(event) => set({ handtrapsOtherwise: Math.max(1, whole(event.target.value, INTERRUPTION_CURVE_MAX)) })}
+              >
+                {Array.from({ length: INTERRUPTION_CURVE_MAX }, (_, k) => (
+                  <option key={k + 1} value={k + 1}>
+                    {k + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="note">
+            These three set the match-weighted number above: how often you go first, and the most
+            handtraps to expect in each kind of game. They do not change the combined number.
           </p>
           <p className="note">
             Weights: how much each number counts toward the combined one. A number

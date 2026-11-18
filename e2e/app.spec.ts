@@ -124,6 +124,7 @@ test("first run loads the default deck from default.ydk", async ({ page }) => {
 test("a first run loads default.mapping.json, the deck with its Hand Goals", async ({ page }) => {
   const file = JSON.parse(readFileSync("public/default.mapping.json", "utf8")) as {
     name: string;
+    label_goal_id: string;
     hand_condition_sets: { name: string }[];
   };
   // Not through openApp: nothing is hidden, so the real default mapping is what loads.
@@ -131,7 +132,15 @@ test("a first run loads default.mapping.json, the deck with its Hand Goals", asy
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(file.name);
-  await expect(page.getByText(file.hand_condition_sets[0]!.name, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(file.hand_condition_sets[0]!.name, { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  // The labels are read from the Hand Goal the mapping names, and the choice can be changed.
+  const labelGoal = page.getByLabel("Read card labels from");
+  await expect(labelGoal).toHaveValue(file.label_goal_id);
+  await labelGoal.selectOption("");
+  await expect(labelGoal).toHaveValue("");
+  await expect
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("mapping.document.v2")!).label_goal_id ?? null))
+    .toBeNull();
 });
 
 test("the page stays responsive while the Profile's quality summary is calculated", async ({ page }) => {
@@ -146,8 +155,9 @@ test("the page stays responsive while the Profile's quality summary is calculate
   await page.getByLabel("Card name or passcode").fill("ash blossom");
   await expect(page.locator(".search-result").first()).toBeVisible();
   expect(Date.now() - started).toBeLessThan(2500);
-  // The numbers still arrive afterwards.
+  // The numbers still arrive afterwards, with the match-weighted push under them.
   await expect(summary.getByRole("status").first()).toHaveText(/%/, { timeout: 45_000 });
+  await expect(summary.getByText(/Over a best-of-three/)).toBeVisible();
 });
 
 test.describe("Save mapping", () => {

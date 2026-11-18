@@ -1177,6 +1177,7 @@
     }
   ],
   "engine_access_set_id": "goal-any",
+  "label_goal_id": "goal-any-pairs",
   "choke_point_group_ids": [
     "citrinitas-funnel"
   ],
