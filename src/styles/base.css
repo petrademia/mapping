@@ -6,6 +6,11 @@
 html, body, #root { min-height: 100%; margin: 0; }
 body { background: var(--ground); }
 ::selection { background: color-mix(in srgb, var(--accent) 30%, var(--paper)); }
+/* The parts the browser draws still belong to the page: caret, checkboxes, scrollbars. */
+html { scrollbar-color: var(--line) var(--ground); }
+input, textarea, select { caret-color: var(--accent); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
+.num, .odds-value, .scorecard-rows, .compare-table, table { font-variant-numeric: tabular-nums; }
 
 p, li, dd { text-wrap: pretty; }
 h1, h2, h3 { text-wrap: balance; }

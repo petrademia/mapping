@@ -700,6 +700,27 @@ test.describe("Binder Pages shell", () => {
   });
 });
 
+test.describe("Compare with a saved deck", () => {
+  test("lists the other decks in the decks folder and compares with one in a click", async ({ page }) => {
+    const index = JSON.parse(readFileSync("public/decks/index.json", "utf8")) as {
+      default: string;
+      decks: { file: string; name: string }[];
+    };
+    const current = index.decks.find((deck) => deck.file === index.default)!;
+    const other = index.decks.find((deck) => deck.file !== index.default)!;
+    await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+    await page.goto("/");
+    await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+    await page.getByRole("button", { name: "Compare", exact: true }).click();
+    const menu = page.getByLabel("Compare with a saved deck");
+    // The deck that is open is not offered against itself.
+    await expect(menu.locator("option", { hasText: current.name })).toHaveCount(0);
+    await menu.selectOption({ label: other.name });
+    await expect(page.getByRole("table", { name: "Hand Goal odds" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Stop comparing" })).toBeVisible();
+  });
+});
+
 test.describe("Compare decks", () => {
   // The default deck with its first three Main Deck cards removed.
   function trimmedDefaultYdk(): string {

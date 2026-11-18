@@ -26,7 +26,7 @@
 .panel header label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
 .deck-section header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-2); border-bottom: 1px solid var(--line); }
 .deck-section p, .deck-section .empty { margin: 0; color: var(--muted); }
-.panel-subhead { margin: var(--space-3) 0 var(--space-1); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent-strong); }
+.panel-subhead { margin: var(--space-4) 0 var(--space-1); font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
 .panel-details { margin-top: var(--space-4); padding-top: var(--space-2); border-top: 1px solid var(--line); }
 .panel-details summary {
   margin-bottom: var(--space-2);
@@ -153,6 +153,8 @@
 .outcome-primary { margin: var(--space-1) 0; font-family: var(--font-mono); font-size: var(--text-xl); }
 
 /* ---- Deck Configuration ------------------------------------------------ */
+/* The size line sits beside the title, not floating between it and the link. */
+.configuration-panel > header p { margin: 0 auto 0 var(--space-3); font-size: var(--text-sm); color: var(--muted); }
 .configuration-panel .configuration-head { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); margin: var(--space-2) 0; }
 .configuration-panel .configuration-head label { flex: 1; }
 .configuration-panel label { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--muted); }
