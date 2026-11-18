@@ -286,8 +286,10 @@ export function setQuantity(
 /**
  * Replace the card lists with a parsed deck. Groups, Hand Conditions and Hand
  * Goals stay (they name cards by id), and Post-Side lists are dropped because
- * they only describe the old pool. No card names are stored, so names follow
- * the catalog.
+ * they only describe the old pool. A card that was already in the deck keeps its
+ * tags (roles and Opening Quality) and any name stored for it; it takes them from
+ * the same section when it was there, else from another. Cards that were not in
+ * the deck start without tags, and names follow the catalog.
  */
 export function replaceDeck(
   doc: MappingDocument,
@@ -299,12 +301,28 @@ export function replaceDeck(
   name?: string,
 ): MappingDocument {
   const fresh = documentFromParsed(name ?? doc.name, parsed, new Map());
+  const sections: readonly DeckSection[] = ["main", "extra", "side"];
+  const keep = (section: DeckSection, card: MappingCard): MappingCard => {
+    // The same section first, then the others in Main, Extra, Side order.
+    const before = [section, ...sections.filter((other) => other !== section)]
+      .map((from) => doc[from].find((old) => old.card_id === card.card_id))
+      .find((old) => old !== undefined);
+    if (!before) return card;
+    const kept: MappingCard = {
+      ...card,
+      taxonomy: {
+        roles: [...before.taxonomy.roles],
+        opening_quality: { ...before.taxonomy.opening_quality },
+      },
+    };
+    return before.name !== undefined ? { ...kept, name: before.name } : kept;
+  };
   return {
     ...doc,
     name: fresh.name,
-    main: fresh.main,
-    extra: fresh.extra,
-    side: fresh.side,
+    main: fresh.main.map((card) => keep("main", card)),
+    extra: fresh.extra.map((card) => keep("extra", card)),
+    side: fresh.side.map((card) => keep("side", card)),
     configurations: [],
     active_configuration_id: null,
   };

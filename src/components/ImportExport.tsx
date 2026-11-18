@@ -54,8 +54,8 @@ export function ImportExport({
       onChange(replaceDeck(doc, parseDeckText(trimmed), name));
       onStatus(
         fromPaste
-          ? "Replaced the deck. Groups and Hand Conditions were kept."
-          : `Loaded ${filename}. Groups and Hand Conditions were kept.`,
+          ? "Replaced the deck. Groups, Hand Conditions and the tags of cards still in the deck were kept."
+          : `Loaded ${filename}. Groups, Hand Conditions and the tags of cards still in the deck were kept.`,
       );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Import failed";
@@ -118,7 +118,8 @@ export function ImportExport({
         />
         <p className="note">
           Replace deck swaps the cards and keeps your Groups, Hand Conditions
-          and Hand Goals. Add to deck keeps everything and appends.
+          and Hand Goals, and the tags of every card that is still in the deck.
+          Add to deck keeps everything and appends.
         </p>
         <button
           type="button"

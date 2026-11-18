@@ -397,6 +397,12 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   already in that file. A deck with another name is downloaded as before and the status
   says why. A built or hosted copy always downloads. The dev server writes only that one
   path, only for a page on the same server, and the browser tests stub it.
+- **Loading a deck list over a deck.** Load file with a `.ydk` or `.txt`, or Paste a deck
+  list and Replace deck, swaps the cards and keeps your Groups, Hand Conditions and Hand
+  Goals. A card that is still in the new list keeps its tags (roles, Opening Quality) and any
+  stored name, taken from the same section when it was there, else from another. Cards that
+  were not in the deck start without tags, and Post-Side lists are dropped. A mapping file
+  loads the whole deck with its models, as it was saved.
 
 ### Handtrap versus
 

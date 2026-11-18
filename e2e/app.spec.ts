@@ -1556,6 +1556,25 @@ test.describe("Paste a deck list", () => {
     await expect(page.getByLabel("Deck", { exact: true })).toHaveValue("default deck");
   });
 
+  test("Replace deck keeps the tags of a card that is still in the list", async ({ page }) => {
+    await openApp(page);
+    const main = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
+    // Tag the first Main card, then bring the deck back as a list that still holds it.
+    const tile = main.locator("li[data-card]").first();
+    const cardId = (await tile.getAttribute("data-card"))!;
+    await tile.locator(".deck-tile").click();
+    await main.getByRole("group", { name: /^Edit / }).getByRole("button", { name: "Interaction" }).click();
+    await expect(main.getByRole("group", { name: /^Edit / }).getByRole("button", { name: "Interaction" })).toHaveAttribute("aria-pressed", "true");
+    await main.getByRole("group", { name: /^Edit / }).getByRole("button", { name: "Close" }).click();
+
+    await pasteList(page, `#main\n${cardId}\n${cardId}\n`);
+    await page.getByRole("button", { name: "Replace deck" }).click();
+    await expect(page.locator(".counts")).toContainText("2 main");
+    await expect(page.getByRole("status").filter({ hasText: "tags of cards still in the deck were kept" })).toBeVisible();
+    await main.locator(".deck-tile").first().click();
+    await expect(main.getByRole("group", { name: /^Edit / }).getByRole("button", { name: "Interaction" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("Add to deck appends and sends Extra Deck monsters to Extra", async ({ page }) => {
     await openApp(page);
     await pasteList(page, "90917401 1\n70488851 1");
