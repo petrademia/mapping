@@ -3,6 +3,311 @@
   "name": "Power Patron Ars Magna Light and Darkness Ritual",
   "main": [
     {
+      "card_id": 37279096,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 97556336,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 17473466,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 70488851,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 26237713,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 25661743,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 36270527,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 62368221,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 1122030,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 56349876,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 48739627,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 90875418,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 23829452,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 10266279,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 43871165,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 42141493,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [
+          "lingering_second"
+        ],
+        "opening_quality": {
+          "going_first": "neutral",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 23434538,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [
+          "interaction",
+          "lingering"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 94145021,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [
+          "interaction",
+          "lingering"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 14558127,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [
+          "interaction"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 98476659,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": "undesirable",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 2729965,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [
+          "breaker_second"
+        ],
+        "opening_quality": {
+          "going_first": "undesirable",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 59438930,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [
+          "interaction"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 24203749,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [
+          "interaction",
+          "lingering_second",
+          "breaker_second"
+        ],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 82833574,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 59581480,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      },
+      "name": "Elfnote Tinia"
+    },
+    {
+      "card_id": 51669847,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
       "card_id": 70405001,
       "quantity": 1,
       "taxonomy": {
@@ -58,237 +363,8 @@
       }
     },
     {
-      "card_id": 14965712,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 97556336,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 90875418,
-      "quantity": 2,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 36270527,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 99753860,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 62368221,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 70488851,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 17473466,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 43871165,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 10266279,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 42141493,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [
-          "lingering_second"
-        ],
-        "opening_quality": {
-          "going_first": "neutral",
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 14558127,
-      "quantity": 2,
-      "taxonomy": {
-        "roles": [
-          "interaction"
-        ],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 59438930,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [
-          "interaction"
-        ],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 94145021,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [
-          "interaction",
-          "lingering"
-        ],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
       "card_id": 33599853,
       "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 48739627,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 27285068,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 37279096,
-      "quantity": 2,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 1122030,
-      "quantity": 2,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 25661743,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 26237713,
-      "quantity": 3,
       "taxonomy": {
         "roles": [],
         "opening_quality": {
@@ -304,30 +380,6 @@
         "roles": [],
         "opening_quality": {
           "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 2729965,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [
-          "breaker_second"
-        ],
-        "opening_quality": {
-          "going_first": "undesirable",
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 98476659,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": "undesirable",
           "going_second": null
         }
       }
