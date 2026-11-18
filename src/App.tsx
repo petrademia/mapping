@@ -43,6 +43,7 @@ import { LoadFileButton } from "./components/ImportExport";
 import { Menu } from "./components/Menu";
 import { serializeYapping } from "./lib/exportYapping";
 import { DeckProfile } from "./components/DeckProfile";
+import { DrawOdds } from "./components/DrawOdds";
 import { RoleSummary } from "./components/RoleSummary";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
@@ -503,6 +504,7 @@ export function App() {
                 }}
               />
               <CardImpactPanel doc={view} catalog={catalog} />
+              <DrawOdds doc={view} catalog={catalog} />
               <RoleSummary doc={view} />
             </>
           ) : null}

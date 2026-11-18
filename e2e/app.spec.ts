@@ -1894,6 +1894,24 @@ test("Card Impact ranks cards once a Hand Goal has conditions", async ({ page })
   await expect(page.getByText("Put Hand Conditions into a Hand Goal")).toBeVisible();
 });
 
+test.describe("Chance to draw", () => {
+  test("shows the exact odds of seeing a card, and follows the card you pick", async ({ page }) => {
+    await openApp(page);
+    const panel = page.getByRole("region", { name: "Chance to draw" });
+    await expect(panel).toBeVisible();
+    const select = panel.getByLabel("Card or Group");
+    const rows = panel.getByRole("table").locator("tbody tr");
+    await expect(rows.first().getByRole("rowheader")).toContainText("(opening hand)");
+    const first = await rows.first().locator("td").first().innerText();
+    await select.selectOption({ index: 1 });
+    await expect(panel.getByText(/cop(y|ies) in \d+ cards/)).toBeVisible();
+    expect(first).toMatch(/^\d+\.\d\d%$/);
+    // More cards seen never lowers the chance.
+    const values = (await rows.locator("td:first-of-type").allInnerTexts()).map(parseFloat);
+    for (let i = 1; i < values.length; i += 1) expect(values[i]).toBeGreaterThanOrEqual(values[i - 1]);
+  });
+});
+
 test.describe("Undo and Redo", () => {
   test("the buttons step back and forward through edits", async ({ page }) => {
     await openApp(page);

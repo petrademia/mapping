@@ -422,6 +422,9 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   is downloaded as before and the status says why. A built or hosted copy always downloads. The
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
+- **Chance to draw.** On the Profile, pick a card or a Group and see the exact chance of at least
+  1, 2 and 3 copies among the opening hand and each of the next five cards drawn. It counts cards
+  only: it does not know what a card does or whether you can use it.
 - **Undo and Redo.** The two arrows in the top bar, or Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (Ctrl+Y),
   step back and forward through every change to the deck, up to 100 changes. Typing a name counts
   as one step. In a text field the keys undo the typing instead. The history is not saved: a reload

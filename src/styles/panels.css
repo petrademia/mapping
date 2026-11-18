@@ -318,3 +318,7 @@
 .summary-weakest { margin: 0; font-size: var(--text-xs); color: var(--muted); }
 .summary-weakest strong { color: var(--ink); font-weight: 600; }
 .scorecard-curve td.on { font-weight: 600; color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+
+/* Chance to draw: the label and its select share a row, the select takes the rest. */
+.draw-odds label { display: flex; align-items: center; gap: var(--space-3); }
+.draw-odds label select { flex: 1 1 auto; min-width: 0; }
