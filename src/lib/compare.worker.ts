@@ -1,5 +1,6 @@
 import { scoreDeck, type DeckScoreResult } from "./compareDecks";
 import type { MappingDocument } from "./document";
+import { scorecard, type ScorecardResult } from "./scorecard";
 import { reply, type WorkerReply } from "./workerReply";
 
 /**
@@ -16,12 +17,18 @@ export interface CompareRequest {
 export interface CompareScores {
   a: DeckScoreResult;
   b: DeckScoreResult;
+  /** The Scorecard of each deck, for this deck's default Hand Goal (the other deck uses it too when it has it). */
+  cardA: ScorecardResult;
+  cardB: ScorecardResult;
 }
 
 export function computeCompare(request: CompareRequest): CompareScores {
+  const cardA = scorecard(request.doc, null);
   return {
     a: scoreDeck(request.doc, request.ranking),
     b: scoreDeck(request.compared, request.ranking),
+    cardA,
+    cardB: scorecard(request.compared, "goalId" in cardA ? cardA.goalId : null),
   };
 }
 

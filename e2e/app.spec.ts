@@ -718,6 +718,12 @@ test.describe("Compare with a saved deck", () => {
     await menu.selectOption({ label: other.name });
     await expect(page.getByRole("table", { name: "Hand Goal odds" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Stop comparing" })).toBeVisible();
+    // The Scorecard parts are compared one by one, each an exact percentage, with no total.
+    const first = page.getByRole("table", { name: /^Scorecard going first/ });
+    await expect(first).toBeVisible();
+    await expect(first.getByRole("rowheader", { name: "Opens" })).toBeVisible();
+    await expect(first.getByRole("rowheader", { name: /overall|total|combined/i })).toHaveCount(0);
+    await expect(page.getByRole("table", { name: /^Scorecard going second/ })).toBeVisible();
   });
 });
 
