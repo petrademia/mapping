@@ -529,6 +529,7 @@ export function App() {
               key={resetKey}
               doc={view}
               catalog={catalog}
+              decks={deckLibrary}
               onUse={(deck) => {
                 setDoc(deck);
                 setResetKey((key) => key + 1);

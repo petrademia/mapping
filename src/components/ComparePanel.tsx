@@ -13,6 +13,7 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { parseDeckText } from "../lib/ydk";
+import { loadDeckFile, type DeckEntry } from "../lib/deckLibrary";
 import { effectiveRank } from "../lib/effectiveRank";
 import { ClearButton } from "./ClearButton";
 import { CardStrip } from "./ModelArt";
@@ -23,6 +24,8 @@ interface Props {
   catalog: Catalog;
   /** Replace the edited deck with the compared one. */
   onUse: (deck: MappingDocument) => void;
+  /** The decks kept in public/decks/, offered as a one-click comparison. */
+  decks?: readonly DeckEntry[];
 }
 
 const percent = (value: number): string => `${(value * 100).toFixed(2)}%`;
@@ -181,7 +184,8 @@ function rowsFor(a: DeckScore, b: DeckScore) {
  * and Hand Goals. Load another deck and see which one reaches your goals more
  * often, which bricks less, and which cards make the difference.
  */
-export function ComparePanel({ doc, catalog, onUse }: Props) {
+export function ComparePanel({ doc, catalog, onUse, decks = [] }: Props) {
+  const offered = decks.filter((entry) => entry.name.trim() !== doc.name.trim());
   const [other, setOther] = useState<MappingDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -218,6 +222,31 @@ export function ComparePanel({ doc, catalog, onUse }: Props) {
         deck borrows this deck's roles for the cards they share.
       </p>
       <div className="row-actions">
+        {offered.length > 0 ? (
+          <select
+            aria-label="Compare with a saved deck"
+            value=""
+            onChange={(event) => {
+              const entry = offered.find((candidate) => candidate.file === event.target.value);
+              if (!entry) return;
+              void loadDeckFile(entry.file).then((deck) => {
+                if (deck) {
+                  setOther(deck);
+                  setError(null);
+                } else {
+                  setError(`Could not open ${entry.name}.`);
+                }
+              });
+            }}
+          >
+            <option value="">Compare with a saved deck</option>
+            {offered.map((entry) => (
+              <option key={entry.file} value={entry.file}>
+                {entry.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <label className="file-button">
           Load a deck to compare
           <input
