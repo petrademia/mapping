@@ -1417,6 +1417,34 @@ test("the minus on the last copy removes the card", async ({ page }) => {
   await expect(section.getByRole("group", { name: /^Edit / })).toHaveCount(0);
 });
 
+test("the analysis panels do not jump while the odds are counted again after an edit", async ({ page }) => {
+  await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+  await page.goto("/");
+  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+  const summary = page.getByRole("region", { name: "Quality at a glance" });
+  await expect(summary.getByRole("status").first()).toContainText("%");
+  const configuration = page.locator("#deck-configuration");
+  await expect(configuration).toBeVisible();
+
+  // Change the deck so the odds have to be counted again, and watch the panel below them.
+  const section = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
+  await section.locator(".deck-tile").first().click();
+  await section.getByRole("group", { name: /^Edit / }).getByRole("button", { name: "Decrease quantity" }).click();
+  const seen = await page.evaluate(async () => {
+    const top = (): number => document.getElementById("deck-configuration")!.getBoundingClientRect().top;
+    const tops: number[] = [];
+    const end = performance.now() + 3000;
+    while (performance.now() < end) {
+      tops.push(Math.round(top()));
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    }
+    return tops;
+  });
+  expect(Math.max(...seen) - Math.min(...seen)).toBeLessThanOrEqual(2);
+  // The summary was never swapped for a placeholder.
+  await expect(summary.getByRole("status").first()).toContainText("%");
+});
+
 test.describe("Dragging cards in the deck", () => {
   const section = (page: Page, title: string) =>
     page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: title }) });

@@ -10,6 +10,7 @@ import { CardFrame } from "./HandImages";
 import { HandBoard } from "./HandBoard";
 import { scorerWithSource } from "../lib/rankScore";
 import { rateHand } from "../lib/handRating";
+import { useHandAnalysis } from "../lib/useHandAnalysis";
 import { useScorecard } from "../lib/useScorecard";
 import { useScorecardSettings } from "../lib/scorecardWeights";
 import {
@@ -18,10 +19,7 @@ import {
   type MappingDocument,
 } from "../lib/document";
 import { groupsToMembership } from "../lib/handCondition";
-import {
-  analyzeHandConditions,
-  type PredicateEvaluation,
-} from "../lib/handExplorer";
+import type { PredicateEvaluation } from "../lib/handExplorer";
 import type { DistinctMatchEvaluation } from "../lib/distinctMatch";
 import {
   handFromOrder,
@@ -91,22 +89,22 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
     engine_access_set_id: doc.engine_access_set_id,
   });
 
-  const analysis = useMemo(() => {
-    if (deck === 0) return null;
-    try {
-      return analyzeHandConditions(
-        doc.main,
-        sample,
-        doc.hand_conditions,
-        doc.hand_condition_sets,
-        groupsToMembership(doc.groups),
-        context.turn_order,
-      );
-    } catch {
-      return null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
-  }, [analysisKey, deck]);
+  // The exact odds of every goal are counted in a Web Worker, so opening the tab does not freeze
+  // the page; they fill in as soon as they arrive.
+  const { analysis: counted } = useHandAnalysis(
+    analysisKey,
+    deck === 0
+      ? null
+      : {
+          main: doc.main,
+          sample,
+          conditions: doc.hand_conditions,
+          sets: doc.hand_condition_sets,
+          groups: groupsToMembership(doc.groups),
+          turnOrder: context.turn_order,
+        },
+  );
+  const analysis = counted ?? null;
 
   const result = useMemo(() => {
     if (!hand) return null;

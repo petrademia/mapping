@@ -64,7 +64,8 @@ export function modelsAnalysisKey(input: {
         `${set.id}|${set.aggregation}|${set.condition_ids.join(",")}`,
     )
     .join(";");
-  const main = input.main.map(cardKey).join(";");
+  // The odds do not depend on the order of the cards, so moving a card around does not count as a change.
+  const main = input.main.map(cardKey).sort().join(";");
   return [
     input.turn_order,
     String(input.sample),

@@ -3,6 +3,7 @@ import { computeCardImpact } from "./cardImpact";
 import { isRanked, normalizeOrder, rankFor, type RankContext } from "./cardRank";
 import { sectionSize, type MappingDocument } from "./document";
 import { groupsToMembership } from "./handCondition";
+import { modelsAnalysisKey } from "./modelsAnalysisKey";
 
 export interface EffectiveRank {
   /** Every Main Deck card, best first. */
@@ -27,6 +28,14 @@ export function impactGoal(doc: MappingDocument) {
 }
 
 /**
+ * The Card Impact order already worked out, by deck and goal. Working it out is an exact count over
+ * every hand, and the tabs that score hands ask for it again on each edit, including edits that do
+ * not change it (a rename, moving a card around).
+ */
+const impactOrders = new Map<string, number[] | null>();
+const KEEP_IMPACT_ORDERS = 12;
+
+/**
  * The order hands are scored by: your own ranking when you have set one,
  * otherwise the Card Impact order of your Hand Goal, otherwise none.
  */
@@ -41,6 +50,20 @@ export function effectiveRank(doc: MappingDocument, context: RankContext): Effec
     doc.analysis.opening_hand_size,
   );
   if (sectionSize(doc.main) < sample) return null;
+  const key = `${goal.id}\n${modelsAnalysisKey({
+    main: doc.main,
+    groups: doc.groups,
+    hand_conditions: doc.hand_conditions,
+    hand_condition_sets: doc.hand_condition_sets,
+    sample,
+    turn_order: context,
+    engine_access_set_id: doc.engine_access_set_id,
+  })}`;
+  const known = impactOrders.get(key);
+  if (known !== undefined) {
+    return known === null ? null : { order: normalizeOrder(known, doc.main), source: "impact" };
+  }
+  let order: number[] | null;
   try {
     const impact = computeCardImpact(
       doc.main,
@@ -49,14 +72,11 @@ export function effectiveRank(doc: MappingDocument, context: RankContext): Effec
       goal,
       groupsToMembership(doc.groups),
     );
-    return {
-      order: normalizeOrder(
-        impact.rows.map((row) => row.card_id),
-        doc.main,
-      ),
-      source: "impact",
-    };
+    order = impact.rows.map((row) => row.card_id);
   } catch {
-    return null;
+    order = null;
   }
+  impactOrders.set(key, order);
+  while (impactOrders.size > KEEP_IMPACT_ORDERS) impactOrders.delete(impactOrders.keys().next().value as string);
+  return order === null ? null : { order: normalizeOrder(order, doc.main), source: "impact" };
 }

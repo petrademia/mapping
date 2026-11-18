@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { analysisContextLabel, observedCards } from "../lib/analysisContext";
-import { computeCardImpact, type CardImpact } from "../lib/cardImpact";
+import type { CardImpact } from "../lib/cardImpact";
 import type { Catalog } from "../lib/catalog";
 import { displayName } from "../lib/catalog";
 import { analysisContextOf, sectionSize, type MappingDocument } from "../lib/document";
 import { groupsToMembership } from "../lib/handCondition";
+import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
+import { useCardImpact } from "../lib/useCardImpact";
 import { CardThumb } from "./CardThumb";
 
 const COLLAPSED_ROWS = 10;
@@ -40,20 +42,31 @@ export function CardImpactPanel({ doc, catalog }: Props) {
   const sample = observedCards(context, doc.analysis.opening_hand_size);
   const deck = sectionSize(doc.main);
 
-  const impact = useMemo<CardImpact | null>(() => {
-    if (!selected || deck === 0 || sample > deck) return null;
-    try {
-      return computeCardImpact(
-        doc.main,
-        sample,
-        doc.hand_conditions,
-        selected,
-        groupsToMembership(doc.groups),
-      );
-    } catch {
-      return null;
-    }
-  }, [doc.main, doc.hand_conditions, doc.groups, selected, sample, deck]);
+  // Worked out in a Web Worker, and only when something it depends on changes: a rename, a note
+  // or the order of the cards does not start it again. The previous ranking stays, dimmed, while
+  // a new one is counted.
+  const key = `${selected?.id ?? ""}\n${modelsAnalysisKey({
+    main: doc.main,
+    groups: doc.groups,
+    hand_conditions: doc.hand_conditions,
+    hand_condition_sets: doc.hand_condition_sets,
+    sample,
+    turn_order: context.turn_order,
+    engine_access_set_id: doc.engine_access_set_id,
+  })}`;
+  const { result, pending } = useCardImpact(
+    key,
+    !selected || deck === 0 || sample > deck
+      ? null
+      : {
+          deck: doc.main,
+          sample,
+          conditions: doc.hand_conditions,
+          set: selected,
+          groups: groupsToMembership(doc.groups),
+        },
+  );
+  const impact: CardImpact | null = result ?? null;
 
   const maxLift = impact
     ? Math.max(0.0001, ...impact.rows.map((row) => Math.abs(row.lift ?? 0)))
@@ -61,7 +74,7 @@ export function CardImpactPanel({ doc, catalog }: Props) {
   const rows = impact ? (showAll ? impact.rows : impact.rows.slice(0, COLLAPSED_ROWS)) : [];
 
   return (
-    <section className="panel card-impact-panel">
+    <section className="panel card-impact-panel" aria-busy={pending}>
       <header>
         <h2>Card Impact</h2>
         <p>{analysisContextLabel(context, doc.analysis.opening_hand_size)}</p>

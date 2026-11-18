@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { defaultCondition, groupsToMembership, newId } from "../lib/handCondition";
 import { observedCards } from "../lib/analysisContext";
 import type { Catalog } from "../lib/catalog";
@@ -14,9 +14,8 @@ import {
   upsertHandConditionSet,
   type MappingDocument,
 } from "../lib/document";
-import { analyzeHandConditions } from "../lib/handExplorer";
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
-import { ProbabilityError } from "../lib/probability";
+import { useHandAnalysis } from "../lib/useHandAnalysis";
 import { ConditionEditor } from "./models/ConditionEditor";
 import { GroupEditor } from "./models/GroupEditor";
 import { HandGoalEditor } from "./models/HandGoalEditor";
@@ -62,28 +61,21 @@ export function ModelsPanel({
     engine_access_set_id: doc.engine_access_set_id,
   });
 
-  const summary = useMemo(() => {
-    if (deck === 0) return null;
-    try {
-      return analyzeHandConditions(
-        doc.main,
-        sample,
-        doc.hand_conditions,
-        doc.hand_condition_sets,
-        groupsToMembership(doc.groups),
-        context.turn_order,
-      );
-    } catch (caught) {
-      return {
-        error:
-          caught instanceof ProbabilityError
-            ? caught.message
-            : "Cannot compute hand condition probabilities.",
-      };
-    }
-    // analysisKey ignores name/notes; structural edits still recompute.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional fingerprint
-  }, [analysisKey, deck]);
+  // Worked out in a Web Worker so an edit does not freeze the page; the previous odds stay until
+  // the new ones arrive.
+  const { analysis } = useHandAnalysis(
+    analysisKey,
+    deck === 0
+      ? null
+      : {
+          main: doc.main,
+          sample,
+          conditions: doc.hand_conditions,
+          sets: doc.hand_condition_sets,
+          groups: groupsToMembership(doc.groups),
+          turnOrder: context.turn_order,
+        },
+  );
 
   function addCondition(): void {
     const firstCard = doc.main[0]?.card_id;
@@ -139,8 +131,6 @@ export function ModelsPanel({
     return id;
   }
 
-  const analysis =
-    summary && !("error" in summary) ? summary : undefined;
   const probabilityOf = (conditionId: string): number | undefined =>
     analysis?.conditions.find((row) => row.id === conditionId)?.probability;
 
