@@ -187,25 +187,36 @@ test.describe("Open a deck", () => {
     await expect(menu.locator("option", { hasText: `${current.name} (open now)` })).toBeAttached();
   });
 
-  test("opens another deck after asking, with its cards and models", async ({ page }) => {
+  test("opens another deck at once, with its cards and models, without asking", async ({ page }) => {
     await openWithDecks(page);
     await page.getByLabel("Open a deck").selectOption({ label: other.name });
-    await expect(page.getByText(`Replace the current deck and models with "${other.name}"?`)).toBeVisible();
-    await page.getByRole("button", { name: "Replace", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: `Opened ${other.name}.` })).toBeVisible();
     await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(other.name);
     await expect(page.locator(".counts")).toContainText("60 main");
-    // Its Hand Goals came with it.
+    // Its Hand Goals came with it, and nothing asked first.
     await expect(page.getByLabel("Read card labels from")).toBeVisible();
+    await expect(page.getByText(/Replace the current deck and models with/)).toHaveCount(0);
   });
 
-  test("keeps the current deck when the question is cancelled", async ({ page }) => {
+  test("Undo puts back the deck you had, with the edits you had not saved", async ({ page }) => {
     await openWithDecks(page);
-    const before = await page.getByLabel("Deck", { exact: true }).inputValue();
+    const name = page.getByLabel("Deck", { exact: true });
+    // An unsaved edit to the deck that is open.
+    await name.fill("My unsaved edit");
     await page.getByLabel("Open a deck").selectOption({ label: other.name });
-    await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByText(/Replace the current deck and models with/)).toHaveCount(0);
-    await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(before);
+    await expect(name).toHaveValue(other.name);
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(name).toHaveValue("My unsaved edit");
+    await expect(page.getByRole("status").filter({ hasText: "Went back to My unsaved edit." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
+  });
+
+  test("the Undo goes away once you edit the deck you opened", async ({ page }) => {
+    await openWithDecks(page);
+    await page.getByLabel("Open a deck").selectOption({ label: other.name });
+    await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
+    await page.getByLabel("Deck", { exact: true }).fill(`${other.name} edited`);
+    await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
   });
 
   test("is not shown when the decks folder has no index", async ({ page }) => {

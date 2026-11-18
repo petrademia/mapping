@@ -418,7 +418,8 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
 - **Open a deck.** "Open a deck" in the header lists the decks in `public/decks/` and opens one
-  after you confirm, with its cards, Groups, Hand Goals and tags. Each deck is a `.mapping.json`
+  at once, with its cards, Groups, Hand Goals and tags. The status line then offers Undo, which puts
+  back the deck you had with any edits you had not saved; it goes away when you edit the new deck. Each deck is a `.mapping.json`
   file there (a `.ydk` beside it is optional). `public/decks/index.json` lists them and names the
   default; after adding, renaming or removing a deck, run `npm run decks:index` to rewrite it
   (a test fails when it is out of date). The menu is hidden when there is no index.

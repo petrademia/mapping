@@ -4,6 +4,7 @@
 .tag, .note, .empty, .status { color: var(--muted); }
 .tag { max-width: 36rem; margin: var(--space-2) 0 0; }
 .status { min-height: 1.4rem; margin: 0 0 var(--space-4); }
+.status-undo { margin-left: var(--space-1); padding: var(--space-1) var(--space-2); font-size: var(--text-sm); }
 
 /* ---- The page: one cream binder page on the tan desk ------------------- */
 .app {

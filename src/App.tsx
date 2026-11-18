@@ -162,17 +162,28 @@ export function App() {
   useEffect(() => {
     void loadDeckIndex().then((index) => setDeckLibrary(index.decks));
   }, []);
+  // Opening a deck replaces the draft, so the deck you had is kept for an Undo until you edit the new one.
+  const [undoOpen, setUndoOpen] = useState<{ before: MappingDocument; opened: MappingDocument } | null>(null);
   const openDeck = (entry: DeckEntry) => {
     void loadDeckFile(entry.file).then((deck) => {
       if (!deck) {
         setStatus(`Could not open ${entry.name}.`);
         return;
       }
+      setUndoOpen({ before: doc, opened: deck });
       setDoc(deck);
       setResetKey((key) => key + 1);
       setTestedHand(null);
       setStatus(`Opened ${entry.name}.`);
     });
+  };
+  const undoOpenDeck = () => {
+    if (!undoOpen) return;
+    setDoc(undoOpen.before);
+    setResetKey((key) => key + 1);
+    setTestedHand(null);
+    setStatus(`Went back to ${undoOpen.before.name || "the deck you had"}.`);
+    setUndoOpen(null);
   };
 
   useEffect(() => {
@@ -324,6 +335,14 @@ export function App() {
       />
       <p className="status" role="status">
         {status}
+        {undoOpen && doc === undoOpen.opened ? (
+          <>
+            {" "}
+            <button type="button" className="status-undo" onClick={undoOpenDeck}>
+              Undo
+            </button>
+          </>
+        ) : null}
       </p>
       <div className="jump-bar">
         <span>
