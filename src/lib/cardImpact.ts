@@ -71,9 +71,27 @@ export function computeCardImpact(
   const withPassing = deck.map(() => 0n);
   const byClass = new Map<string, { withWeight: bigint; withPassing: bigint }>();
 
+  if (exact) {
+    // Distinct constraints cannot be merged by class, but every card's totals come from the same
+    // walk over the hands: decide once per hand whether it passes, then credit each card in it.
+    // (Walking every hand once per card was as many passes as the deck has different cards.)
+    forEachHandComposition(deck, handSize, (hand, weight) => {
+      total += weight;
+      const passed = members.some((condition) => handConditionHolds(hand, deck, condition, groups));
+      if (passed) passing += weight;
+      for (let i = 0; i < deck.length; i += 1) {
+        if ((hand[i] ?? 0) > 0) {
+          withWeight[i] = withWeight[i]! + weight;
+          if (passed) withPassing[i] = withPassing[i]! + weight;
+        }
+      }
+    });
+  }
+
   deck.forEach((card, i) => {
+    if (exact) return;
     const key = `${cardClassKey(card, named, groups)}|${card.quantity}`;
-    let result = exact ? undefined : byClass.get(key);
+    let result = byClass.get(key);
     if (!result) {
       const present: ConditionRequirement = { kind: "card", card_id: card.card_id, op: "gte", count: 1 };
       const probe: HandConditionLike = { id: "__present", name: "present", requirements: [present] };
@@ -90,25 +108,13 @@ export function computeCardImpact(
           if (passed) rowWithPassing += weight;
         }
       };
-      if (exact) {
-        forEachHandComposition(deck, handSize, (hand, weight) => {
-          visit(
-            [
-              ...members.map((condition) => handConditionHolds(hand, deck, condition, groups)),
-              (hand[i] ?? 0) > 0,
-            ],
-            weight,
-          );
-        });
-      } else {
-        countedAnalysis(deck, handSize, [...members, probe], groups, undefined, (holds, weight) =>
-          visit(holds, weight),
-        );
-      }
+      countedAnalysis(deck, handSize, [...members, probe], groups, undefined, (holds, weight) =>
+        visit(holds, weight),
+      );
       total = rowTotal;
       passing = rowPassing;
       result = { withWeight: rowWith, withPassing: rowWithPassing };
-      if (!exact) byClass.set(key, result);
+      byClass.set(key, result);
     }
     withWeight[i] = result.withWeight;
     withPassing[i] = result.withPassing;
