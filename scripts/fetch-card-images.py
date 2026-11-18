@@ -10,8 +10,9 @@ heavy request volume. This script therefore:
   * throttles to ~4 requests per second (their limit is 20/s);
   * stops on HTTP 429/403 instead of retrying.
 
-public/cards/ is gitignored: card art is not redistributed from this repo.
-The app shows a placeholder for any card without a local image.
+public/cards/ is committed, for the cards of the decks in this repo, so the art
+survives a lost checkout. Run this script again after adding a deck, and commit
+what it fetched. The app shows a placeholder for any card without a local image.
 
 Usage:
   fetch-card-images.py [--demo] [--all] [FILE ...] [ID ...]
