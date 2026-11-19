@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 
 export type IconName =
   | "trash" | "minus" | "plus" | "check" | "x" | "grip" | "up" | "down"
-  | "sun" | "moon" | "device" | "shuffle" | "download" | "upload" | "file" | "save" | "redo";
+  | "sun" | "moon" | "device" | "shuffle" | "download" | "upload" | "file" | "save" | "redo" | "undo";
 
 const PATHS: Record<IconName, string[]> = {
   sun: [
@@ -21,6 +21,7 @@ const PATHS: Record<IconName, string[]> = {
   upload: ["M8 10.5v-7", "M5 6l3-3 3 3", "M3 13h10"],
   file: ["M4 2h5l3 3v9H4z", "M9 2v3h3"],
   save: ["M3 3h8l2 2v8H3z", "M5.5 3v3h4V3", "M5.5 13V9.5h5V13"],
+  undo: ["M3 8a5 5 0 1 0 1.5-3.5", "M3 2.5v3h3"],
   redo: ["M13 8a5 5 0 1 1-1.5-3.5", "M13 2.5v3h-3"],
   // Lid, body and two ribs.
   trash: [

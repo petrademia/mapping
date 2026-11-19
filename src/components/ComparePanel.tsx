@@ -14,6 +14,7 @@ import {
 import { parseDeckText } from "../lib/ydk";
 import { loadDeckFile, type DeckEntry } from "../lib/deckLibrary";
 import { useCompareScores } from "../lib/useCompareScores";
+import { COMPONENT_LABELS, type ComponentKey, type Scorecard } from "../lib/scorecard";
 import { effectiveRank } from "../lib/effectiveRank";
 import { ClearButton } from "./ClearButton";
 import { CardStrip } from "./ModelArt";
@@ -181,6 +182,28 @@ function rowsFor(a: DeckScore, b: DeckScore) {
 }
 
 /**
+ * The Scorecard parts for one turn order, side by side: each its own exact percentage. There is
+ * no total, so a deck that is better in one part and worse in another shows both.
+ */
+function scorecardRows(a: Scorecard, b: Scorecard, turn: "first" | "second"): Row[] {
+  const rows: Row[] = [];
+  for (const key of Object.keys(COMPONENT_LABELS) as ComponentKey[]) {
+    const x = a[turn][key];
+    const y = b[turn][key];
+    if (x === null || y === null) continue;
+    rows.push({
+      label: COMPONENT_LABELS[key],
+      a: percent(x),
+      b: percent(y),
+      delta: y - x,
+      text: points(y - x),
+      higherIsBetter: true,
+    });
+  }
+  return rows;
+}
+
+/**
  * Two decks measured with one yardstick: this deck's Groups, Hand Conditions
  * and Hand Goals. Load another deck and see which one reaches your goals more
  * often, which bricks less, and which cards make the difference.
@@ -316,6 +339,18 @@ export function ComparePanel({ doc, catalog, initialDeck = null, onUse, decks = 
                 <CompareTable caption="Hand Goal odds" rows={rows.goalRows} />
                 {rows.goalRows.length > 0 ? (
                   <CompareTable caption="Consistency" rows={rows.consistency} />
+                ) : null}
+                {scores && "goalId" in scores.cardA && "goalId" in scores.cardB ? (
+                  <>
+                    <CompareTable
+                      caption={`Scorecard going first (${scores.cardA.goalName})`}
+                      rows={scorecardRows(scores.cardA, scores.cardB, "first")}
+                    />
+                    <CompareTable
+                      caption={`Scorecard going second (${scores.cardA.goalName})`}
+                      rows={scorecardRows(scores.cardA, scores.cardB, "second")}
+                    />
+                  </>
                 ) : null}
                 <CompareTable caption="Rank" rows={rows.rank} />
                 {rows.rank.length === 0 ? (

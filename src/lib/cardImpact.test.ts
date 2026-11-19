@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { computeCardImpact } from "./cardImpact";
 import type { MappingCard } from "./document";
-import type { HandConditionLike } from "./handExplorer";
+import { normalizeHandCondition } from "./handCondition";
+import { forEachHandComposition, handConditionHolds, type HandConditionLike } from "./handExplorer";
 import { combinations, ratioToNumber } from "./probability";
 
 function card(card_id: number, quantity: number): MappingCard {
@@ -79,6 +80,55 @@ describe("computeCardImpact", () => {
     for (const row of impact.rows) {
       expect(row.withCard).toBeNull();
       expect(row.lift).toBeNull();
+    }
+  });
+
+  it("with a distinct-cards condition, gives what walking the hands once per card gives", () => {
+    const deck = [card(1, 2), card(2, 2), card(3, 3), card(4, 1), card(5, 8)];
+    const groups = new Map([
+      ["a", new Set([1, 2, 3])],
+      ["b", new Set([2, 3, 4])],
+    ]);
+    const distinct = normalizeHandCondition({
+      id: "pair",
+      name: "Two different cards",
+      requirements: [
+        { id: "ra", kind: "group", group_id: "a", op: "gte", count: 1 },
+        { id: "rb", kind: "group", group_id: "b", op: "gte", count: 1 },
+      ],
+      excludes: [],
+      distinct_constraints: [{ id: "dc", requirement_ids: ["ra", "rb"], distinct_by: "card_name" }],
+    });
+    const set = { id: "s", name: "Pair", condition_ids: ["pair"] };
+    const impact = computeCardImpact(deck, 5, [distinct], set, groups);
+
+    // The reference: for each card, its own walk over every hand.
+    const expected = new Map<number, { with: bigint; passing: bigint }>();
+    let total = 0n;
+    let passing = 0n;
+    deck.forEach((entry, i) => {
+      let rowTotal = 0n;
+      let rowPassing = 0n;
+      let rowWith = 0n;
+      let rowWithPassing = 0n;
+      forEachHandComposition(deck, 5, (hand, weight) => {
+        const passed = handConditionHolds(hand, deck, distinct, groups);
+        rowTotal += weight;
+        if (passed) rowPassing += weight;
+        if ((hand[i] ?? 0) > 0) {
+          rowWith += weight;
+          if (passed) rowWithPassing += weight;
+        }
+      });
+      total = rowTotal;
+      passing = rowPassing;
+      expected.set(entry.card_id, { with: rowWith, passing: rowWithPassing });
+    });
+
+    expect(impact.baseline).toBe(ratioToNumber(passing, total));
+    for (const row of impact.rows) {
+      const want = expected.get(row.card_id)!;
+      expect(row.withCard).toBe(want.with === 0n ? null : ratioToNumber(want.passing, want.with));
     }
   });
 

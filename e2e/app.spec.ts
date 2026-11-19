@@ -222,18 +222,18 @@ test.describe("Open a deck", () => {
     await name.fill("My unsaved edit");
     await page.getByLabel("Open a deck").selectOption({ label: other.name });
     await expect(name).toHaveValue(other.name);
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
     await expect(name).toHaveValue("My unsaved edit");
     await expect(page.getByRole("status").filter({ hasText: "Went back to My unsaved edit." })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toHaveCount(0);
   });
 
   test("the Undo goes away once you edit the deck you opened", async ({ page }) => {
     await openWithDecks(page);
     await page.getByLabel("Open a deck").selectOption({ label: other.name });
-    await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeVisible();
     await page.getByLabel("Deck", { exact: true }).fill(`${other.name} edited`);
-    await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toHaveCount(0);
   });
 
   test("is not shown when the decks folder has no index", async ({ page }) => {
@@ -718,6 +718,12 @@ test.describe("Compare with a saved deck", () => {
     await menu.selectOption({ label: other.name });
     await expect(page.getByRole("table", { name: "Hand Goal odds" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Stop comparing" })).toBeVisible();
+    // The Scorecard parts are compared one by one, each an exact percentage, with no total.
+    const first = page.getByRole("table", { name: /^Scorecard going first/ });
+    await expect(first).toBeVisible();
+    await expect(first.getByRole("rowheader", { name: "Opens" })).toBeVisible();
+    await expect(first.getByRole("rowheader", { name: /overall|total|combined/i })).toHaveCount(0);
+    await expect(page.getByRole("table", { name: /^Scorecard going second/ })).toBeVisible();
   });
 });
 
@@ -1576,6 +1582,17 @@ test.describe("Top bar menus", () => {
     await expect(menu).toHaveCount(0);
   });
 
+  test("Copy deck list puts the .ydk text on the clipboard", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await openApp(page);
+    await menuItem(page, "Export", "Copy deck list");
+    await expect(page.getByRole("status").filter({ hasText: "Copied the deck list" })).toBeVisible();
+    const text = await page.evaluate(() => navigator.clipboard.readText());
+    expect(text).toContain("#main");
+    expect(text).toContain("#extra");
+    expect(text).toContain("!side");
+  });
+
   test("Save YDK downloads the list from the Export menu", async ({ page }) => {
     await openApp(page);
     const download = page.waitForEvent("download");
@@ -1881,4 +1898,54 @@ test.describe("Deck Configuration", () => {
 test("Card Impact ranks cards once a Hand Goal has conditions", async ({ page }) => {
   await openApp(page);
   await expect(page.getByText("Put Hand Conditions into a Hand Goal")).toBeVisible();
+});
+
+test.describe("Chance to draw", () => {
+  test("shows the exact odds of seeing a card, and follows the card you pick", async ({ page }) => {
+    await openApp(page);
+    const panel = page.getByRole("region", { name: "Chance to draw" });
+    await expect(panel).toBeVisible();
+    const select = panel.getByLabel("Card or Group");
+    const rows = panel.getByRole("table").locator("tbody tr");
+    await expect(rows.first().getByRole("rowheader")).toContainText("(opening hand)");
+    const first = await rows.first().locator("td").first().innerText();
+    await select.selectOption({ index: 1 });
+    await expect(panel.getByText(/cop(y|ies) in \d+ cards/)).toBeVisible();
+    expect(first).toMatch(/^\d+\.\d\d%$/);
+    // More cards seen never lowers the chance.
+    const values = (await rows.locator("td:first-of-type").allInnerTexts()).map(parseFloat);
+    for (let i = 1; i < values.length; i += 1) expect(values[i]).toBeGreaterThanOrEqual(values[i - 1]);
+  });
+});
+
+test.describe("Undo and Redo", () => {
+  test("the buttons step back and forward through edits", async ({ page }) => {
+    await openApp(page);
+    await menuItem(page, "More", "New deck");
+    const bar = page.locator(".topbar");
+    await addCardBySearch(page, "vidolium unstable");
+    await expect(page.locator(".counts")).toContainText("1 main");
+    await bar.getByRole("button", { name: /^Undo/ }).click();
+    await expect(page.locator(".counts")).toContainText("0 main");
+    await expect(bar.getByRole("button", { name: /^Undo/ })).toBeEnabled();
+    await bar.getByRole("button", { name: /^Redo/ }).click();
+    await expect(page.locator(".counts")).toContainText("1 main");
+    await expect(bar.getByRole("button", { name: /^Redo/ })).toBeDisabled();
+  });
+
+  test("Ctrl+Z and Ctrl+Shift+Z work outside text fields, and leave typing to the field", async ({ page }) => {
+    await openApp(page);
+    await menuItem(page, "More", "New deck");
+    await addCardBySearch(page, "vidolium unstable");
+    await expect(page.locator(".counts")).toContainText("1 main");
+    await page.locator(".topbar-brand").click();
+    await page.keyboard.press("Control+z");
+    await expect(page.locator(".counts")).toContainText("0 main");
+    await page.keyboard.press("Control+Shift+z");
+    await expect(page.locator(".counts")).toContainText("1 main");
+    // In the Deck field the browser keeps its own undo, so the deck is not undone.
+    await page.getByLabel("Deck", { exact: true }).click();
+    await page.keyboard.press("Control+z");
+    await expect(page.locator(".counts")).toContainText("1 main");
+  });
 });

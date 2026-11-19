@@ -3,28 +3,6 @@
   "name": "Power Patron Ars Magna Artmage",
   "main": [
     {
-      "card_id": 37279096,
-      "quantity": 2,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 60946049,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
       "card_id": 97556336,
       "quantity": 3,
       "taxonomy": {
@@ -36,8 +14,8 @@
       }
     },
     {
-      "card_id": 17473466,
-      "quantity": 3,
+      "card_id": 25661743,
+      "quantity": 1,
       "taxonomy": {
         "roles": [],
         "opening_quality": {
@@ -69,17 +47,6 @@
       }
     },
     {
-      "card_id": 25661743,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
       "card_id": 36270527,
       "quantity": 3,
       "taxonomy": {
@@ -92,7 +59,51 @@
     },
     {
       "card_id": 62368221,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 37279096,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 48739627,
       "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 60946049,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 17473466,
+      "quantity": 3,
       "taxonomy": {
         "roles": [],
         "opening_quality": {
@@ -114,39 +125,6 @@
     },
     {
       "card_id": 56349876,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 48739627,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 36709484,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 90875418,
       "quantity": 2,
       "taxonomy": {
         "roles": [],
@@ -158,17 +136,6 @@
     },
     {
       "card_id": 23829452,
-      "quantity": 1,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 44654994,
       "quantity": 1,
       "taxonomy": {
         "roles": [],
@@ -201,14 +168,34 @@
       }
     },
     {
-      "card_id": 42141493,
-      "quantity": 3,
+      "card_id": 36709484,
+      "quantity": 1,
       "taxonomy": {
-        "roles": [
-          "lingering_second"
-        ],
+        "roles": [],
         "opening_quality": {
-          "going_first": "neutral",
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 90875418,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 44654994,
+      "quantity": 1,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
           "going_second": null
         }
       }
@@ -227,7 +214,20 @@
       }
     },
     {
-      "card_id": 23434538,
+      "card_id": 42141493,
+      "quantity": 2,
+      "taxonomy": {
+        "roles": [
+          "lingering_second"
+        ],
+        "opening_quality": {
+          "going_first": "neutral",
+          "going_second": null
+        }
+      }
+    },
+    {
+      "card_id": 94145021,
       "quantity": 1,
       "taxonomy": {
         "roles": [
@@ -241,7 +241,7 @@
       }
     },
     {
-      "card_id": 94145021,
+      "card_id": 23434538,
       "quantity": 1,
       "taxonomy": {
         "roles": [
@@ -263,17 +263,6 @@
         ],
         "opening_quality": {
           "going_first": null,
-          "going_second": null
-        }
-      }
-    },
-    {
-      "card_id": 98476659,
-      "quantity": 3,
-      "taxonomy": {
-        "roles": [],
-        "opening_quality": {
-          "going_first": "undesirable",
           "going_second": null
         }
       }
@@ -342,6 +331,17 @@
       }
     },
     {
+      "card_id": 14965712,
+      "quantity": 3,
+      "taxonomy": {
+        "roles": [],
+        "opening_quality": {
+          "going_first": null,
+          "going_second": null
+        }
+      }
+    },
+    {
       "card_id": 23599634,
       "quantity": 1,
       "taxonomy": {
@@ -397,7 +397,7 @@
       }
     },
     {
-      "card_id": 59581480,
+      "card_id": 41350417,
       "quantity": 1,
       "taxonomy": {
         "roles": [],
@@ -406,10 +406,10 @@
           "going_second": null
         }
       },
-      "name": "Elfnote Tinia"
+      "name": "Dark Magical Curtain"
     },
     {
-      "card_id": 51669847,
+      "card_id": 78010363,
       "quantity": 1,
       "taxonomy": {
         "roles": [],
@@ -417,7 +417,8 @@
           "going_first": null,
           "going_second": null
         }
-      }
+      },
+      "name": "Witch of the Black Forest"
     }
   ],
   "extra": [
@@ -702,8 +703,7 @@
         70488851,
         97556336,
         90875418,
-        24203749,
-        59581480
+        24203749
       ]
     },
     {
@@ -754,8 +754,7 @@
         56349876,
         25661743,
         48739627,
-        36709484,
-        51669847
+        36709484
       ]
     },
     {
@@ -801,7 +800,6 @@
         37279096,
         62368221,
         36270527,
-        59581480,
         70488851
       ]
     }

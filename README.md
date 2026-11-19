@@ -413,7 +413,7 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   counts, Save YDK, and Export for YAPPING. Save mapping stores Pre-Side plus
   all configurations.
 - **The top bar** is one strip: the deck name, Open a deck, the counts, then Load file, Clear,
-  More (New deck, Default deck, Set as default, theme), Export (Save YDK, Export for YAPPING) and
+  More (New deck, Default deck, Set as default, theme), Export (Save YDK, Copy deck list, Export for YAPPING) and
   Save mapping. Paste a deck list sits under the card search, and Card labels (what the Starter,
   Extender and Brick dots and Board breaking are read from) is one line above the deck that opens
   to its two menus.
@@ -422,6 +422,18 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   is downloaded as before and the status says why. A built or hosted copy always downloads. The
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
+- **Compare shows the Scorecard parts.** Besides odds, consistency, rank and slots, Compare lists
+  each Scorecard part (Opens, Clean, Resilient, Interaction, and Disruption and Breaking when
+  counted) for both decks, going first and going second, with the exact change in points. Each part
+  is its own percentage and there is no total, so a deck that is stronger in one part and weaker in
+  another shows both. Parts a deck cannot measure (no handtrap, no Interaction card) are left out.
+- **Chance to draw.** On the Profile, pick a card or a Group and see the exact chance of at least
+  1, 2 and 3 copies among the opening hand and each of the next five cards drawn. It counts cards
+  only: it does not know what a card does or whether you can use it.
+- **Undo and Redo.** The two arrows in the top bar, or Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (Ctrl+Y),
+  step back and forward through every change to the deck, up to 100 changes. Typing a name counts
+  as one step. In a text field the keys undo the typing instead. The history is not saved: a reload
+  starts it again, with the autosaved draft as its first state.
 - **Open a deck.** "Open a deck" in the header lists the decks in `public/decks/` and opens one
   at once, with its cards, Groups, Hand Goals and tags. The status line then offers Undo, which puts
   back the deck you had with any edits you had not saved; it goes away when you edit the new deck. Each deck is a `.mapping.json`
