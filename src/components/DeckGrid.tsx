@@ -16,7 +16,7 @@ import {
 import { allowedCopies, copiesInDeck, type Banlist, type Format } from "../lib/banlist";
 import { canMoveTo, moveCopy, reorderCard } from "../lib/deckMove";
 import { isRanked, rankFor } from "../lib/cardRank";
-import { SORT_LABELS, sortCards, sortsFor, type DeckSort } from "../lib/deckSort";
+import { SORT_LABELS, sortCards, sortsFor, upgradeSort, type DeckSort } from "../lib/deckSort";
 import { labelIndex, matchesSpotlight, SPOTLIGHTS, spotlightCounts, type Spotlight } from "../lib/deckLabels";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { ClearButton } from "./ClearButton";
@@ -54,7 +54,7 @@ function readSorts(): Record<DeckSection, DeckSort> {
       Record<DeckSection, DeckSort>
     > | null;
     for (const section of ["main", "extra", "side"] as const) {
-      const value = saved?.[section];
+      const value = upgradeSort(saved?.[section]) as DeckSort | undefined;
       if (value && sortsFor(section).includes(value)) fresh[section] = value;
     }
   } catch {
@@ -75,7 +75,9 @@ function shownRoles(card: MappingCard, derived: DerivedLabels | undefined): read
     ...(derived.starter ? ["starter"] : []),
     ...(derived.extender ? ["extender"] : []),
     ...(derived.brick ? ["brick"] : []),
-    ...(card.taxonomy.roles.includes("interaction") ? ["interaction"] : []),
+    ...(["interaction", "lingering", "lingering_second"].some((role) => (card.taxonomy.roles as readonly string[]).includes(role))
+      ? ["interaction"]
+      : []),
   ];
 }
 
