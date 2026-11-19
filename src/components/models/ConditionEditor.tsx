@@ -142,28 +142,37 @@ export function ConditionEditor({
         label={`Notes for ${condition.name || "hand condition"}`}
         onCommit={(notes) => onChange({ ...condition, notes })}
       />
-      <label className="interruptions-field">
-        <span className="interruptions-row">
-        Interruptions it can take
-        <select
-          value={condition.survives_interruptions ?? 0}
-          onChange={(event) => {
-            const stops = Number(event.target.value);
-            onChange({ ...condition, survives_interruptions: stops > 0 ? stops : undefined });
-          }}
-        >
-          <option value={0}>None</option>
-          {Array.from({ length: MAX_SURVIVED_INTERRUPTIONS }, (_, k) => (
-            <option key={k + 1} value={k + 1}>
-              {k + 1}
-            </option>
-          ))}
-        </select>
-        </span>
-        <small className="field-hint">
-          How many stops the line still finishes through, whichever cards the opponent picks. Only mark a line you tested.
-        </small>
-      </label>
+      {/* Rarely needed, so closed unless this line already carries a mark. */}
+      <details
+        key={condition.survives_interruptions ? "marked" : "unmarked"}
+        className="condition-advanced"
+        open={Boolean(condition.survives_interruptions)}
+      >
+        <summary>Advanced</summary>
+        <label className="interruptions-field">
+          <span className="interruptions-row">
+            Interruptions it can take
+            <select
+              value={condition.survives_interruptions ?? 0}
+              onChange={(event) => {
+                const stops = Number(event.target.value);
+                onChange({ ...condition, survives_interruptions: stops > 0 ? stops : undefined });
+              }}
+            >
+              <option value={0}>None</option>
+              {Array.from({ length: MAX_SURVIVED_INTERRUPTIONS }, (_, k) => (
+                <option key={k + 1} value={k + 1}>
+                  {k + 1}
+                </option>
+              ))}
+            </select>
+          </span>
+          <small className="field-hint">
+            For a line with a second path the cards cannot show. How many stops it still finishes through,
+            whichever cards the opponent picks. Only mark a line you tested.
+          </small>
+        </label>
+      </details>
       <p className="access-allof">Requires</p>
       {condition.requirements.length === 0 ? (
         <p className="empty">Add at least one requirement.</p>

@@ -1293,7 +1293,10 @@ test.describe("Models are card art", () => {
   test("a Hand Condition can be marked as still working after 1 to 3 interruptions, and it is remembered", async ({ page }) => {
     await view(page, "Hand Conditions").click();
     await page.getByRole("button", { name: "+ Add Hand Condition" }).click();
+    // Folded away until a line needs it.
     const stops = page.getByLabel("Interruptions it can take");
+    await expect(stops).toBeHidden();
+    await page.getByText("Advanced", { exact: true }).click();
     await expect(stops).toHaveValue("0");
     await stops.selectOption("2");
     await expect(stops).toHaveValue("2");

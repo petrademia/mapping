@@ -332,3 +332,8 @@
 .interruptions-row { display: flex; align-items: center; gap: var(--space-3); }
 .interruptions-row select { flex: 0 1 auto; }
 .interruptions-field { display: block; margin-bottom: var(--space-3); }
+/* A rarely used setting, folded away so the common fields stay in view. */
+.condition-advanced { margin: 0 0 var(--space-3); }
+.condition-advanced > summary { cursor: pointer; color: var(--muted); font-size: var(--text-sm); width: fit-content; }
+.condition-advanced[open] > summary { margin-bottom: var(--space-2); }
+.condition-advanced .interruptions-field { margin-bottom: 0; }
