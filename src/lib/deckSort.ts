@@ -1,25 +1,31 @@
-import { ROLES } from "./taxonomy";
 import type { MappingCard, DeckSection } from "./document";
 
 /**
  * Ways to order a deck section on screen. A sort is a view setting only: it is
  * never saved into the deck and never changes the exported lists.
  */
-export type DeckSort = "built" | "role" | "label" | "rank" | "name";
+export type DeckSort = "built" | "label" | "rank" | "name";
 
 export const SORT_LABELS: Record<DeckSort, string> = {
   built: "As built",
-  role: "Role",
   label: "Label",
   rank: "Card Rank",
   name: "Name",
 };
 
-/** Sorts that make sense for a section: Extra Deck cards have no roles or rank. */
+/** Sorts that make sense for a section: Extra Deck cards have no labels or rank. */
 export function sortsFor(section: DeckSection): DeckSort[] {
-  if (section === "main") return ["built", "role", "label", "rank", "name"];
-  if (section === "side") return ["built", "role", "label", "name"];
+  if (section === "main") return ["built", "label", "rank", "name"];
+  if (section === "side") return ["built", "label", "name"];
   return ["built", "name"];
+}
+
+/**
+ * A sort chosen before Role and Label became one. "role" was the only sort that has gone, and
+ * Label is what replaced it.
+ */
+export function upgradeSort(saved: string | undefined): string | undefined {
+  return saved === "role" ? "label" : saved;
 }
 
 export interface SortContext {
@@ -27,13 +33,8 @@ export interface SortContext {
   nameOf: (card: MappingCard) => string;
   /** Rank order (best first) for the current turn order, or null until ranked. */
   rankOrder: readonly number[] | null;
-  /** Where a card sorts by label (Starter, Extender, Breaker, Brick, none); needed for the Label sort. */
+  /** Where a card sorts by label (Starter, Extender, Interaction, Breaker, Brick, none); needed for the Label sort. */
   labelOf?: (card: MappingCard) => number;
-}
-
-function roleIndex(card: MappingCard): number {
-  const indexes = card.taxonomy.roles.map((role) => ROLES.indexOf(role)).filter((i) => i >= 0);
-  return indexes.length === 0 ? ROLES.length : Math.min(...indexes);
 }
 
 /** A new array in the chosen order; ties keep the order the deck was built in. */
@@ -46,7 +47,6 @@ export function sortCards(
   const position = new Map<number, number>();
   context.rankOrder?.forEach((id, i) => position.set(id, i));
   const key = ({ card }: { card: MappingCard }): number | string => {
-    if (sort === "role") return roleIndex(card);
     if (sort === "label") return context.labelOf?.(card) ?? 0;
     if (sort === "rank") return position.get(card.card_id) ?? Number.MAX_SAFE_INTEGER;
     if (sort === "name") return context.nameOf(card).toLocaleLowerCase();

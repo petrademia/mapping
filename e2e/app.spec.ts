@@ -1925,6 +1925,30 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
   });
 
+  test("Interaction is a chip, Role is no longer a sort, and a saved Role sort becomes Label", async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("mapping.deckSort", JSON.stringify({ main: "role", extra: "built", side: "built" }));
+      } catch {
+        /* nothing to upgrade */
+      }
+    });
+    await openApp(page);
+    await menuItem(page, "More", "New deck");
+    await addCardBySearch(page, "vidolium unstable");
+    await addCardBySearch(page, "ash blossom");
+    await expect(chip(page, /^Interaction/)).toBeVisible();
+    // The chips come in the same order the Label sort groups cards.
+    const names = await page
+      .getByRole("group", { name: "Show cards with a label" })
+      .getByRole("button")
+      .evaluateAll((buttons) => buttons.map((b) => b.textContent!.replace(/\s*\d+$/, "").trim()));
+    expect(names).toEqual(["All", "Starters", "Extenders", "Interaction", "Breakers", "Bricks"]);
+    const sort = page.getByLabel("Sort Main Deck");
+    await expect(sort).toHaveValue("label");
+    await expect(sort.locator("option", { hasText: /^Role$/ })).toHaveCount(0);
+  });
+
   test("Bricks cannot be read without a Hand Goal, and the Label sort is offered", async ({ page }) => {
     await openApp(page);
     await menuItem(page, "More", "New deck");

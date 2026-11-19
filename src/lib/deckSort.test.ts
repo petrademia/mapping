@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { sortCards, sortsFor } from "./deckSort";
+import { labelIndex } from "./deckLabels";
+import { sortCards, sortsFor, upgradeSort } from "./deckSort";
 import type { MappingCard } from "./document";
 import type { Role } from "./taxonomy";
 
@@ -15,6 +16,9 @@ const context = (rankOrder: number[] | null = null) => ({
   rankOrder,
 });
 
+/** The label sort, reading labels from the tags (no Hand Goal). */
+const labelled = () => ({ ...context(), labelOf: (c: MappingCard) => labelIndex(c, undefined) });
+
 const cards = [card(1), card(2, ["interaction"]), card(3, ["starter", "extender"]), card(4, ["extender"])];
 
 describe("sortCards", () => {
@@ -24,8 +28,8 @@ describe("sortCards", () => {
     expect(out).not.toBe(cards);
   });
 
-  it("sorts by role: starter, extender, interaction, then unassigned", () => {
-    expect(sortCards(cards, "role", context()).map((c) => c.card_id)).toEqual([3, 4, 2, 1]);
+  it("sorts by label: starter, extender, interaction, then unlabelled", () => {
+    expect(sortCards(cards, "label", labelled()).map((c) => c.card_id)).toEqual([3, 4, 2, 1]);
   });
 
   it("sorts by name without regard to case", () => {
@@ -38,7 +42,7 @@ describe("sortCards", () => {
 
   it("keeps ties in the order the deck was built", () => {
     const same = [card(1, ["starter"]), card(2, ["starter"]), card(3, ["starter"])];
-    expect(sortCards(same, "role", context()).map((c) => c.card_id)).toEqual([1, 2, 3]);
+    expect(sortCards(same, "label", labelled()).map((c) => c.card_id)).toEqual([1, 2, 3]);
   });
 });
 
@@ -51,10 +55,18 @@ describe("sorting by label", () => {
   });
 });
 
+describe("a sort saved before Role and Label became one", () => {
+  it("turns Role into Label and leaves the others", () => {
+    expect(upgradeSort("role")).toBe("label");
+    expect(upgradeSort("name")).toBe("name");
+    expect(upgradeSort(undefined)).toBeUndefined();
+  });
+});
+
 describe("sortsFor", () => {
   it("offers only what applies to each section", () => {
-    expect(sortsFor("main")).toEqual(["built", "role", "label", "rank", "name"]);
-    expect(sortsFor("side")).toEqual(["built", "role", "label", "name"]);
+    expect(sortsFor("main")).toEqual(["built", "label", "rank", "name"]);
+    expect(sortsFor("side")).toEqual(["built", "label", "name"]);
     expect(sortsFor("extra")).toEqual(["built", "name"]);
   });
 });

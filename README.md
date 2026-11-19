@@ -422,12 +422,15 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   is downloaded as before and the status says why. A built or hosted copy always downloads. The
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
-- **Spotlight a label.** Above the Main Deck, the chips All, Starters, Extenders, Bricks and Breakers
-  each show how many copies carry that label. Choosing one fades every other card and moves nothing,
-  so you can see where, say, the Bricks sit. Starter, Extender and Brick are read from the Hand Goal
-  chosen under Card labels; Breaker is the tag you set by hand. Bricks need a Hand Goal, so that chip
-  is off without one. Bricks also show as a grey dot on the card, beside the Starter and Extender dots.
-  The sort menu has a Label sort that groups Starters, Extenders, Breakers, Bricks, then the rest.
+- **Spotlight a label.** Above the Main Deck, the chips All, Starters, Extenders, Interaction,
+  Breakers and Bricks each show how many copies carry that label. Choosing one fades every other card
+  and moves nothing, so you can see where, say, the Bricks sit. Starter, Extender and Brick are read
+  from the Hand Goal chosen under Card labels; Interaction and Breaker are the tags you set by hand.
+  Interaction includes your lingering handtraps, also going second. Bricks need a Hand Goal, so that
+  chip is off without one. Bricks also show as a grey dot on the card, beside the other dots.
+  The sort menu has one Label sort that groups Starters, Extenders, Interaction, Breakers, Bricks, then
+  the rest, in the order of the chips. It replaced the older Role sort, and a Role sort you had chosen
+  becomes Label.
 - **Compare shows the Scorecard parts.** Besides odds, consistency, rank and slots, Compare lists
   each Scorecard part (Opens, Clean, Resilient, Interaction, and Disruption and Breaking when
   counted) for both decks, going first and going second, with the exact change in points. Each part
