@@ -1,4 +1,5 @@
 import type { DerivedLabels } from "../lib/derivedLabels";
+import { roleVariant, setRoleVariant, type TurnVariantRole } from "../lib/roleVariants";
 import { toggleRole, type Role } from "../lib/taxonomy";
 
 interface Props {
@@ -9,6 +10,55 @@ interface Props {
    * no Hand Goal to read them from yet.
    */
   derived: DerivedLabels | null;
+}
+
+/**
+ * A role that counts in both turn orders, or going second only. One chip turns it on; once on, a
+ * small "going second only" toggle narrows it. The saved tag is the base role or its going-second role.
+ */
+function TurnVariantChip({
+  role,
+  label,
+  roles,
+  onChange,
+  title,
+  secondTitle,
+}: {
+  role: TurnVariantRole;
+  label: string;
+  roles: Role[];
+  onChange: (roles: Role[]) => void;
+  title: string;
+  secondTitle: string;
+}) {
+  const variant = roleVariant(roles, role);
+  const on = variant !== "off";
+  return (
+    <span className="role-option">
+      <button
+        type="button"
+        className={on ? "chip on" : "chip"}
+        data-role={role}
+        aria-pressed={on}
+        title={title}
+        onClick={() => onChange(setRoleVariant(roles, role, on ? "off" : "both"))}
+      >
+        {label}
+      </button>
+      {on ? (
+        <button
+          type="button"
+          className={variant === "second" ? "chip on role-second" : "chip role-second"}
+          aria-pressed={variant === "second"}
+          aria-label={`${label}: going second only`}
+          title={secondTitle}
+          onClick={() => onChange(setRoleVariant(roles, role, variant === "second" ? "both" : "second"))}
+        >
+          Going second only
+        </button>
+      ) : null}
+    </span>
+  );
 }
 
 /**
@@ -40,46 +90,22 @@ export function RoleEditor({ roles, onChange, derived }: Props) {
         >
           Interaction
         </button>
-        <button
-          type="button"
-          className={roles.includes("lingering") ? "chip on" : "chip"}
-          data-role="lingering"
-          aria-pressed={roles.includes("lingering")}
-          title="A lingering handtrap: its effect taxes or blocks the opponent all turn, so they go on with a smaller board (Droll & Lock Bird). Works in either turn order"
-          onClick={() => onChange(toggleRole(roles, "lingering"))}
-        >
-          Lingering handtrap
-        </button>
-        <button
-          type="button"
-          className={roles.includes("lingering_second") ? "chip on" : "chip"}
-          data-role="lingering_second"
-          aria-pressed={roles.includes("lingering_second")}
-          title="A lingering handtrap that only works going second, because you must control no cards (Mulcharmy). It taxes the opponent all turn"
-          onClick={() => onChange(toggleRole(roles, "lingering_second"))}
-        >
-          Lingering handtrap, going second
-        </button>
-        <button
-          type="button"
-          className={roles.includes("breaker") ? "chip on" : "chip"}
-          data-role="breaker"
-          aria-pressed={roles.includes("breaker")}
-          title="A board breaker: it destroys, banishes or bounces the opponent's cards on your turn. Counts in either turn order"
-          onClick={() => onChange(toggleRole(roles, "breaker"))}
-        >
-          Board breaker
-        </button>
-        <button
-          type="button"
-          className={roles.includes("breaker_second") ? "chip on" : "chip"}
-          data-role="breaker_second"
-          aria-pressed={roles.includes("breaker_second")}
-          title="A board breaker that is only worth it going second, since going first there is no board yet"
-          onClick={() => onChange(toggleRole(roles, "breaker_second"))}
-        >
-          Board breaker, going second
-        </button>
+        <TurnVariantChip
+          role="lingering"
+          label="Lingering handtrap"
+          roles={roles}
+          onChange={onChange}
+          title="A lingering handtrap: its effect taxes or blocks the opponent all turn, so they go on with a smaller board (Droll & Lock Bird)"
+          secondTitle="Only works going second, because you must control no cards (Mulcharmy)"
+        />
+        <TurnVariantChip
+          role="breaker"
+          label="Board breaker"
+          roles={roles}
+          onChange={onChange}
+          title="A board breaker: it destroys, banishes or bounces the opponent's cards on your turn"
+          secondTitle="Only worth it going second, since going first there is no board yet"
+        />
       </div>
       {derived ? (
         <p className="derived-labels" aria-label="Read from your Hand Conditions">

@@ -94,7 +94,7 @@ Opening Quality:   Going First:  neutral
 - **Which Hand Goal the labels read.** Above the deck, "Starter, Extender and Brick are read from" picks one Hand Goal; only its Hand Conditions count, so a card is an Extender only when that goal needs it with another card, and a card in none of its routes is a Brick. "Every Hand Goal" reads them all, as before, which makes almost every card an Extender through broad Groups. Saved as `label_goal_id`.
 - A **brick** is in none of your routes and is not an Interaction card. Opening Quality you set by hand always wins; derived bricks only fill in where it is not set.
 - Role requirements, exclusions and requirements that only ask for fewer cards are ignored when deriving.
-- **Interaction** is the main role you tag, and **Lingering handtrap** (both turn orders), **Lingering handtrap, going second**, **Board breaker** and **Board breaker, going second** are the others. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
+- **Interaction** is the main role you tag, and **Lingering handtrap** and **Board breaker** are the others. Each counts in both turn orders; once it is on, a "Going second only" toggle on the chip narrows it. The saved tags are unchanged (`lingering` or `lingering_second`, `breaker` or `breaker_second`). Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
 - Nothing derived is saved: it is how the workspaces and the YAPPING export see the deck. The card editor shows the derived labels read-only.
 
 ### Opening quality definitions (hypotheses)
@@ -309,7 +309,7 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 - **Interaction** - hands with at least one card marked with the Interaction role.
 - **Breaking** - hands with enough board breakers, cards that destroy, banish or bounce the
   opponent's cards on your own turn. Mark such a card "Board breaker" to count it in both turn
-  orders, or "Board breaker, going second" to count it only going second, since going first
+  orders, then turn on "Going second only" to count it only going second, since going first
   there is no board yet. "Board breakers a hand needs" in Settings (default 1) sets the bar. A
   card that only breaks a board with a partner (such as Jupredo with another Power Patron
   monster) is a Hand Condition in a Hand Goal instead: choose that goal in "Board breaking also
@@ -330,7 +330,7 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
   is worth 1 point. A lingering handtrap, whose effect stays on for the opponent's
   whole turn (Droll & Lock Bird), is worth more, because it keeps taxing the opponent
   and they tend to end on a smaller board. Mark such a card "Lingering handtrap" to
-  count it in both turn orders, or "Lingering handtrap, going second" to count it only
+  count it in both turn orders, then turn on "Going second only" to count it only
   going second (Mulcharmy, which need you to control no cards). In Settings, "A
   lingering handtrap is worth" sets its points (default 2) and "Disruption points a hand
   needs" sets the bar (default 2), so by default one lingering card is enough and one

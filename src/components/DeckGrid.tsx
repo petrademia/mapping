@@ -237,6 +237,8 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
   // Or the Opening Quality you set for the turn order being analyzed. Only one spotlight is on at a
   // time: choosing a quality clears the label, and choosing a label clears the quality.
   const [qualitySpot, setQualitySpot] = useState<QualityKey | null>(null);
+  // The quality row is hidden until asked for, so the deck view starts with one row of chips.
+  const [showQuality, setShowQuality] = useState(false);
   const mainQuality = useMemo(() => qualityCounts(doc.main, turn), [doc.main, turn]);
   const chooseLabel = (key: Spotlight) => {
     setQualitySpot(null);
@@ -406,10 +408,25 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  className={showQuality ? "chip deck-spotlight-more on" : "chip deck-spotlight-more"}
+                  aria-expanded={showQuality}
+                  aria-controls="deck-quality-row"
+                  title="Show or hide the Opening Quality chips"
+                  onClick={() => {
+                    // Hiding the row also ends its spotlight, so nothing stays faded with no chip to say why.
+                    if (showQuality) setQualitySpot(null);
+                    setShowQuality(!showQuality);
+                  }}
+                >
+                  Quality
+                </button>
               </div>
             ) : null}
-            {section === "main" && cards.length > 0 ? (
+            {section === "main" && cards.length > 0 && showQuality ? (
               <div
+                id="deck-quality-row"
                 className="deck-spotlight"
                 role="group"
                 aria-label={`Show cards by Opening Quality, ${turn === "going_second" ? "going second" : "going first"}`}

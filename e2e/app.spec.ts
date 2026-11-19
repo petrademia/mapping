@@ -625,23 +625,25 @@ test.describe("Deck view", () => {
     await expect(detail.getByRole("button", { name: "Interaction" })).toBeInViewport();
     await detail.getByRole("button", { name: "Interaction" }).click();
     await expect(detail.getByRole("button", { name: "Interaction" })).toHaveAttribute("aria-pressed", "true");
-    // A Lingering handtrap is tagged by hand too, for both turn orders or going second only.
+    // A Lingering handtrap is tagged by hand too: one chip, and once on a toggle narrows it to going second.
     const lingering = detail.getByRole("button", { name: "Lingering handtrap", exact: true });
-    const lingeringSecond = detail.getByRole("button", { name: "Lingering handtrap, going second", exact: true });
+    const lingeringSecond = detail.getByRole("button", { name: "Lingering handtrap: going second only", exact: true });
+    await expect(lingeringSecond).toHaveCount(0);
     await lingering.click();
-    await lingeringSecond.click();
     await expect(lingering).toHaveAttribute("aria-pressed", "true");
+    await expect(lingeringSecond).toHaveAttribute("aria-pressed", "false");
+    await lingeringSecond.click();
     await expect(lingeringSecond).toHaveAttribute("aria-pressed", "true");
+    await expect(lingering).toHaveAttribute("aria-pressed", "true");
     await lingering.click();
     await expect(lingering).toHaveAttribute("aria-pressed", "false");
-    await expect(lingeringSecond).toHaveAttribute("aria-pressed", "true");
+    await expect(lingeringSecond).toHaveCount(0);
     // So is a Board breaker, in both turn orders or going second only.
     const breaker = detail.getByRole("button", { name: "Board breaker", exact: true });
-    const breakerSecond = detail.getByRole("button", { name: "Board breaker, going second", exact: true });
+    const breakerSecond = detail.getByRole("button", { name: "Board breaker: going second only", exact: true });
+    await breaker.click();
     await breakerSecond.click();
     await expect(breakerSecond).toHaveAttribute("aria-pressed", "true");
-    await expect(breaker).toHaveAttribute("aria-pressed", "false");
-    await breaker.click();
     await expect(breaker).toHaveAttribute("aria-pressed", "true");
     // Starter and Extender are not tagged by hand: there is no button for them.
     await expect(detail.getByRole("button", { name: "Starter" })).toHaveCount(0);
@@ -1931,6 +1933,12 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await page.goto("/");
     await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
     const row = page.getByRole("group", { name: /^Show cards by Opening Quality/ });
+    // One row of chips to start with; the quality row opens from the Quality button.
+    await expect(row).toHaveCount(0);
+    const toggle = page.getByRole("button", { name: "Quality", exact: true });
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(row).toBeVisible();
     await expect(row.getByText(/^Going (first|second)$/)).toBeVisible();
     const total = await page.getByRole("list", { name: "Main Deck cards" }).locator("li[data-card]").count();
@@ -1952,6 +1960,12 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await enabled.click();
     await enabled.click();
     await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
+    // Hiding the row ends its spotlight, so nothing stays faded without a chip to say why.
+    await enabled.click();
+    await expect(page.locator('li[data-card][data-dim="true"]')).not.toHaveCount(0);
+    await toggle.click();
+    await expect(row).toHaveCount(0);
+    await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
   });
 
   test("Interaction is a chip, Role is no longer a sort, and a saved Role sort becomes Label", async ({ page }) => {
@@ -1972,7 +1986,8 @@ test.describe("Spotlight a label in the Main Deck", () => {
       .getByRole("group", { name: "Show cards with a label" })
       .getByRole("button")
       .evaluateAll((buttons) => buttons.map((b) => b.textContent!.replace(/\s*\d+$/, "").trim()));
-    expect(names).toEqual(["All", "Starters", "Extenders", "Interaction", "Breakers", "Bricks"]);
+    // The Quality button ends the row; it opens the Opening Quality chips.
+    expect(names).toEqual(["All", "Starters", "Extenders", "Interaction", "Breakers", "Bricks", "Quality"]);
     const sort = page.getByLabel("Sort Main Deck");
     await expect(sort).toHaveValue("label");
     await expect(sort.locator("option", { hasText: /^Role$/ })).toHaveCount(0);

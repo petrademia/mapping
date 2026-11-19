@@ -67,6 +67,11 @@
 .taxonomy-block:last-child { margin-bottom: 0; }
 .taxonomy-label { font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .roles, .opening-quality { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+/* A role chip with its "going second only" toggle attached, so the two read as one control. */
+.role-option { display: inline-flex; align-items: stretch; gap: 0; }
+.role-option > .chip:first-child:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.role-option > .role-second { border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; color: var(--muted); }
+.role-option > .role-second.on { color: var(--ink); }
 /* Read from the Hand Conditions: shown like tags but not clickable. */
 /* The order the opponent goes for your cards. */
 .hit-priority { margin: var(--space-3) 0; }
