@@ -63,10 +63,8 @@ export function AnalysisContextSelector({
         <p>{sample} cards seen</p>
       </header>
       <p className="note">
-        Turn order and observation point for composition probabilities. Opening
-        hand is always {openingHandSize} cards; going second by first turn also
-        counts the normal draw ({openingHandSize + 1} cards seen). This is not a
-        card taxonomy label.
+        Which cards are counted. Going second, first turn, includes the normal draw
+        ({openingHandSize + 1} cards seen); going first sees {openingHandSize}.
       </p>
       <ContextChips context={context} openingHandSize={openingHandSize} onChange={onChange} />
       <p className="note context-sample">

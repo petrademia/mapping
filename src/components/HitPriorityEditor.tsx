@@ -32,11 +32,8 @@ export function HitPriorityEditor({ doc, catalog, onChange }: Props) {
     <section className="hit-priority" aria-label="Who the opponent goes for">
       <h3 className="panel-subhead">Who the opponent goes for</h3>
       <p className="note">
-        Optional. List, in order, the cards or Groups the opponent tends to use a handtrap on
-        first, such as Medius, or every route that ends at Medius's effect. Each handtrap goes to
-        the first one on the list that it can stop and you hold, whether or not that breaks your
-        plan. A card that is not listed is never hit by this opponent. The Scorecard shows this
-        opponent next to the one who always stops the card that hurts most.
+        Optional: the cards or Groups the opponent hits first, in order. Each handtrap goes to the
+        first on the list it can stop. A card not listed is never hit.
       </p>
       {doc.hit_priority.length === 0 ? (
         <p className="empty">No list yet: the opponent is only ever assumed to hit the card that hurts most.</p>

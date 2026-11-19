@@ -67,6 +67,11 @@
 .taxonomy-block:last-child { margin-bottom: 0; }
 .taxonomy-label { font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .roles, .opening-quality { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+/* A role chip with its "going second only" toggle attached, so the two read as one control. */
+.role-option { display: inline-flex; align-items: stretch; gap: 0; }
+.role-option > .chip:first-child:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.role-option > .role-second { border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; color: var(--muted); }
+.role-option > .role-second.on { color: var(--ink); }
 /* Read from the Hand Conditions: shown like tags but not clickable. */
 /* The order the opponent goes for your cards. */
 .hit-priority { margin: var(--space-3) 0; }
@@ -322,3 +327,13 @@
 /* Chance to draw: the label and its select share a row, the select takes the rest. */
 .draw-odds label { display: flex; align-items: center; gap: var(--space-3); }
 .draw-odds label select { flex: 1 1 auto; min-width: 0; }
+
+/* Interruptions it can take: the label and its select share a row with a gap, and the hint sits under both. */
+.interruptions-row { display: flex; align-items: center; gap: var(--space-3); }
+.interruptions-row select { flex: 0 1 auto; }
+.interruptions-field { display: block; margin-bottom: var(--space-3); }
+/* A rarely used setting, folded away so the common fields stay in view. */
+.condition-advanced { margin: 0 0 var(--space-3); }
+.condition-advanced > summary { cursor: pointer; color: var(--muted); font-size: var(--text-sm); width: fit-content; }
+.condition-advanced[open] > summary { margin-bottom: var(--space-2); }
+.condition-advanced .interruptions-field { margin-bottom: 0; }

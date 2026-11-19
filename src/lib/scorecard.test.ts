@@ -106,7 +106,7 @@ describe("scorecard", () => {
   it("leaves out what it cannot measure instead of counting it as zero", () => {
     const noTraps = ok(scorecard(doc({ handtrap: false }), "g"));
     expect(noTraps.first.resilient).toBeNull();
-    expect(noTraps.first.notes.join(" ")).toMatch(/Handtraps tab/);
+    expect(noTraps.first.notes.join(" ")).toMatch(/Handtrap versus tab/);
 
     const noRole = ok(scorecard(doc({ interactionRole: false }), "g"));
     expect(noRole.first.interaction).toBeNull();

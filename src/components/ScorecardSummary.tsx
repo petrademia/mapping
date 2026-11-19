@@ -8,7 +8,7 @@ const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 const HOW_TO_MEASURE = {
   opens: "",
   clean: "mark bricks as Undesirable",
-  resilient: "add a handtrap in the Handtraps tab",
+  resilient: "add a handtrap in the Handtrap versus tab",
   interaction: "mark Interaction cards",
   lingering: "mark Lingering handtrap cards",
   breaking: "mark Board breaker cards",

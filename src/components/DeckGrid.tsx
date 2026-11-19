@@ -18,6 +18,7 @@ import { canMoveTo, moveCopy, reorderCard } from "../lib/deckMove";
 import { isRanked, rankFor } from "../lib/cardRank";
 import { SORT_LABELS, sortCards, sortsFor, upgradeSort, type DeckSort } from "../lib/deckSort";
 import { labelIndex, matchesSpotlight, SPOTLIGHTS, spotlightCounts, type Spotlight } from "../lib/deckLabels";
+import { QUALITY_CHIPS, qualityCounts, qualityIndex, qualityOf, type QualityKey } from "../lib/deckQuality";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { ClearButton } from "./ClearButton";
 import { CardFrame } from "./HandImages";
@@ -233,6 +234,26 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
     [doc.main, labels],
   );
   const turn = doc.analysis.turn_order;
+  // Or the Opening Quality you set for the turn order being analyzed. Only one spotlight is on at a
+  // time: choosing a quality clears the label, and choosing a label clears the quality.
+  const [qualitySpot, setQualitySpot] = useState<QualityKey | null>(null);
+  // The quality row is hidden until asked for, so the deck view starts with one row of chips.
+  const [showQuality, setShowQuality] = useState(false);
+  const mainQuality = useMemo(() => qualityCounts(doc.main, turn), [doc.main, turn]);
+  const chooseLabel = (key: Spotlight) => {
+    setQualitySpot(null);
+    setSpotlight(key);
+  };
+  const chooseQuality = (key: QualityKey) => {
+    setSpotlight("all");
+    setQualitySpot((current) => (current === key ? null : key));
+  };
+  // A quality with no cards left (after an edit, or a change of turn order) spotlights nothing.
+  const activeQuality = qualitySpot !== null && mainQuality[qualitySpot] > 0 ? qualitySpot : null;
+  const dimmed = (card: MappingCard): boolean =>
+    activeQuality !== null
+      ? qualityOf(card, turn) !== activeQuality
+      : !matchesSpotlight(card, labels.get(card.card_id), spotlight);
   const rankOrder = isRanked(doc, turn) ? rankFor(doc, turn) : null;
   // Drag a tile to reorder inside a section, or onto another section to move one copy.
   // The ref is the source of truth for the handlers. No state changes when a drag
@@ -322,6 +343,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                 nameOf: (card) => displayName(card.card_id, card.name, catalog),
                 rankOrder,
                 labelOf: (card) => labelIndex(card, labels.get(card.card_id)),
+                qualityOf: (card) => qualityIndex(card, turn),
               });
         const chosenId =
           selected && selected.section === section ? selected.cardId : null;
@@ -376,16 +398,58 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                     <button
                       key={key}
                       type="button"
-                      className={spotlight === key ? "chip on" : "chip"}
-                      aria-pressed={spotlight === key}
+                      className={activeQuality === null && spotlight === key ? "chip on" : "chip"}
+                      aria-pressed={activeQuality === null && spotlight === key}
                       disabled={unknown}
-                      title={unknown ? "Define a Hand Goal to read which cards are Bricks" : undefined}
-                      onClick={() => setSpotlight(key)}
+                      title={
+                        unknown
+                          ? "Define a Hand Goal to read which cards are Bricks"
+                          : key === "brick"
+                            ? "Cards in none of your routes. Undesirable, under Opening Quality, is the quality you set by hand, so the two can differ."
+                            : undefined
+                      }
+                      onClick={() => chooseLabel(key)}
                     >
                       {label} <span className="deck-spotlight-count">{mainCounts[key]}</span>
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  className={showQuality ? "chip deck-spotlight-more on" : "chip deck-spotlight-more"}
+                  aria-expanded={showQuality}
+                  aria-controls="deck-quality-row"
+                  title="Show or hide the Opening Quality chips"
+                  onClick={() => {
+                    // Hiding the row also ends its spotlight, so nothing stays faded with no chip to say why.
+                    if (showQuality) setQualitySpot(null);
+                    setShowQuality(!showQuality);
+                  }}
+                >
+                  Opening Quality
+                </button>
+              </div>
+            ) : null}
+            {section === "main" && cards.length > 0 && showQuality ? (
+              <div
+                id="deck-quality-row"
+                className="deck-spotlight"
+                role="group"
+                aria-label={`Show cards by Opening Quality, ${turn === "going_second" ? "going second" : "going first"}`}
+              >
+                <span className="deck-spotlight-row">{turn === "going_second" ? "Going second" : "Going first"}</span>
+                {QUALITY_CHIPS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={activeQuality === key ? "chip on" : "chip"}
+                    aria-pressed={activeQuality === key}
+                    disabled={mainQuality[key] === 0}
+                    onClick={() => chooseQuality(key)}
+                  >
+                    {label} <span className="deck-spotlight-count">{mainQuality[key]}</span>
+                  </button>
+                ))}
               </div>
             ) : null}
             {blockedSection === section && sort !== "built" ? (
@@ -414,9 +478,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                       }
                       data-card={card.card_id}
                       data-dim={
-                        section === "main" && !matchesSpotlight(card, labels.get(card.card_id), spotlight)
-                          ? "true"
-                          : undefined
+                        section === "main" && dimmed(card) ? "true" : undefined
                       }
                       onDragOver={(event) => overTile(event, section, card.card_id)}
                       draggable

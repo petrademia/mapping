@@ -136,12 +136,10 @@ export function DeckProfile({ doc, onHandSize }: Props) {
         </label>
       </header>
       <p className="note">
-        Exact opening-hand profile under{" "}
+        Exact odds for{" "}
         {analysisContextLabel(context, opening)} —{" "}
-        {sampleSizeDescription(context, opening)}. Hand Goals come from
-        the configured Hand Conditions; raw composition statistics below are
-        descriptive annotations, not strategic verdicts. Not combo success, win
-        rate, or YAPPING utility.
+        {sampleSizeDescription(context, opening)}. These describe the cards and
+        your Hand Conditions. They are not combo success, win rate or play strength.
       </p>
       {deck === 0 ? (
         <p className="empty">Add Main Deck cards to profile the deck.</p>

@@ -94,7 +94,7 @@ Opening Quality:   Going First:  neutral
 - **Which Hand Goal the labels read.** Above the deck, "Starter, Extender and Brick are read from" picks one Hand Goal; only its Hand Conditions count, so a card is an Extender only when that goal needs it with another card, and a card in none of its routes is a Brick. "Every Hand Goal" reads them all, as before, which makes almost every card an Extender through broad Groups. Saved as `label_goal_id`.
 - A **brick** is in none of your routes and is not an Interaction card. Opening Quality you set by hand always wins; derived bricks only fill in where it is not set.
 - Role requirements, exclusions and requirements that only ask for fewer cards are ignored when deriving.
-- **Interaction** is the main role you tag, and **Lingering handtrap** (both turn orders), **Lingering handtrap, going second**, **Board breaker** and **Board breaker, going second** are the others. Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
+- **Interaction** is the main role you tag, and **Lingering handtrap** and **Board breaker** are the others. Each counts in both turn orders; once it is on, a "Going second only" toggle on the chip narrows it. The saved tags are unchanged (`lingering` or `lingering_second`, `breaker` or `breaker_second`). Tags saved in older files for Starter and Extender are kept in the file but not used once a Hand Goal exists. Until then they apply as before.
 - Nothing derived is saved: it is how the workspaces and the YAPPING export see the deck. The card editor shows the derived labels read-only.
 
 ### Opening quality definitions (hypotheses)
@@ -253,7 +253,7 @@ why each predicate passed or failed.
   *Draw* takes the number of cards you choose off the top, *Shuffle* mixes the
   deck again and keeps the hand, and clicking a card moves it between the deck
   (where it greys out) and the hand. A hand of any size gets results.
-- **Opponent hand**: a pane of the handtraps from the Handtraps tab. Click
+- **Opponent hand**: a pane of the handtraps from the Handtrap versus tab. Click
   handtraps to hold them, or Deal Opponent to draw a random few (set how many
   beside the button). Each Hand Goal that holds then shows whether it survives
   those handtraps, and the cards they would negate are greyed under a red
@@ -305,11 +305,11 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
   under it shows 0 to 3 bricks, so you can see how many bricks the deck can
   carry before the goal suffers.
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
-  case over the handtraps and pairs in the Handtraps tab.
+  case over the handtraps and pairs in the Handtrap versus tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
 - **Breaking** - hands with enough board breakers, cards that destroy, banish or bounce the
   opponent's cards on your own turn. Mark such a card "Board breaker" to count it in both turn
-  orders, or "Board breaker, going second" to count it only going second, since going first
+  orders, then turn on "Going second only" to count it only going second, since going first
   there is no board yet. "Board breakers a hand needs" in Settings (default 1) sets the bar. A
   card that only breaks a board with a partner (such as Jupredo with another Power Patron
   monster) is a Hand Condition in a Hand Goal instead: choose that goal in "Board breaking also
@@ -330,7 +330,7 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
   is worth 1 point. A lingering handtrap, whose effect stays on for the opponent's
   whole turn (Droll & Lock Bird), is worth more, because it keeps taxing the opponent
   and they tend to end on a smaller board. Mark such a card "Lingering handtrap" to
-  count it in both turn orders, or "Lingering handtrap, going second" to count it only
+  count it in both turn orders, then turn on "Going second only" to count it only
   going second (Mulcharmy, which need you to control no cards). In Settings, "A
   lingering handtrap is worth" sets its points (default 2) and "Disruption points a hand
   needs" sets the bar (default 2), so by default one lingering card is enough and one
@@ -428,6 +428,10 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   from the Hand Goal chosen under Card labels; Interaction and Breaker are the tags you set by hand.
   Interaction includes your lingering handtraps, also going second. Bricks need a Hand Goal, so that
   chip is off without one. Bricks also show as a grey dot on the card, beside the other dots.
+  A second row spotlights by Opening Quality for the turn order being analyzed: Desirable, Neutral,
+  Undesirable and Not set, each with its copy count (a quality with no cards is off). Only one
+  spotlight is on at a time across the two rows. The sort menu also has an Opening Quality sort, Desirable
+  first and Not set last.
   The sort menu has one Label sort that groups Starters, Extenders, Interaction, Breakers, Bricks, then
   the rest, in the order of the chips. It replaced the older Role sort, and a Role sort you had chosen
   becomes Label.
@@ -470,7 +474,7 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   when that is better for them, so every number is the worst case.
 - A pair applies two negations, one per handtrap, each on its own copy.
 - **Who the opponent goes for.** A handtrap's own list says which of your cards
-  it can stop. In the Handtraps tab you can also give an ordered priority list
+  it can stop. In the Handtrap versus tab you can also give an ordered priority list
   of cards or Groups the opponent tends to use a handtrap on first (for example
   "every route that ends at Medius's effect", then Terminus, then Curtain). Each
   handtrap then goes to the first listed target it can stop and you hold,
@@ -491,7 +495,7 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   and a goal survives when some choice survives every answer. Without a marked
   Group, copies and routes back each other up as before. Files saved with the
   earlier single "Normal Summon Group" are read as one marked Group.
-- **Still works after N interruptions.** A line you tested that has a second path
+- **Interruptions it can take.** A line you tested that has a second path
   (for example Graflare with an Artmage Spell that stays on the field) can be
   marked on its Hand Condition in Models, Hand Conditions, as surviving 1, 2 or 3
   interruptions. A hand that meets a marked condition counts as surviving that many

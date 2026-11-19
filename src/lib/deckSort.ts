@@ -4,19 +4,20 @@ import type { MappingCard, DeckSection } from "./document";
  * Ways to order a deck section on screen. A sort is a view setting only: it is
  * never saved into the deck and never changes the exported lists.
  */
-export type DeckSort = "built" | "label" | "rank" | "name";
+export type DeckSort = "built" | "label" | "quality" | "rank" | "name";
 
 export const SORT_LABELS: Record<DeckSort, string> = {
   built: "As built",
   label: "Label",
+  quality: "Opening Quality",
   rank: "Card Rank",
   name: "Name",
 };
 
-/** Sorts that make sense for a section: Extra Deck cards have no labels or rank. */
+/** Sorts that make sense for a section: Extra Deck cards have no labels, quality or rank. */
 export function sortsFor(section: DeckSection): DeckSort[] {
-  if (section === "main") return ["built", "label", "rank", "name"];
-  if (section === "side") return ["built", "label", "name"];
+  if (section === "main") return ["built", "label", "quality", "rank", "name"];
+  if (section === "side") return ["built", "label", "quality", "name"];
   return ["built", "name"];
 }
 
@@ -35,6 +36,8 @@ export interface SortContext {
   rankOrder: readonly number[] | null;
   /** Where a card sorts by label (Starter, Extender, Interaction, Breaker, Brick, none); needed for the Label sort. */
   labelOf?: (card: MappingCard) => number;
+  /** Where a card sorts by Opening Quality for the analyzed turn order (Desirable first, Not set last). */
+  qualityOf?: (card: MappingCard) => number;
 }
 
 /** A new array in the chosen order; ties keep the order the deck was built in. */
@@ -48,6 +51,7 @@ export function sortCards(
   context.rankOrder?.forEach((id, i) => position.set(id, i));
   const key = ({ card }: { card: MappingCard }): number | string => {
     if (sort === "label") return context.labelOf?.(card) ?? 0;
+    if (sort === "quality") return context.qualityOf?.(card) ?? 0;
     if (sort === "rank") return position.get(card.card_id) ?? Number.MAX_SAFE_INTEGER;
     if (sort === "name") return context.nameOf(card).toLocaleLowerCase();
     return 0;

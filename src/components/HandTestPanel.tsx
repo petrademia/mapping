@@ -32,16 +32,7 @@ import {
 } from "../lib/handTest";
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { ROLES } from "../lib/taxonomy";
-
-const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
-  starter: "Starter",
-  extender: "Extender",
-  interaction: "Interaction",
-  lingering: "Lingering handtrap",
-  lingering_second: "Lingering handtrap, going second",
-  breaker: "Board breaker",
-  breaker_second: "Board breaker, going second",
-};
+import { ROLE_LABELS } from "../lib/roleLabels";
 
 const QUALITY_LABELS: { key: "desirable" | "neutral" | "undesirable" | "unclassified"; label: string }[] = [
   { key: "desirable", label: "Desirable" },
@@ -118,7 +109,7 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
     // eslint-disable-next-line react-hooks/exhaustive-deps -- structural fingerprint
   }, [analysisKey, hand]);
 
-  // The opponent's hand: handtraps from the Handtraps tab, dealt at random or clicked in.
+  // The opponent's hand: handtraps from the Handtrap versus tab, dealt at random or clicked in.
   const held = useMemo(
     () => opponent.filter((id) => doc.handtraps.some((handtrap) => handtrap.id === id)),
     [opponent, doc.handtraps],

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CountOperator } from "../../lib/handExplorer";
 import type { MappingDocument } from "../../lib/document";
-import { openingQualityCoverage, type Role } from "../../lib/taxonomy";
+import { openingQualityCoverage } from "../../lib/taxonomy";
 
 export const OP_LABELS: Record<CountOperator, string> = {
   eq: "=",
@@ -12,15 +12,7 @@ export const OP_LABELS: Record<CountOperator, string> = {
   lt: "<",
 };
 
-export const ROLE_LABELS: Record<Role, string> = {
-  starter: "Starter",
-  extender: "Extender",
-  interaction: "Interaction",
-  lingering: "Lingering handtrap",
-  lingering_second: "Lingering handtrap, going second",
-  breaker: "Board breaker",
-  breaker_second: "Board breaker, going second",
-};
+export { ROLE_LABELS } from "../../lib/roleLabels";
 
 export function EntityNotes({
   value,
