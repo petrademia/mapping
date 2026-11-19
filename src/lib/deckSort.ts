@@ -5,19 +5,20 @@ import type { MappingCard, DeckSection } from "./document";
  * Ways to order a deck section on screen. A sort is a view setting only: it is
  * never saved into the deck and never changes the exported lists.
  */
-export type DeckSort = "built" | "role" | "rank" | "name";
+export type DeckSort = "built" | "role" | "label" | "rank" | "name";
 
 export const SORT_LABELS: Record<DeckSort, string> = {
   built: "As built",
   role: "Role",
+  label: "Label",
   rank: "Card Rank",
   name: "Name",
 };
 
 /** Sorts that make sense for a section: Extra Deck cards have no roles or rank. */
 export function sortsFor(section: DeckSection): DeckSort[] {
-  if (section === "main") return ["built", "role", "rank", "name"];
-  if (section === "side") return ["built", "role", "name"];
+  if (section === "main") return ["built", "role", "label", "rank", "name"];
+  if (section === "side") return ["built", "role", "label", "name"];
   return ["built", "name"];
 }
 
@@ -26,6 +27,8 @@ export interface SortContext {
   nameOf: (card: MappingCard) => string;
   /** Rank order (best first) for the current turn order, or null until ranked. */
   rankOrder: readonly number[] | null;
+  /** Where a card sorts by label (Starter, Extender, Breaker, Brick, none); needed for the Label sort. */
+  labelOf?: (card: MappingCard) => number;
 }
 
 function roleIndex(card: MappingCard): number {
@@ -44,6 +47,7 @@ export function sortCards(
   context.rankOrder?.forEach((id, i) => position.set(id, i));
   const key = ({ card }: { card: MappingCard }): number | string => {
     if (sort === "role") return roleIndex(card);
+    if (sort === "label") return context.labelOf?.(card) ?? 0;
     if (sort === "rank") return position.get(card.card_id) ?? Number.MAX_SAFE_INTEGER;
     if (sort === "name") return context.nameOf(card).toLocaleLowerCase();
     return 0;

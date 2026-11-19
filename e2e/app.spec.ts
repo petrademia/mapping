@@ -1900,6 +1900,43 @@ test("Card Impact ranks cards once a Hand Goal has conditions", async ({ page })
   await expect(page.getByText("Put Hand Conditions into a Hand Goal")).toBeVisible();
 });
 
+test.describe("Spotlight a label in the Main Deck", () => {
+  const chip = (page: Page, name: string) =>
+    page.getByRole("group", { name: "Show cards with a label" }).getByRole("button", { name });
+
+  test("Bricks dims every other card, keeps them in place, and the count is in copies", async ({ page }) => {
+    // Not through openApp: the real default mapping, with its Hand Goals, is what loads.
+    await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+    await page.goto("/");
+    await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+    const tiles = page.getByRole("list", { name: "Main Deck cards" }).locator("li[data-card]");
+    const bricks = chip(page, /^Bricks/);
+    await expect(bricks).toBeEnabled();
+    const count = Number((await bricks.innerText()).match(/\d+/)![0]);
+    const total = await tiles.count();
+    const order = await tiles.evaluateAll((items) => items.map((li) => li.getAttribute("data-card")));
+    await expect(tiles.locator("xpath=self::*[@data-dim]")).toHaveCount(0);
+    await bricks.click();
+    await expect(bricks).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(total - count);
+    // Nothing moved.
+    expect(await tiles.evaluateAll((items) => items.map((li) => li.getAttribute("data-card")))).toEqual(order);
+    await chip(page, /^All/).click();
+    await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
+  });
+
+  test("Bricks cannot be read without a Hand Goal, and the Label sort is offered", async ({ page }) => {
+    await openApp(page);
+    await menuItem(page, "More", "New deck");
+    await addCardBySearch(page, "vidolium unstable");
+    await addCardBySearch(page, "ash blossom");
+    await expect(chip(page, /^Bricks/)).toBeDisabled();
+    await expect(chip(page, /^Starters/)).toBeEnabled();
+    const sort = page.getByLabel("Sort Main Deck");
+    await expect(sort.locator("option", { hasText: "Label" })).toHaveCount(1);
+  });
+});
+
 test.describe("Chance to draw", () => {
   test("shows the exact odds of seeing a card, and follows the card you pick", async ({ page }) => {
     await openApp(page);
