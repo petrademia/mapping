@@ -328,7 +328,7 @@
 .draw-odds label { display: flex; align-items: center; gap: var(--space-3); }
 .draw-odds label select { flex: 1 1 auto; min-width: 0; }
 
-/* Backup path: the label and its select share a row with a gap, and the hint sits under both. */
-.backup-path-row { display: flex; align-items: center; gap: var(--space-3); }
-.backup-path-row select { flex: 0 1 auto; }
-.backup-path { display: block; margin-bottom: var(--space-3); }
+/* Interruptions it can take: the label and its select share a row with a gap, and the hint sits under both. */
+.interruptions-row { display: flex; align-items: center; gap: var(--space-3); }
+.interruptions-row select { flex: 0 1 auto; }
+.interruptions-field { display: block; margin-bottom: var(--space-3); }

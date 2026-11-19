@@ -495,7 +495,7 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   and a goal survives when some choice survives every answer. Without a marked
   Group, copies and routes back each other up as before. Files saved with the
   earlier single "Normal Summon Group" are read as one marked Group.
-- **Backup path.** A line you tested that has a second path
+- **Interruptions it can take.** A line you tested that has a second path
   (for example Graflare with an Artmage Spell that stays on the field) can be
   marked on its Hand Condition in Models, Hand Conditions, as surviving 1, 2 or 3
   interruptions. A hand that meets a marked condition counts as surviving that many

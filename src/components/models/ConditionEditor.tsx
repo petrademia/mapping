@@ -142,9 +142,9 @@ export function ConditionEditor({
         label={`Notes for ${condition.name || "hand condition"}`}
         onCommit={(notes) => onChange({ ...condition, notes })}
       />
-      <label className="backup-path">
-        <span className="backup-path-row">
-        Backup path
+      <label className="interruptions-field">
+        <span className="interruptions-row">
+        Interruptions it can take
         <select
           value={condition.survives_interruptions ?? 0}
           onChange={(event) => {
@@ -155,13 +155,13 @@ export function ConditionEditor({
           <option value={0}>None</option>
           {Array.from({ length: MAX_SURVIVED_INTERRUPTIONS }, (_, k) => (
             <option key={k + 1} value={k + 1}>
-              Survives {k + 1} {k === 0 ? "interruption" : "interruptions"}
+              {k + 1}
             </option>
           ))}
         </select>
         </span>
         <small className="field-hint">
-          The line still finishes if the opponent stops this many cards. Only mark a line you tested.
+          How many stops the line still finishes through, whichever cards the opponent picks. Only mark a line you tested.
         </small>
       </label>
       <p className="access-allof">Requires</p>
