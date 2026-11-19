@@ -42,10 +42,19 @@ describe("sortCards", () => {
   });
 });
 
+describe("sorting by label", () => {
+  it("groups by the label index, keeping the built order inside a group", () => {
+    const cards = [card(1), card(2), card(3), card(4)];
+    const labelOf = (c: MappingCard) => ({ 1: 3, 2: 0, 3: 3, 4: 0 })[c.card_id as 1 | 2 | 3 | 4];
+    const sorted = sortCards(cards, "label", { nameOf: () => "", rankOrder: null, labelOf });
+    expect(sorted.map((c) => c.card_id)).toEqual([2, 4, 1, 3]);
+  });
+});
+
 describe("sortsFor", () => {
   it("offers only what applies to each section", () => {
-    expect(sortsFor("main")).toEqual(["built", "role", "rank", "name"]);
-    expect(sortsFor("side")).toEqual(["built", "role", "name"]);
+    expect(sortsFor("main")).toEqual(["built", "role", "label", "rank", "name"]);
+    expect(sortsFor("side")).toEqual(["built", "role", "label", "name"]);
     expect(sortsFor("extra")).toEqual(["built", "name"]);
   });
 });

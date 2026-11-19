@@ -17,6 +17,7 @@ import { allowedCopies, copiesInDeck, type Banlist, type Format } from "../lib/b
 import { canMoveTo, moveCopy, reorderCard } from "../lib/deckMove";
 import { isRanked, rankFor } from "../lib/cardRank";
 import { SORT_LABELS, sortCards, sortsFor, type DeckSort } from "../lib/deckSort";
+import { labelIndex, matchesSpotlight, SPOTLIGHTS, spotlightCounts, type Spotlight } from "../lib/deckLabels";
 import type { ExtraDeckIds } from "../lib/sectionRouting";
 import { ClearButton } from "./ClearButton";
 import { CardFrame } from "./HandImages";
@@ -73,6 +74,7 @@ function shownRoles(card: MappingCard, derived: DerivedLabels | undefined): read
   return [
     ...(derived.starter ? ["starter"] : []),
     ...(derived.extender ? ["extender"] : []),
+    ...(derived.brick ? ["brick"] : []),
     ...(card.taxonomy.roles.includes("interaction") ? ["interaction"] : []),
   ];
 }
@@ -222,6 +224,12 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
   };
   // Starter, Extender and Brick, read from the Hand Conditions (empty until a Hand Goal exists).
   const labels = useMemo(() => deriveLabels(doc), [doc]);
+  // The label the Main Deck spotlights: every other card is dimmed, nothing moves.
+  const [spotlight, setSpotlight] = useState<Spotlight>("all");
+  const mainCounts = useMemo(
+    () => spotlightCounts(doc.main, (card) => labels.get(card.card_id)),
+    [doc.main, labels],
+  );
   const turn = doc.analysis.turn_order;
   const rankOrder = isRanked(doc, turn) ? rankFor(doc, turn) : null;
   // Drag a tile to reorder inside a section, or onto another section to move one copy.
@@ -311,6 +319,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
             : sortCards(doc[section], sort === "rank" && !rankOrder ? "built" : sort, {
                 nameOf: (card) => displayName(card.card_id, card.name, catalog),
                 rankOrder,
+                labelOf: (card) => labelIndex(card, labels.get(card.card_id)),
               });
         const chosenId =
           selected && selected.section === section ? selected.cardId : null;
@@ -357,6 +366,26 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                 />
               ) : null}
             </header>
+            {section === "main" && cards.length > 0 ? (
+              <div className="deck-spotlight" role="group" aria-label="Show cards with a label">
+                {SPOTLIGHTS.map(({ key, label }) => {
+                  const unknown = key === "brick" && labels.size === 0;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={spotlight === key ? "chip on" : "chip"}
+                      aria-pressed={spotlight === key}
+                      disabled={unknown}
+                      title={unknown ? "Define a Hand Goal to read which cards are Bricks" : undefined}
+                      onClick={() => setSpotlight(key)}
+                    >
+                      {label} <span className="deck-spotlight-count">{mainCounts[key]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             {blockedSection === section && sort !== "built" ? (
               <p className="deck-sort-hint" aria-live="polite">
                 This section is sorted by {SORT_LABELS[sort]}, so cards cannot be dragged into a new order here.{" "}
@@ -382,6 +411,11 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                           : undefined
                       }
                       data-card={card.card_id}
+                      data-dim={
+                        section === "main" && !matchesSpotlight(card, labels.get(card.card_id), spotlight)
+                          ? "true"
+                          : undefined
+                      }
                       onDragOver={(event) => overTile(event, section, card.card_id)}
                       draggable
                       onDragStart={(event) => {

@@ -107,7 +107,16 @@
 .deck-grid li.drop-before { box-shadow: -4px 0 0 var(--accent); }
 .deck-grid-section.drop-end { outline: 2px dashed var(--accent); outline-offset: 2px; }
 
+/* The label the Main Deck spotlights: the other cards fade, nothing moves. */
+.deck-spotlight { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0 var(--space-3); }
+.deck-spotlight-count { font-variant-numeric: tabular-nums; color: var(--muted); }
+.deck-grid li[data-dim="true"] .deck-tile { opacity: 0.3; transition: opacity var(--duration) var(--ease); }
+.deck-grid li[data-dim="true"] .deck-tile:hover,
+.deck-grid li[data-dim="true"] .deck-tile:focus-visible,
+.deck-grid li[data-dim="true"] .deck-tile[aria-pressed="true"] { opacity: 0.75; }
+
 /* Badges on a tile */
+.tile-pip[data-role="brick"] { --swatch: var(--undesirable); }
 .tile-pips { position: absolute; left: var(--space-1); bottom: var(--space-1); display: flex; gap: var(--space-1); }
 .tile-pip { width: 0.5rem; height: 0.5rem; border: 1px solid var(--paper); border-radius: 50%; background: var(--swatch); }
 .tile-name {
