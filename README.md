@@ -428,6 +428,10 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   from the Hand Goal chosen under Card labels; Interaction and Breaker are the tags you set by hand.
   Interaction includes your lingering handtraps, also going second. Bricks need a Hand Goal, so that
   chip is off without one. Bricks also show as a grey dot on the card, beside the other dots.
+  A second row spotlights by Opening Quality for the turn order being analyzed: Desirable, Neutral,
+  Undesirable and Not set, each with its copy count (a quality with no cards is off). Only one
+  spotlight is on at a time across the two rows. The sort menu also has a Quality sort, Desirable
+  first and Not set last.
   The sort menu has one Label sort that groups Starters, Extenders, Interaction, Breakers, Bricks, then
   the rest, in the order of the chips. It replaced the older Role sort, and a Role sort you had chosen
   becomes Label.

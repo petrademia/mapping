@@ -55,6 +55,15 @@ describe("sorting by label", () => {
   });
 });
 
+describe("sorting by quality", () => {
+  it("orders by the quality index, keeping the built order inside a group", () => {
+    const cs = [card(1), card(2), card(3), card(4)];
+    const qualityOf = (c: MappingCard) => ({ 1: 2, 2: 0, 3: 2, 4: 0 })[c.card_id as 1 | 2 | 3 | 4];
+    const sorted = sortCards(cs, "quality", { ...context(), qualityOf });
+    expect(sorted.map((c) => c.card_id)).toEqual([2, 4, 1, 3]);
+  });
+});
+
 describe("a sort saved before Role and Label became one", () => {
   it("turns Role into Label and leaves the others", () => {
     expect(upgradeSort("role")).toBe("label");
@@ -65,8 +74,8 @@ describe("a sort saved before Role and Label became one", () => {
 
 describe("sortsFor", () => {
   it("offers only what applies to each section", () => {
-    expect(sortsFor("main")).toEqual(["built", "label", "rank", "name"]);
-    expect(sortsFor("side")).toEqual(["built", "label", "name"]);
+    expect(sortsFor("main")).toEqual(["built", "label", "quality", "rank", "name"]);
+    expect(sortsFor("side")).toEqual(["built", "label", "quality", "name"]);
     expect(sortsFor("extra")).toEqual(["built", "name"]);
   });
 });

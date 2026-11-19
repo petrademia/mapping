@@ -1925,6 +1925,35 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
   });
 
+  test("Opening Quality chips spotlight one quality, count copies, and only one spotlight is on", async ({ page }) => {
+    // Not through openApp: the real default mapping has Opening Quality set on its cards.
+    await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+    await page.goto("/");
+    await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+    const row = page.getByRole("group", { name: /^Show cards by Opening Quality/ });
+    await expect(row).toBeVisible();
+    await expect(row.getByText(/^Going (first|second)$/)).toBeVisible();
+    const total = await page.getByRole("list", { name: "Main Deck cards" }).locator("li[data-card]").count();
+    // The four states add up to every copy in the Main Deck.
+    const counts = await row
+      .getByRole("button")
+      .evaluateAll((buttons) => buttons.map((b) => Number(b.textContent!.match(/\d+$/)![0])));
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(total);
+    // A chip with nothing in it is off; choose the first that has cards.
+    const enabled = row.getByRole("button").and(page.locator(":not([disabled])")).first();
+    const picked = Number((await enabled.innerText()).match(/\d+$/)![0]);
+    await enabled.click();
+    await expect(enabled).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(total - picked);
+    // Choosing a label clears the quality; only one spotlight at a time.
+    await page.getByRole("group", { name: "Show cards with a label" }).getByRole("button", { name: /^Starters/ }).click();
+    await expect(enabled).toHaveAttribute("aria-pressed", "false");
+    // Clicking the same quality again turns it off.
+    await enabled.click();
+    await enabled.click();
+    await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
+  });
+
   test("Interaction is a chip, Role is no longer a sort, and a saved Role sort becomes Label", async ({ page }) => {
     await page.addInitScript(() => {
       try {
