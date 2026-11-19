@@ -166,7 +166,7 @@ test("the page stays responsive while the Profile's quality summary is calculate
   await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
-  const summary = page.getByRole("region", { name: "Quality at a glance" });
+  const summary = page.getByRole("region", { name: "At a glance" });
   await expect(summary).toBeVisible();
   const started = Date.now();
   await page.getByLabel("Card name or passcode").fill("ash blossom");
@@ -1158,12 +1158,15 @@ test.describe("Handtrap versus", () => {
     await openApp(page);
     await withGoal(page);
     await nav(page, "Profile").click();
-    const summary = page.getByRole("region", { name: "Quality at a glance" });
+    const summary = page.getByRole("region", { name: "At a glance" });
     const first = summary.getByRole("region", { name: "Going first" });
     const second = summary.getByRole("region", { name: "Going second" });
     await expect(first.getByRole("status")).toHaveText(/^\d+\.\d%$/);
     await expect(second.getByRole("status")).toHaveText(/^\d+\.\d%$/);
-    await expect(first.getByText(/^Weakest:/)).toBeVisible();
+    // Each part is its own percentage, and one of them is marked as the weakest.
+    await expect(first.getByRole("listitem")).not.toHaveCount(0);
+    await expect(first.getByRole("listitem").first().locator(".summary-part-value")).toHaveText(/^\d+\.\d%$/);
+    await expect(first.getByText("weakest", { exact: true })).toHaveCount(1);
     await expect(first.getByText(/^After one interruption: \d+\.\d%$/)).toBeVisible();
     // Nothing else is modelled yet, so it says how to measure the rest.
     await expect(summary.getByText(/Not measured yet: .*Resilient, to measure it add a handtrap/)).toBeVisible();
@@ -1432,7 +1435,7 @@ test("the analysis panels do not jump while the odds are counted again after an 
   await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
-  const summary = page.getByRole("region", { name: "Quality at a glance" });
+  const summary = page.getByRole("region", { name: "At a glance" });
   await expect(summary.getByRole("status").first()).toContainText("%");
   const configuration = page.locator("#deck-configuration");
   await expect(configuration).toBeVisible();

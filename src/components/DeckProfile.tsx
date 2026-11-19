@@ -120,6 +120,13 @@ export function DeckProfile({ doc, onHandSize }: Props) {
   const coveragePercent = (classified: number, total: number): string =>
     total === 0 ? "0%" : formatChance(classified / total);
 
+  // Rows that round to 0.00% add nothing, so they are left off (the first row always stays).
+  const allRoutes = profile && !("error" in profile) ? profile.accessMultiplicity.atLeast : [];
+  let lastUseful = allRoutes.length - 1;
+  while (lastUseful > 0 && allRoutes[lastUseful]! < 0.00005) lastUseful -= 1;
+  const routeRows = allRoutes.slice(0, lastUseful + 1);
+  const routesHidden = allRoutes.length - routeRows.length;
+
   return (
     <section className="panel">
       <header>
@@ -153,67 +160,60 @@ export function DeckProfile({ doc, onHandSize }: Props) {
       ) : profile ? (
         <div className="probs">
           <article>
-            <h3>Hand Goals</h3>
+            <h3>Main Hand Goal</h3>
             <p className="explorer-notation">
-              Union over the Hand Conditions selected as engine access;
-              overlapping conditions are not double-counted.
+              Hands that meet any of its Hand Conditions; a hand meeting two is counted once.
             </p>
             <dl>
               <div>
-                <dt>Engine Access</dt>
+                <dt>Meets the goal</dt>
                 <dd>{formatChance(profile.anyAccess)}</dd>
               </div>
               <div>
-                <dt>Access + Interaction-tagged card</dt>
-                <dd>{formatChance(profile.accessAndInteraction)}</dd>
-              </div>
-              <div>
-                <dt>Access + No Undesirable</dt>
-                <dd>{formatChance(profile.accessNoUndesirable)}</dd>
-              </div>
-            </dl>
-          </article>
-
-          <article>
-            <h3>Access Multiplicity</h3>
-            <p className="explorer-notation">
-              How many of the selected access conditions a random hand
-              satisfies. Not resilience: routes may converge after an
-              interruption.
-            </p>
-            <dl>
-              {profile.accessMultiplicity.atLeast.map((p, index) => (
-                <div key={`multi-${index}`}>
-                  <dt>At least {index + 1} access condition{index === 0 ? "" : "s"}</dt>
-                  <dd>{formatChance(p)}</dd>
-                </div>
-              ))}
-              {profile.accessMultiplicity.atLeast.length === 0 ? (
-                <div>
-                  <dt>At least 1 access condition</dt>
-                  <dd>0%</dd>
-                </div>
-              ) : null}
-            </dl>
-          </article>
-
-          <article>
-            <h3>Conditional on Access</h3>
-            <p className="explorer-notation">
-              Among hands with modeled engine access, the percentage that also
-              satisfy the stated raw annotation event.
-            </p>
-            <dl>
-              <div>
-                <dt>Interaction-tagged card</dt>
+                <dt>Meets it and holds an Interaction card</dt>
                 <dd>
-                  {formatChanceOrDash(profile.interactionGivenAccess)}
+                  {formatChance(profile.accessAndInteraction)}
+                  <span className="explorer-notation">
+                    {formatChanceOrDash(profile.interactionGivenAccess)} of hands that meet it
+                  </span>
                 </dd>
               </div>
               <div>
-                <dt>No undesirable</dt>
-                <dd>{formatChanceOrDash(profile.noUndesirableGivenAccess)}</dd>
+                <dt>Meets it with no Undesirable card</dt>
+                <dd>
+                  {formatChance(profile.accessNoUndesirable)}
+                  <span className="explorer-notation">
+                    {formatChanceOrDash(profile.noUndesirableGivenAccess)} of hands that meet it
+                  </span>
+                </dd>
               </div>
+            </dl>
+          </article>
+
+          <article>
+            <h3>How many routes a hand has</h3>
+            <p className="explorer-notation">
+              Hand Conditions of the main goal that a hand meets. Not resilience: routes may converge
+              after an interruption.
+            </p>
+            <dl>
+              {routeRows.map((p, index) => (
+                <div key={`multi-${index}`}>
+                  <dt>At least {index + 1} route{index === 0 ? "" : "s"}</dt>
+                  <dd>{formatChance(p)}</dd>
+                </div>
+              ))}
+              {routeRows.length === 0 ? (
+                <div>
+                  <dt>At least 1 route</dt>
+                  <dd>0%</dd>
+                </div>
+              ) : null}
+              {routesHidden > 0 ? (
+                <p className="explorer-notation">
+                  {routesHidden} more {routesHidden === 1 ? "row is" : "rows are"} at 0.00% and hidden.
+                </p>
+              ) : null}
             </dl>
           </article>
 
@@ -281,18 +281,8 @@ export function DeckProfile({ doc, onHandSize }: Props) {
                   <dt>Contains &gt;= 1 not-set card</dt>
                   <dd>{formatChance(profile.unclassifiedGe1)}</dd>
                 </div>
-              </dl>
-            </article>
-
-            <article data-quality="undesirable">
-              <h3>Access Composition</h3>
-              <dl>
                 <div>
-                  <dt>Access + no undesirable-tagged card</dt>
-                  <dd>{formatChance(profile.accessNoUndesirable)}</dd>
-                </div>
-                <div>
-                  <dt>Access + &gt;= 1 undesirable-tagged card</dt>
+                  <dt>Meets the main goal and holds &gt;= 1 undesirable-tagged card</dt>
                   <dd>{formatChance(profile.accessUndesirableGe1)}</dd>
                 </div>
               </dl>
@@ -309,10 +299,6 @@ export function DeckProfile({ doc, onHandSize }: Props) {
                 <div>
                   <dt>Contains &gt;= 1 interaction-tagged card</dt>
                   <dd>{formatChance(profile.interactionGe1)}</dd>
-                </div>
-                <div>
-                  <dt>Access + interaction-tagged card</dt>
-                  <dd>{formatChance(profile.accessAndInteraction)}</dd>
                 </div>
               </dl>
             </article>
