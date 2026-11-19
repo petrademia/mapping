@@ -3,7 +3,7 @@ import { analyzeVersus, type VersusOutcome } from "./handtrapVersus";
 import { reply, type WorkerReply } from "./workerReply";
 
 /**
- * Handtrap versus for the Handtraps tab, run off the page's main thread: it walks every hand
+ * Handtrap versus for the Handtrap versus tab, run off the page's main thread: it walks every hand
  * once per handtrap and pair, which blocks the page when done on it.
  */
 export interface VersusRequest {

@@ -185,9 +185,8 @@ export function HandtrapPanel({ doc, catalog, onChange }: Props) {
         <p>{analysisContextLabel(context, doc.analysis.opening_hand_size)}</p>
       </header>
       <p className="note">
-        Pick the handtraps your opponent may hold and the cards of yours each
-        can stop. Each Hand Goal then shows how often it still holds when the
-        opponent uses the handtrap on the card that hurts most.
+        Pick the handtraps your opponent may hold and what each can stop. Each Hand Goal then
+        shows how often it still holds.
       </p>
 
       <h3 className="panel-subhead">How your Hand Goals hold up</h3>

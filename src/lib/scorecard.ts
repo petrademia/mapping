@@ -490,14 +490,14 @@ function turnScore(
     bricks.size > 0 ? Array.from({ length: BRICK_CURVE_MAX + 1 }, (_, k) => unionOf(`__goal-brick-${k}`)) : [];
   const clean = brickCurve.length > 0 ? (brickCurve[settings.brickTolerance] ?? null) : null;
 
-  // Resilience against the handtraps defined in the Handtraps tab.
+  // Resilience against the handtraps defined in the Handtrap versus tab.
   let resilient: number | null = null;
   let worstScenario: string | null = null;
   let worstScenarioIds: string[] = [];
   const scenarios: ScenarioSurvival[] = [];
   const scenarioList = scenariosFor(doc);
   if (scenarioList.length === 0) {
-    notes.push("Add a handtrap in the Handtraps tab to measure resilience.");
+    notes.push("Add a handtrap in the Handtrap versus tab to measure resilience.");
   } else {
     const versus = analyzeVersus(scoped, scenarioList, { goalIds: [goal.id] });
     if ("error" in versus) {

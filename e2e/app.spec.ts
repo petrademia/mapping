@@ -73,7 +73,7 @@ async function settled(page: Page): Promise<void> {
 
 const STEP_OF: Record<string, string> = {
   Models: "Define",
-  Handtraps: "Define",
+  "Handtrap versus": "Define",
   Rank: "Define",
   "Hand Test": "Test",
   "Batch Test": "Test",
@@ -963,12 +963,12 @@ test.describe("Handtrap versus", () => {
     await page.getByRole("button", { name: "+ Add Hand Goal" }).click();
     await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
     await page.locator('.engine-member input[type="checkbox"]').last().check();
-    await nav(page, "Handtraps").click();
+    await nav(page, "Handtrap versus").click();
   }
 
   test("asks for a Hand Goal before showing any odds", async ({ page }) => {
     await openApp(page);
-    await nav(page, "Handtraps").click();
+    await nav(page, "Handtrap versus").click();
     await page.getByRole("button", { name: "Add Effect Veiler" }).click();
     await expect(page.getByText("Define a Hand Goal with at least one Hand Condition first.")).toBeVisible();
   });
@@ -1023,7 +1023,7 @@ test.describe("Handtrap versus", () => {
     await expect(page.getByRole("list", { name: "Saved pairs" })).toHaveCount(0);
   });
 
-  test("Hand Test lets the opponent hold a handtrap from the Handtraps tab", async ({ page }) => {
+  test("Hand Test lets the opponent hold a handtrap from the Handtrap versus tab", async ({ page }) => {
     await openApp(page);
     await nav(page, "Hand Test").click();
     // Nothing to choose until a handtrap exists.
@@ -1110,7 +1110,7 @@ test.describe("Handtrap versus", () => {
       value(await read(first, "Opens").innerText()),
     );
     // The two that still cannot be measured say why.
-    await expect(card.getByText("Add a handtrap in the Handtraps tab to measure resilience.")).toBeVisible();
+    await expect(card.getByText("Add a handtrap in the Handtrap versus tab to measure resilience.")).toBeVisible();
     await expect(card.getByText(/No card has the Interaction role/)).toBeVisible();
     // Combined is the mean of the two measured numbers (Opens and Clean).
     const measuredMean =
@@ -1119,7 +1119,7 @@ test.describe("Handtrap versus", () => {
       Math.abs(value(await first.locator(".scorecard-combined .outcome-primary").innerText()) - measuredMean),
     ).toBeLessThan(0.011);
 
-    await nav(page, "Handtraps").click();
+    await nav(page, "Handtrap versus").click();
     await page.getByRole("button", { name: "Add Effect Veiler" }).click();
     await page.getByRole("button", { name: "Every card" }).click();
     await nav(page, "Scorecard").click();
@@ -1169,7 +1169,7 @@ test.describe("Handtrap versus", () => {
     await expect(summary.getByText(/Not measured yet: .*Resilient, to measure it add a handtrap/)).toBeVisible();
 
     // Adding a handtrap makes Resilient measured, so it drops off the missing list.
-    await nav(page, "Handtraps").click();
+    await nav(page, "Handtrap versus").click();
     await page.getByRole("button", { name: "Add Effect Veiler" }).click();
     await page.getByRole("button", { name: "Every card" }).click();
     await nav(page, "Profile").click();
@@ -1207,7 +1207,7 @@ test.describe("Handtrap versus", () => {
     ).toHaveText(average);
   });
 
-  test("the priority list is edited in the Handtraps tab and shown in the Scorecard", async ({ page }) => {
+  test("the priority list is edited in the Handtrap versus tab and shown in the Scorecard", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
     await page.getByRole("button", { name: "Add Effect Veiler" }).click();
@@ -1220,7 +1220,7 @@ test.describe("Handtrap versus", () => {
     const curve = page.getByRole("table", { name: "Interruption curve" });
     await expect(curve.getByRole("row", { name: /if they follow your list/ })).toHaveCount(0);
 
-    await nav(page, "Handtraps").click();
+    await nav(page, "Handtrap versus").click();
     const add = editor.getByLabel("Add a card to the priority list");
     await add.selectOption({ index: 1 });
     await add.selectOption({ index: 1 }); // a listed card leaves the menu, so this is the next one
@@ -1243,7 +1243,7 @@ test.describe("Handtrap versus", () => {
 
     // It is saved with the deck, and removing the entries takes the rows away again.
     await page.reload();
-    await nav(page, "Handtraps").click();
+    await nav(page, "Handtrap versus").click();
     await expect(editor.locator(".priority-name")).toHaveText([names[1]!, names[0]!]);
     await editor.getByRole("button", { name: `Remove ${names[1]} from the list` }).click();
     await editor.getByRole("button", { name: `Remove ${names[0]} from the list` }).click();
@@ -1255,7 +1255,7 @@ test.describe("Handtrap versus", () => {
     await withGoal(page);
     await page.getByRole("button", { name: "Add Dominus Purge" }).click();
     await page.reload();
-    await nav(page, "Handtraps").click();
+    await nav(page, "Handtrap versus").click();
     await expect(page.getByLabel("Handtrap name").first()).toHaveValue("Dominus Purge");
   });
 });
@@ -1936,9 +1936,9 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await page.goto("/");
     await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
     const row = page.getByRole("group", { name: /^Show cards by Opening Quality/ });
-    // One row of chips to start with; the quality row opens from the Quality button.
+    // One row of chips to start with; the quality row opens from the Opening Quality button.
     await expect(row).toHaveCount(0);
-    const toggle = page.getByRole("button", { name: "Quality", exact: true });
+    const toggle = page.getByRole("button", { name: "Opening Quality", exact: true });
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
@@ -1989,8 +1989,8 @@ test.describe("Spotlight a label in the Main Deck", () => {
       .getByRole("group", { name: "Show cards with a label" })
       .getByRole("button")
       .evaluateAll((buttons) => buttons.map((b) => b.textContent!.replace(/\s*\d+$/, "").trim()));
-    // The Quality button ends the row; it opens the Opening Quality chips.
-    expect(names).toEqual(["All", "Starters", "Extenders", "Interaction", "Breakers", "Bricks", "Quality"]);
+    // The Opening Quality button ends the row; it opens the Opening Quality chips.
+    expect(names).toEqual(["All", "Starters", "Extenders", "Interaction", "Breakers", "Bricks", "Opening Quality"]);
     const sort = page.getByLabel("Sort Main Deck");
     await expect(sort).toHaveValue("label");
     await expect(sort.locator("option", { hasText: /^Role$/ })).toHaveCount(0);

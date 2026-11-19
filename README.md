@@ -253,7 +253,7 @@ why each predicate passed or failed.
   *Draw* takes the number of cards you choose off the top, *Shuffle* mixes the
   deck again and keeps the hand, and clicking a card moves it between the deck
   (where it greys out) and the hand. A hand of any size gets results.
-- **Opponent hand**: a pane of the handtraps from the Handtraps tab. Click
+- **Opponent hand**: a pane of the handtraps from the Handtrap versus tab. Click
   handtraps to hold them, or Deal Opponent to draw a random few (set how many
   beside the button). Each Hand Goal that holds then shows whether it survives
   those handtraps, and the cards they would negate are greyed under a red
@@ -305,7 +305,7 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
   under it shows 0 to 3 bricks, so you can see how many bricks the deck can
   carry before the goal suffers.
 - **Resilient** - hands that still meet it after the opponent's handtraps, worst
-  case over the handtraps and pairs in the Handtraps tab.
+  case over the handtraps and pairs in the Handtrap versus tab.
 - **Interaction** - hands with at least one card marked with the Interaction role.
 - **Breaking** - hands with enough board breakers, cards that destroy, banish or bounce the
   opponent's cards on your own turn. Mark such a card "Board breaker" to count it in both turn
@@ -430,7 +430,7 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   chip is off without one. Bricks also show as a grey dot on the card, beside the other dots.
   A second row spotlights by Opening Quality for the turn order being analyzed: Desirable, Neutral,
   Undesirable and Not set, each with its copy count (a quality with no cards is off). Only one
-  spotlight is on at a time across the two rows. The sort menu also has a Quality sort, Desirable
+  spotlight is on at a time across the two rows. The sort menu also has an Opening Quality sort, Desirable
   first and Not set last.
   The sort menu has one Label sort that groups Starters, Extenders, Interaction, Breakers, Bricks, then
   the rest, in the order of the chips. It replaced the older Role sort, and a Role sort you had chosen
@@ -474,7 +474,7 @@ and pick, per handtrap, the cards of yours it can stop. You can also save
   when that is better for them, so every number is the worst case.
 - A pair applies two negations, one per handtrap, each on its own copy.
 - **Who the opponent goes for.** A handtrap's own list says which of your cards
-  it can stop. In the Handtraps tab you can also give an ordered priority list
+  it can stop. In the Handtrap versus tab you can also give an ordered priority list
   of cards or Groups the opponent tends to use a handtrap on first (for example
   "every route that ends at Medius's effect", then Terminus, then Curtain). Each
   handtrap then goes to the first listed target it can stop and you hold,

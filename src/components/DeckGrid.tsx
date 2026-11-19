@@ -401,7 +401,13 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                       className={activeQuality === null && spotlight === key ? "chip on" : "chip"}
                       aria-pressed={activeQuality === null && spotlight === key}
                       disabled={unknown}
-                      title={unknown ? "Define a Hand Goal to read which cards are Bricks" : undefined}
+                      title={
+                        unknown
+                          ? "Define a Hand Goal to read which cards are Bricks"
+                          : key === "brick"
+                            ? "Cards in none of your routes. Undesirable, under Opening Quality, is the quality you set by hand, so the two can differ."
+                            : undefined
+                      }
                       onClick={() => chooseLabel(key)}
                     >
                       {label} <span className="deck-spotlight-count">{mainCounts[key]}</span>
@@ -420,7 +426,7 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                     setShowQuality(!showQuality);
                   }}
                 >
-                  Quality
+                  Opening Quality
                 </button>
               </div>
             ) : null}

@@ -66,7 +66,7 @@ const WORKSPACE_LABELS: Record<Workspace, string> = {
   "hand-test": "Hand Test",
   batch: "Batch Test",
   rank: "Rank",
-  handtraps: "Handtraps",
+  handtraps: "Handtrap versus",
   tuning: "Deck Tuning",
   compare: "Compare",
 };

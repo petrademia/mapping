@@ -1,3 +1,4 @@
+import { ROLE_LABELS } from "../lib/roleLabels";
 import { sectionSize } from "../lib/document";
 import type { MappingDocument } from "../lib/document";
 import {
@@ -52,9 +53,7 @@ export function RoleSummary({ doc }: Props) {
         <p>Main deck {deck}</p>
       </header>
       <p className="note">
-        Raw card annotations. These describe what cards are tagged as, not what
-        the modeled hand can do - role and quality stats here are diagnostics,
-        not strategic usability.
+        What the cards are tagged as, not what a hand can do.
       </p>
       <ul className="census">
         <li>
@@ -72,10 +71,8 @@ export function RoleSummary({ doc }: Props) {
       </ul>
       <h3 className="panel-subhead">Role slots</h3>
       <p className="note">
-        Main-deck composition only. Roles overlap, so slot counts need not sum
-        to deck size. Current role slot sum is {roleSlotSum} against {deck}{" "}
-        main-deck cards. These are human hypotheses for this deck, not objective
-        card properties.
+        Roles overlap, so the slots can add up to more than the deck: {roleSlotSum} slots in {deck}{" "}
+        cards. They are your hypotheses, not facts about the cards.
       </p>
       <div className="density">
         {ROLES.map((role) => {
@@ -83,7 +80,7 @@ export function RoleSummary({ doc }: Props) {
           return (
             <div key={role} className="density-row" data-role={role}>
               <span className="swatch" aria-hidden="true" />
-              <span className="role-label">{role} slots</span>
+              <span className="role-label">{ROLE_LABELS[role]}</span>
               <div className="track">
                 <div className="fill" style={{ width: `${percent(slots, deck)}%` }} />
               </div>
@@ -96,9 +93,8 @@ export function RoleSummary({ doc }: Props) {
       </div>
       <h3 className="panel-subhead">Opening quality slots</h3>
       <p className="note">
-        Mutually exclusive per card entry, evaluated per turn order. Counts
-        should sum to main deck size when including not set (GF{" "}
-        {qualitySlotSumGF} / {deck}; GS {qualitySlotSumGS} / {deck}).
+        One quality per card, per turn order. With Not set, the counts add up to the deck (going
+        first {qualitySlotSumGF} / {deck}, going second {qualitySlotSumGS} / {deck}).
       </p>
       <p className="panel-subhead">Going First</p>
       <div className="density">
@@ -107,7 +103,7 @@ export function RoleSummary({ doc }: Props) {
           return (
             <div key={key} className="density-row" data-quality={key}>
               <span className="swatch" aria-hidden="true" />
-              <span className="role-label">{QUALITY_LABELS[key]} slots</span>
+              <span className="role-label">{QUALITY_LABELS[key]}</span>
               <div className="track">
                 <div className="fill" style={{ width: `${percent(slots, deck)}%` }} />
               </div>
@@ -125,7 +121,7 @@ export function RoleSummary({ doc }: Props) {
           return (
             <div key={key} className="density-row" data-quality={key}>
               <span className="swatch" aria-hidden="true" />
-              <span className="role-label">{QUALITY_LABELS[key]} slots</span>
+              <span className="role-label">{QUALITY_LABELS[key]}</span>
               <div className="track">
                 <div className="fill" style={{ width: `${percent(slots, deck)}%` }} />
               </div>

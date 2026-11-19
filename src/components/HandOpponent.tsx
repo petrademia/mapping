@@ -3,7 +3,7 @@ import { CardFrame } from "./HandImages";
 import { Icon } from "./IconButton";
 
 interface Props {
-  /** The handtraps the opponent can draw: the list from the Handtraps tab. */
+  /** The handtraps the opponent can draw: the list from the Handtrap versus tab. */
   pool: readonly Handtrap[];
   /** Ids of the handtraps in the opponent's hand. */
   held: readonly string[];

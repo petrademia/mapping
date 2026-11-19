@@ -9,7 +9,7 @@ export type DeckSort = "built" | "label" | "quality" | "rank" | "name";
 export const SORT_LABELS: Record<DeckSort, string> = {
   built: "As built",
   label: "Label",
-  quality: "Quality",
+  quality: "Opening Quality",
   rank: "Card Rank",
   name: "Name",
 };

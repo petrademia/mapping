@@ -104,13 +104,13 @@ function Turn({ title, turn, tolerance }: { title: string; turn: TurnScore; tole
         <Row
           label="Disruption"
           value={turn.lingering}
-          note="hands with enough disruption points, a lingering handtrap counting for more than a one-shot card; not counted unless you give it a weight"
+          note="hands with enough disruption points (a lingering handtrap counts more than a one-shot card); off until you weight it"
           missing="no lingering handtrap works in this turn order"
         />
         <Row
           label="Breaking"
           value={turn.breaking}
-          note="hands with enough board breakers, cards that destroy or banish the opponent's cards on your turn; not counted unless you give it a weight"
+          note="hands with enough board breakers (cards that destroy or banish the opponent's cards on your turn); off until you weight it"
           missing="no board breaker works in this turn order"
         />
       </dl>
@@ -145,10 +145,8 @@ export function ScorecardPanel({ doc }: Props) {
         <h2>Scorecard</h2>
       </header>
       <p className="note">
-        How reliably your Main Deck reaches one Hand Goal going first and going
-        second, and how many bricks it can carry. The individual numbers are
-        exact facts about the deck. The combined numbers are weighted averages,
-        so they depend on the weights you choose.
+        How reliably the Main Deck reaches one Hand Goal, going first and going second. Each
+        number is exact. The combined numbers are weighted averages, so they depend on your weights.
       </p>
 
       {result === null ? (
@@ -194,9 +192,8 @@ export function ScorecardPanel({ doc }: Props) {
             <>
               <h3 className="panel-subhead">How many bricks can it carry?</h3>
               <p className="note">
-                Hands that meet the Hand Goal while holding at most this many
-                bricks. Where it stays close to Opens, the deck can take more
-                bricks, which is room for cards that are strong but dead in some hands.
+                Hands that meet the goal holding at most this many bricks. Staying close to Opens
+                means room for strong cards that are dead in some hands.
               </p>
               <table className="compare-table scorecard-curve">
                 <thead>
@@ -234,11 +231,10 @@ export function ScorecardPanel({ doc }: Props) {
             <>
               <h3 className="panel-subhead">How many interruptions can it take?</h3>
               <p className="note">
-                Hands that still meet the Hand Goal after this many interruptions. Each
-                interruption stops any one card in your hand, and the opponent picks the
-                card that hurts most, so no handtrap needs to be defined. A hand with one
-                route ends its turn on the first interruption. Two independent routes,
-                such as two starters that do not need each other, take one.
+                Hands that still meet the goal after this many interruptions. Each one stops the card
+                in your hand that hurts most, so no handtrap needs defining. One route ends on the
+                first stop; two independent routes, like two starters that do not need each other,
+                take one.
               </p>
               <table className="compare-table scorecard-curve" aria-label="Interruption curve">
                 <thead>
@@ -285,25 +281,22 @@ export function ScorecardPanel({ doc }: Props) {
               </table>
               <p className="note">
                 "1 to 2 handtraps" and "1 to 3 handtraps" average the columns after 1, 2 (and 3)
-                interruptions, each count weighted equally: the survival to expect if the opponent
-                holds that many.
+                interruptions, weighted equally.
               </p>
               {result.first.interruptionsPriority.length > 0 ? (
                 <p className="note">
-                  The last two rows assume the opponent uses each handtrap on the first card or Group
-                  of your priority list (set in the Handtraps tab) that it can stop and you hold,
-                  whether or not that breaks your plan. The first two rows assume they always stop
-                  the card that hurts most, so the true figure is somewhere between.
+                  Last two rows: the opponent follows your priority list (Handtrap versus tab). First two:
+                  they stop the card that hurts most. The truth is in between.
                 </p>
               ) : null}
               {result.second.interruptions.length > 1 ? (
                 <p className="note">
-                  Meet the goal with only one route, so one interruption ends the turn:{" "}
+                  Hands with only one route, where one interruption ends the turn:{" "}
                   <strong>{percent(result.first.interruptions[0]! - result.first.interruptions[1]!)}</strong>{" "}
                   going first,{" "}
                   <strong>{percent(result.second.interruptions[0]! - result.second.interruptions[1]!)}</strong>{" "}
-                  going second. A second copy of a card counts as a backup here, and so does
-                  another route, unless you marked their Group as a choke point in Models.
+                  going second. A second copy or another route counts as a backup, unless its Group
+                  is a choke point in Models.
                 </p>
               ) : null}
             </>
@@ -331,11 +324,9 @@ export function ScorecardPanel({ doc }: Props) {
             <>
               <h3 className="panel-subhead">Over a best-of-three</h3>
               <p className="note">
-                How the interruptions above add up over a match, weighted by how often each kind of game
-                happens. Game 1 is a die roll. After that the loser chooses to go first, so you go first in
-                game 2 when you lost game 1, and the opponent who won has sided in handtraps against your
-                first turn. A third game is played when the match is split. Every game is assumed won with
-                the win rate below, and the opponent always stops the card that hurts you most.
+                The interruptions above added up over a match. Game 1 is a die roll; the loser goes first
+                in game 2, against sided handtraps; game 3 is played if it is split. Every game is won at
+                the win rate below, and the opponent always stops the card that hurts most.
               </p>
               <p className="scorecard-combined" role="status" aria-label="Match-weighted push">
                 <span className="outcome-primary">{percent(match.value)}</span>
