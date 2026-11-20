@@ -14,10 +14,16 @@ const PRESETS: AnalysisContextPreset[] = [
   "going_second_first_turn",
 ];
 
-interface Props {
+interface ChipsProps {
   context: AnalysisContext;
   openingHandSize: number;
   onChange: (context: AnalysisContext) => void;
+}
+
+interface Props extends ChipsProps {
+  /** How many cards the Main Deck holds: the opening hand cannot be bigger. */
+  deckSize: number;
+  onHandSize: (size: number) => void;
 }
 
 /** The three analysis contexts as a radio group, for any panel that needs to choose one. */
@@ -25,7 +31,7 @@ export function ContextChips({
   context,
   openingHandSize,
   onChange,
-}: Props) {
+}: ChipsProps) {
   const selected = analysisContextPreset(context);
   return (
     <div className="context-presets" role="radiogroup" aria-label="Analysis context">
@@ -53,6 +59,8 @@ export function AnalysisContextSelector({
   context,
   openingHandSize,
   onChange,
+  deckSize,
+  onHandSize,
 }: Props) {
   const sample = observedCards(context, openingHandSize);
 
@@ -70,6 +78,16 @@ export function AnalysisContextSelector({
       <p className="note context-sample">
         Evaluating against {sampleSizeDescription(context, openingHandSize)}.
       </p>
+      <label className="opening-hand-field">
+        Opening hand
+        <input
+          type="number"
+          min={0}
+          max={Math.max(deckSize, 0)}
+          value={openingHandSize}
+          onChange={(event) => onHandSize(Number(event.target.value))}
+        />
+      </label>
     </section>
   );
 }

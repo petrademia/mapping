@@ -2066,6 +2066,21 @@ test.describe("Spotlight a label in the Main Deck", () => {
   });
 });
 
+test.describe("Opening hand size in Analysis Context", () => {
+  test("the Opening hand box sits in Analysis Context, and changes how many cards are counted", async ({ page }) => {
+    await openApp(page);
+    await nav(page, "Profile").click();
+    const context = page.locator(".analysis-context-panel");
+    await expect(context.getByLabel("Opening hand")).toHaveValue("5");
+    await expect(context.getByText("5 cards seen", { exact: true })).toBeVisible();
+    await context.getByLabel("Opening hand").fill("7");
+    await expect(context.getByText("7 cards seen", { exact: true })).toBeVisible();
+    // There is no separate Deck Profile panel any more.
+    await expect(page.getByRole("heading", { name: "Deck Profile" })).toHaveCount(0);
+    await expect(page.getByLabel("Opening hand")).toHaveCount(1);
+  });
+});
+
 test.describe("Chance to draw", () => {
   test("shows the exact odds of seeing a card, and follows the card you pick", async ({ page }) => {
     await openApp(page);

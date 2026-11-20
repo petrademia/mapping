@@ -82,12 +82,6 @@
 .quality-context { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
 
 /* ---- Profile ----------------------------------------------------------- */
-.probs { display: grid; gap: var(--space-3); }
-.probs article { padding-top: var(--space-3); border-top: 1px solid var(--line); }
-.probs h3 { margin: 0; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--swatch); }
-.probs dl { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1) var(--space-3); margin: 0; }
-.probs dt { font-size: var(--text-xs); color: var(--muted); }
-.probs dd { margin: 0; font-family: var(--font-mono); }
 .analysis-context-panel header p { margin: 0; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--accent-strong); }
 .context-sample { margin-top: var(--space-1); }
 
@@ -313,8 +307,6 @@
 .condition-advanced[open] > summary { margin-bottom: var(--space-2); }
 .condition-advanced .interruptions-field { margin-bottom: 0; }
 
-/* The share "of hands that meet it" sits on its own line under the main number. */
-.probs dd > .explorer-notation { display: block; margin-top: var(--space-1); }
 
 /* Hand Goals: one row per goal, going first and going second side by side. */
 .goal-odds-scroll { overflow-x: auto; }
@@ -332,3 +324,7 @@
 .engine-add { margin: var(--space-2) 0; }
 .engine-add > summary { cursor: pointer; width: fit-content; color: var(--muted); font-size: var(--text-sm); }
 .engine-add[open] > summary { margin-bottom: var(--space-2); }
+
+/* Opening hand size, under the analysis context chips. */
+.opening-hand-field { display: flex; align-items: center; gap: var(--space-3); width: fit-content; margin-top: var(--space-2); }
+.opening-hand-field input { width: 5rem; }

@@ -41,7 +41,6 @@ import { DeckEditor } from "./components/DeckEditor";
 import { LoadFileButton } from "./components/ImportExport";
 import { Menu } from "./components/Menu";
 import { serializeYapping } from "./lib/exportYapping";
-import { DeckProfile } from "./components/DeckProfile";
 import { DrawOdds } from "./components/DrawOdds";
 import { loadCatalog, type Catalog } from "./lib/catalog";
 import {
@@ -492,9 +491,7 @@ export function App() {
                 }}
                 openingHandSize={doc.analysis.opening_hand_size}
                 onChange={(context) => setDoc(setAnalysisContext(doc, context))}
-              />
-              <DeckProfile
-                doc={view}
+                deckSize={sectionSize(view.main)}
                 onHandSize={(size) => {
                   if (!Number.isInteger(size) || size < 0) return;
                   setDoc(setOpeningHandSize(doc, size));
