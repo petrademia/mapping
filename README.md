@@ -292,8 +292,8 @@ editors never compete with analysis results for vertical space:
   Groups), **Handtraps** and **Rank**.
 - **Test** - try hands. **Hand Test** evaluates one exact hand against the
   model, with the opponent's handtraps; **Batch Test** deals many.
-- **Analyze** - read the results. **Profile** (Analysis Context, Deck Profile,
-  Card Impact, roles), **Scorecard** and **Compare**.
+- **Analyze** - read the results. **Profile** (Hand Goals, Analysis Context,
+  Deck Profile, Card Impact), **Scorecard** and **Compare**.
 
 The **Scorecard** measures one Hand Goal going first (the five-card opening
 hand) and going second (six cards, after the first draw), in terms of how the
@@ -378,10 +378,9 @@ single aggregate "Deck Quality" score:
 
 | Layer | What it shows |
 | --- | --- |
-| **Hand Goals** | Engine Access (P(any selected engine-access condition)), Access + Interaction-tagged, Access + No Undesirable |
-| **Access Multiplicity** | P(N ≥ 1), P(N ≥ 2), P(N ≥ 3) over the selected access conditions (not "resilience") |
-| **Conditional on Access** | P(Interaction-tagged \| Access), P(No Undesirable \| Access) |
-| **Annotation & composition analysis** (collapsed) | Opening Quality composition, Access composition, interaction-tagged cards, context comparison, and **Annotation Coverage** (x / N deck slots classified per turn order) |
+| **Main Hand Goal** | P(goal and an Interaction-tagged card), P(goal and no Undesirable card), each with its share of the hands that meet the goal. The goal's own chance is in the Hand Goals panel |
+| **How many routes a hand has** | P(N >= 1), P(N >= 2), ... over the main goal's Hand Conditions, with rows at 0.00% hidden (not "resilience") |
+| **Annotation & composition analysis** (collapsed) | Opening Quality coverage and composition, and the going-first versus going-second comparison |
 
 Every percentage has an explicit mathematical interpretation (exact
 opening-hand hypergeometric / composition enumeration). Do **not** read
@@ -392,9 +391,8 @@ interaction should be modeled with Hand Conditions instead. The user is never
 asked whether conditions are mutually exclusive; overlap is derived from exact
 evaluation.
 
-Raw taxonomy and Opening Quality annotation statistics live in
-**Taxonomy / Annotation Analysis** (role slots + opening-quality slots) and
-never compete visually with hand goals.
+How many cards carry each label or quality is on the chips above the Main Deck (the label chips, and the
+Opening Quality chips behind the Opening Quality button), so there is no separate panel for it.
 
 ### Deck Configuration
 
@@ -584,9 +582,8 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 - add cards by catalog name search or passcode; Extra Deck monsters (Fusion, Synchro, Xyz, Link, from `public/extra-deck.json`) are routed to the Extra Deck when Main is selected, Side is never rerouted; paste-add appends without replacing
 - define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Hand Goals (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-goal union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Hand Goals, with per-predicate traces and population probabilities
-- inspect main/extra/side sizes, role density, and per-context opening-quality counts
-- inspect the Deck Profile: hand goals (engine access), access multiplicity, conditionals on access, plus collapsed annotation/composition diagnostics and annotation coverage
-- inspect raw taxonomy density and per-context opening-quality counts separately from hand goals
+- inspect main/extra/side sizes in Deck Configuration, and label and opening-quality counts on the chips above the Main Deck
+- inspect the Deck Profile: the main Hand Goal with Interaction and no-Undesirable, how many routes a hand has, plus collapsed annotation/composition diagnostics and annotation coverage
 - save locally (browser `localStorage` plus file download)
 - Save YDK exports the current list for Omega / external tools
 - export a YAPPING-readable archetype JSON

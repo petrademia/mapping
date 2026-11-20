@@ -9,7 +9,6 @@ import {
   openingQualityCoverage,
   openingQualityDensity,
   removeRole,
-  roleDensity,
   uniqueRoles,
 } from "./taxonomy";
 import {
@@ -203,42 +202,6 @@ describe("Taxonomy v0 deck context and density", () => {
       },
     });
     expect(doc).not.toHaveProperty("card_definitions");
-  });
-
-  it("counts overlapping role slots from quantities", () => {
-    const density = roleDensity([
-      {
-        quantity: 3,
-        taxonomy: {
-          roles: ["starter", "extender"],
-          opening_quality: EMPTY_CONTEXTUAL_QUALITY,
-        },
-      },
-      {
-        quantity: 2,
-        taxonomy: {
-          roles: ["extender", "interaction"],
-          opening_quality: EMPTY_CONTEXTUAL_QUALITY,
-        },
-      },
-      {
-        quantity: 1,
-        taxonomy: { roles: [], opening_quality: EMPTY_CONTEXTUAL_QUALITY },
-      },
-    ]);
-    expect(density).toEqual({
-      starter: 3,
-      extender: 5,
-      interaction: 2,
-      lingering: 0,
-      lingering_second: 0,
-      breaker: 0,
-      breaker_second: 0,
-      brick: 0,
-    });
-    expect(density.starter + density.extender + density.interaction).toBeGreaterThan(
-      6,
-    );
   });
 
   it("counts mutually exclusive opening-quality slots per context", () => {
