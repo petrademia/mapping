@@ -395,7 +395,7 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
             </li>
             {qualityCounts ? (
               <li>
-                <span>Opening Quality, {context.turn_order === "going_first" ? "Going First" : "Going Second"}</span>
+                <span>Opening Quality, {context.turn_order === "going_first" ? "Going first" : "Going second"}</span>
                 <strong className="role-counts">
                   {QUALITY_LABELS.map((entry) => (
                     <span key={entry.key} style={{ "--c": `var(--${entry.key})` } as React.CSSProperties}>

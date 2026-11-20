@@ -14,8 +14,8 @@ const CONTEXTS: {
   key: keyof ContextualOpeningQuality;
   label: string;
 }[] = [
-  { key: "going_first", label: "Going First" },
-  { key: "going_second", label: "Going Second" },
+  { key: "going_first", label: "Going first" },
+  { key: "going_second", label: "Going second" },
 ];
 
 interface Props {

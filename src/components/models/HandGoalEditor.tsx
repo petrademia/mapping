@@ -235,8 +235,8 @@ export function HandGoalEditor({
                 Among hands satisfy this goal
                 ({formatPercent(setSummary.union)}), by the{" "}
                 {context.turn_order === "going_first"
-                  ? "Going First"
-                  : "Going Second"}{" "}
+                  ? "Going first"
+                  : "Going second"}{" "}
                 Opening Quality annotation.
               </p>
               {setSummary.openingQuality.undesirable[0] === null ? (

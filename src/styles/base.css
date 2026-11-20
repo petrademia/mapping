@@ -157,6 +157,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, tex
   padding: var(--space-2) var(--space-3);
 }
 select {
+  /* Long option text must not widen the page: the control shrinks and the text is cut. */
+  max-width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
   appearance: none;
   padding-right: var(--space-7);
   cursor: pointer;

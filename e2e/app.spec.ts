@@ -159,6 +159,24 @@ test("a first run loads the default deck from public/decks, with its Hand Goals"
     .toBe(false);
 });
 
+test("no workspace is wider than a phone screen", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+  await page.goto("/");
+  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+  const steps = page.getByRole("navigation", { name: "Step" }).getByRole("button");
+  for (let s = 0; s < (await steps.count()); s++) {
+    await steps.nth(s).click();
+    const tabs = page.getByRole("navigation", { name: "Workspace" }).getByRole("button");
+    for (let t = 0; t < (await tabs.count()); t++) {
+      await tabs.nth(t).click();
+      const label = `${await steps.nth(s).innerText()} / ${await tabs.nth(t).innerText()}`;
+      const wider = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(wider, label).toBeLessThanOrEqual(0);
+    }
+  }
+});
+
 test("a Hand Goal lists only the Hand Conditions it uses, and adds another from a picker", async ({ page }) => {
   // Not through openApp: the real default mapping has many Hand Conditions and Hand Goals.
   await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
@@ -616,7 +634,7 @@ test.describe("Deck view", () => {
     await main.locator(".deck-tile").first().click();
     const detail = main.getByRole("group", { name: /^Edit / });
     await expect(detail).toBeVisible();
-    await expect(detail.getByText("Going First")).toBeVisible();
+    await expect(detail.getByText("Going first")).toBeVisible();
 
     await detail.getByRole("button", { name: "Increase quantity" }).click();
     await expect(page.locator(".counts")).toContainText("2 main");
@@ -678,13 +696,13 @@ test.describe("Deck view", () => {
     const extra = section(page, "Extra Deck");
     await extra.locator(".deck-tile").first().click();
     await expect(extra.getByRole("group", { name: /^Edit / })).toBeVisible();
-    await expect(extra.getByText("Going First")).toHaveCount(0);
+    await expect(extra.getByText("Going first")).toHaveCount(0);
     await expect(extra.getByText("Starter")).toHaveCount(0);
 
     // Side cards can be sided in, so they keep the controls.
     const side = section(page, "Side Deck");
     await side.locator(".deck-tile").first().click();
-    await expect(side.getByText("Going First").first()).toBeVisible();
+    await expect(side.getByText("Going first").first()).toBeVisible();
   });
 });
 
@@ -866,7 +884,7 @@ test("Card Rank follows the cards in the analyzed Post-Side list", async ({ page
   await comingIn.click();
 
   await nav(page, "Rank").click();
-  const going = page.getByRole("region", { name: "Going First ranking" });
+  const going = page.getByRole("region", { name: "Going first ranking" });
   // The card that was sided in can be ranked now.
   // By title text, not a CSS selector: card names can contain quotation marks.
   await expect(going.locator(".rank-tile").and(page.getByTitle(name, { exact: true })).first()).toBeVisible();
@@ -876,7 +894,7 @@ test.describe("Rank scores hands", () => {
 
   async function rankFirstCardTop(page: Page): Promise<void> {
     await nav(page, "Rank").click();
-    const tiles = page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile");
+    const tiles = page.getByRole("region", { name: "Going first ranking" }).locator(".rank-tile");
     await tiles.nth(3).click();
     await tiles.nth(0).click();
   }
@@ -942,7 +960,7 @@ test.describe("Choosing the turn order where you test", () => {
     await nav(page, "Hand Test").click();
     await page.getByRole("button", { name: "New Hand" }).click();
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(5);
-    await page.getByRole("radio", { name: /Going Second . First 6/ }).click();
+    await page.getByRole("radio", { name: /Going second . First 6/ }).click();
     // The old hand no longer fits, so it is cleared; a new draw takes six cards.
     await expect(page.locator(".hand-tile.in-hand")).toHaveCount(0);
     await page.getByRole("button", { name: "New Hand" }).click();
@@ -952,12 +970,12 @@ test.describe("Choosing the turn order where you test", () => {
   test("Batch Test follows the turn order chosen on its own tab", async ({ page }) => {
     await openApp(page);
     await nav(page, "Batch Test").click();
-    await expect(page.getByRole("radio", { name: /Going First/ })).toBeChecked();
-    await page.getByRole("radio", { name: /Going Second . Opening 5/ }).click();
-    await expect(page.getByRole("radio", { name: /Going Second . Opening 5/ })).toBeChecked();
+    await expect(page.getByRole("radio", { name: /Going first/ })).toBeChecked();
+    await page.getByRole("radio", { name: /Going second . Opening 5/ }).click();
+    await expect(page.getByRole("radio", { name: /Going second . Opening 5/ })).toBeChecked();
     // The choice is shared: Hand Test shows the same one.
     await nav(page, "Hand Test").click();
-    await expect(page.getByRole("radio", { name: /Going Second . Opening 5/ })).toBeChecked();
+    await expect(page.getByRole("radio", { name: /Going second . Opening 5/ })).toBeChecked();
   });
 });
 
@@ -1431,10 +1449,10 @@ test.describe("Sorting the deck sections", () => {
     await openApp(page);
     await expect(page.getByLabel("Sort Main Deck").locator("option", { hasText: "Card Rank" })).toBeDisabled();
     await nav(page, "Rank").click();
-    const tiles = page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile");
+    const tiles = page.getByRole("region", { name: "Going first ranking" }).locator(".rank-tile");
     await tiles.nth(3).click();
     await tiles.nth(0).click();
-    const top = await page.getByRole("region", { name: "Going First ranking" }).locator(".rank-tile").first().getAttribute("title");
+    const top = await page.getByRole("region", { name: "Going first ranking" }).locator(".rank-tile").first().getAttribute("title");
     await page.getByLabel("Sort Main Deck").selectOption("rank");
     await expect.poll(async () => (await titles(page))[0]).toBe(top);
   });
@@ -1702,17 +1720,17 @@ test.describe("Card Rank", () => {
   };
 
   test("shows card art in rank order for going first and going second", async ({ page }) => {
-    await expect(region(page, "Going First")).toBeVisible();
-    await expect(region(page, "Going Second")).toBeVisible();
+    await expect(region(page, "Going first")).toBeVisible();
+    await expect(region(page, "Going second")).toBeVisible();
     await expect(page.getByText("Not ranked yet").first()).toBeVisible();
     // Every tile carries its rank number, 1 upward.
-    const nums = await region(page, "Going First").locator(".rank-num").allInnerTexts();
+    const nums = await region(page, "Going first").locator(".rank-num").allInnerTexts();
     expect(nums.slice(0, 3)).toEqual(["1", "2", "3"]);
   });
 
   test("lays the cards out as a grid, not a column of wrapped text", async ({ page }) => {
     // Regression: the lists once sat in a narrow column and names wrapped letter by letter.
-    const tiles = region(page, "Going First").locator(".rank-tile");
+    const tiles = region(page, "Going first").locator(".rank-tile");
     // Read the geometry again until the layout has settled (card art loading moves tiles at first).
     await expect(async () => {
       const a = (await tiles.nth(0).boundingBox())!;
@@ -1721,56 +1739,56 @@ test.describe("Card Rank", () => {
       expect(b.x).toBeGreaterThan(a.x);
       expect(a.width).toBeLessThan(100);
     }).toPass();
-    await expect(region(page, "Going First").locator(".rank-name")).toHaveCount(0);
+    await expect(region(page, "Going first").locator(".rank-name")).toHaveCount(0);
   });
 
   test("click a card, then click where it should go", async ({ page }) => {
-    const before = await order(page, "Going First");
-    const tiles = region(page, "Going First").locator(".rank-tile");
+    const before = await order(page, "Going first");
+    const tiles = region(page, "Going first").locator(".rank-tile");
     await tiles.nth(3).click(); // pick up the 4th card
     await expect(tiles.nth(3)).toHaveAttribute("aria-pressed", "true");
     await tiles.nth(0).click(); // drop it at position 1
-    const after = await order(page, "Going First");
+    const after = await order(page, "Going first");
     expect(after[0]).toBe(before[3]);
     expect(after[1]).toBe(before[0]);
     // The other turn order is untouched.
-    expect((await order(page, "Going Second"))[0]).toBe(before[0]);
+    expect((await order(page, "Going second"))[0]).toBe(before[0]);
     await expect(page.getByText("Not ranked yet")).toHaveCount(1);
   });
 
   test("dragging a card reorders the list", async ({ page }) => {
-    const tiles = region(page, "Going Second").locator(".rank-tile");
-    const before = await order(page, "Going Second");
+    const tiles = region(page, "Going second").locator(".rank-tile");
+    const before = await order(page, "Going second");
     await tiles.nth(3).dragTo(tiles.nth(0));
-    const after = await order(page, "Going Second");
+    const after = await order(page, "Going second");
     expect(after[0]).toBe(before[3]);
     expect(after[1]).toBe(before[0]);
   });
 
   test("the keyboard moves a picked-up card with the arrow keys", async ({ page }) => {
-    const before = await order(page, "Going First");
-    const first = region(page, "Going First").locator(".rank-tile").first();
+    const before = await order(page, "Going first");
+    const first = region(page, "Going first").locator(".rank-tile").first();
     await first.focus();
     await page.keyboard.press("Space"); // pick up
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("Space"); // put down
-    const after = await order(page, "Going First");
+    const after = await order(page, "Going first");
     expect(after[2]).toBe(before[0]);
     expect(after[0]).toBe(before[1]);
   });
 
   test("the order survives a reload and Reset puts a list back", async ({ page }) => {
-    const before = await order(page, "Going First");
-    const tiles = region(page, "Going First").locator(".rank-tile");
+    const before = await order(page, "Going first");
+    const tiles = region(page, "Going first").locator(".rank-tile");
     await tiles.nth(1).click();
     await tiles.nth(0).click();
     await page.reload();
     await nav(page, "Rank").click();
-    expect((await order(page, "Going First"))[0]).toBe(before[1]);
+    expect((await order(page, "Going first"))[0]).toBe(before[1]);
 
-    await region(page, "Going First").getByRole("button", { name: "Reset" }).click();
-    expect(await order(page, "Going First")).toEqual(before);
+    await region(page, "Going first").getByRole("button", { name: "Reset" }).click();
+    expect(await order(page, "Going first")).toEqual(before);
   });
 });
 

@@ -16,8 +16,8 @@ export interface CardRank {
 }
 
 export const RANK_CONTEXTS: { key: RankContext; label: string }[] = [
-  { key: "going_first", label: "Going First" },
-  { key: "going_second", label: "Going Second" },
+  { key: "going_first", label: "Going first" },
+  { key: "going_second", label: "Going second" },
 ];
 
 export function emptyRank(): CardRank {
