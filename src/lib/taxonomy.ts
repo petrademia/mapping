@@ -16,6 +16,7 @@ export const ROLES = [
   "lingering_second",
   "breaker",
   "breaker_second",
+  "brick",
 ] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -208,6 +209,7 @@ export function roleDensity(
     lingering_second: 0,
     breaker: 0,
     breaker_second: 0,
+    brick: 0,
   };
   for (const card of cards) {
     for (const role of uniqueRoles(card.taxonomy.roles)) {

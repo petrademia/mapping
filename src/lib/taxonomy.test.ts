@@ -52,13 +52,17 @@ describe("Taxonomy v0 roles", () => {
     expect(addRole(["starter"], "starter")).toEqual(["starter"]);
   });
 
+  // Brick was removed in Taxonomy v0 and is a role again, tagged by hand when Starter, Extender and
+  // Brick are read from your tags instead of a Hand Goal. As an Opening Quality it is still rejected.
+  it("brings Brick back as a role you tag", () => {
+    expect(isRole("brick")).toBe(true);
+    expect(uniqueRoles(["starter", "brick"])).toEqual(["starter", "brick"]);
+  });
+
   it("rejects removed roles from the current schema", () => {
     expect(isRole("recovery")).toBe(false);
-    expect(isRole("brick")).toBe(false);
     expect(isRole("engine_requirement")).toBe(false);
-    expect(uniqueRoles(["starter", "recovery", "brick", "engine_requirement"])).toEqual(
-      ["starter"],
-    );
+    expect(uniqueRoles(["starter", "recovery", "engine_requirement"])).toEqual(["starter"]);
     expect(() =>
       normalizeTaxonomy({
         roles: ["starter"],
@@ -230,6 +234,7 @@ describe("Taxonomy v0 deck context and density", () => {
       lingering_second: 0,
       breaker: 0,
       breaker_second: 0,
+      brick: 0,
     });
     expect(density.starter + density.extender + density.interaction).toBeGreaterThan(
       6,

@@ -78,6 +78,11 @@ export interface MappingDocument {
    */
   label_goal_id?: string | null;
   /**
+   * True when Starter, Extender and Brick are the tags you set on each card, instead of being read
+   * from a Hand Goal. Absent or false means they are read from the Hand Goal, as before.
+   */
+  labels_by_hand?: boolean;
+  /**
    * A Hand Goal whose Hand Conditions are ways to break the opponent's board, such as a card that
    * only breaks it with a partner. The Breaking measure counts a hand that meets it, as well as a
    * hand holding enough cards tagged Board breaker. Absent means only the tagged cards count.
@@ -653,10 +658,15 @@ export function removeHandConditionSet(
   };
 }
 
-/** Choose the Hand Goal the card labels are read from; null reads every Hand Goal. */
+/** Choose the Hand Goal the card labels are read from; null reads every Hand Goal. Ends reading them by hand. */
 export function setLabelGoal(doc: MappingDocument, goalId: string | null): MappingDocument {
   const known = goalId !== null && doc.hand_condition_sets.some((set) => set.id === goalId);
-  return { ...doc, label_goal_id: known ? goalId : null };
+  return { ...doc, label_goal_id: known ? goalId : null, labels_by_hand: false };
+}
+
+/** Read Starter, Extender and Brick from the tags set on each card, or back from the Hand Goal. */
+export function setLabelsByHand(doc: MappingDocument, byHand: boolean): MappingDocument {
+  return { ...doc, labels_by_hand: byHand };
 }
 
 /** Choose the Hand Goal whose routes also count as breaking the opponent's board; null clears it. */
@@ -919,6 +929,7 @@ export function parseMappingJson(text: string): MappingDocument {
     ...(typeof data.label_goal_id === "string" && hand_condition_sets.some((set) => set.id === data.label_goal_id)
       ? { label_goal_id: data.label_goal_id }
       : {}),
+    ...(data.labels_by_hand === true ? { labels_by_hand: true } : {}),
     ...(typeof data.breaking_goal_id === "string" && hand_condition_sets.some((set) => set.id === data.breaking_goal_id)
       ? { breaking_goal_id: data.breaking_goal_id }
       : {}),
@@ -974,6 +985,7 @@ export function serializeMapping(doc: MappingDocument): string {
     })),
     engine_access_set_id: doc.engine_access_set_id,
     ...(doc.label_goal_id ? { label_goal_id: doc.label_goal_id } : {}),
+    ...(doc.labels_by_hand ? { labels_by_hand: true } : {}),
     ...(doc.breaking_goal_id ? { breaking_goal_id: doc.breaking_goal_id } : {}),
     choke_point_group_ids: [...doc.choke_point_group_ids],
     hit_priority: doc.hit_priority.map((target) => ({ ...target })),

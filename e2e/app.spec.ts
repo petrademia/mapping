@@ -173,8 +173,8 @@ test("the page stays responsive while the Profile's quality summary is calculate
   await expect(page.locator(".search-result").first()).toBeVisible();
   expect(Date.now() - started).toBeLessThan(2500);
   // The numbers still arrive afterwards, with the match-weighted push under them.
-  await expect(summary.getByRole("status").first()).toHaveText(/%/, { timeout: 45_000 });
-  await expect(summary.getByText(/Over a best-of-three/)).toBeVisible();
+  await expect(summary.locator(".summary-part-value").first()).toHaveText(/%/, { timeout: 45_000 });
+  await expect(summary.getByRole("listitem")).not.toHaveCount(0);
 });
 
 test.describe("Open a deck", () => {
@@ -1154,29 +1154,35 @@ test.describe("Handtrap versus", () => {
     await expect(page.locator(".scorecard").getByRole("spinbutton", { name: "Resilient" })).toHaveValue("0");
   });
 
-  test("the landing view summarises going first and going second, and says what is missing", async ({ page }) => {
+  test("the landing view lists the hands worth having for going first and going second, and says what is missing", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
     await nav(page, "Profile").click();
     const summary = page.getByRole("region", { name: "At a glance" });
     const first = summary.getByRole("region", { name: "Going first" });
     const second = summary.getByRole("region", { name: "Going second" });
-    await expect(first.getByRole("status")).toHaveText(/^\d+\.\d%$/);
-    await expect(second.getByRole("status")).toHaveText(/^\d+\.\d%$/);
-    // Each part is its own percentage, and one of them is marked as the weakest.
-    await expect(first.getByRole("listitem")).not.toHaveCount(0);
-    await expect(first.getByRole("listitem").first().locator(".summary-part-value")).toHaveText(/^\d+\.\d%$/);
-    await expect(first.getByText("weakest", { exact: true })).toHaveCount(1);
-    await expect(first.getByText(/^After one interruption: \d+\.\d%$/)).toBeVisible();
-    // Nothing else is modelled yet, so it says how to measure the rest.
-    await expect(summary.getByText(/Not measured yet: .*Resilient, to measure it add a handtrap/)).toBeVisible();
-
-    // Adding a handtrap makes Resilient measured, so it drops off the missing list.
-    await nav(page, "Handtrap versus").click();
-    await page.getByRole("button", { name: "Add Effect Veiler" }).click();
-    await page.getByRole("button", { name: "Every card" }).click();
-    await nav(page, "Profile").click();
-    await expect(summary.getByText(/Resilient, to measure it/)).toHaveCount(0);
+    const labels = [
+      "Has a starter",
+      "Plays through 1 interruption",
+      "Plays through 2 interruptions",
+      "2 lingering handtraps",
+      "Lingering handtrap + board breaker",
+      "Lingering handtrap + handtrap + board breaker",
+    ];
+    for (const tile of [first, second]) {
+      await expect(tile.getByRole("listitem")).toHaveCount(labels.length);
+      for (const label of labels) await expect(tile.getByRole("listitem").filter({ hasText: label }).first()).toBeVisible();
+    }
+    // The interruption lines are measurable from a Hand Goal alone, each an exact percentage.
+    const through = (tile: typeof first, label: string) =>
+      tile.getByRole("listitem").filter({ hasText: label }).first().locator(".summary-part-value");
+    await expect(through(first, "Plays through 1 interruption")).toHaveText(/^\d+\.\d%$/);
+    await expect(through(second, "Plays through 2 interruptions")).toHaveText(/^\d+\.\d%$/);
+    // The Hand Goal's one-card condition makes that card a Starter, so that line has a number.
+    await expect(through(first, "Has a starter")).toHaveText(/^\d+\.\d%$/);
+    // No handtrap or breaker is tagged yet, so those lines show a dash and say what to tag, not a made-up zero.
+    await expect(through(first, "2 lingering handtraps")).toHaveText("-");
+    await expect(first.getByText("no Lingering handtrap works in this turn order").first()).toBeVisible();
 
     await summary.getByRole("button", { name: "Open the Scorecard" }).click();
     await expect(page.locator(".scorecard")).toBeVisible();
@@ -1436,7 +1442,7 @@ test("the analysis panels do not jump while the odds are counted again after an 
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
   const summary = page.getByRole("region", { name: "At a glance" });
-  await expect(summary.getByRole("status").first()).toContainText("%");
+  await expect(summary.locator(".summary-part-value").filter({ hasText: "%" }).first()).toBeVisible();
   const configuration = page.locator("#deck-configuration");
   await expect(configuration).toBeVisible();
 
@@ -1458,7 +1464,7 @@ test("the analysis panels do not jump while the odds are counted again after an 
   // collapse to a placeholder and come back, which moves the panel by a couple of hundred.
   expect(Math.max(...seen) - Math.min(...seen)).toBeLessThanOrEqual(40);
   // The summary was never swapped for a placeholder.
-  await expect(summary.getByRole("status").first()).toContainText("%");
+  await expect(summary.locator(".summary-part-value").filter({ hasText: "%" }).first()).toBeVisible();
 });
 
 test.describe("Dragging cards in the deck", () => {
@@ -1972,6 +1978,45 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await toggle.click();
     await expect(row).toHaveCount(0);
     await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
+  });
+
+  test("clicking the chip that is on turns it off and goes back to All", async ({ page }) => {
+    await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+    await page.goto("/");
+    await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+    const breakers = chip(page, /^Breakers/);
+    const all = chip(page, /^All/);
+    await expect(all).toHaveAttribute("aria-pressed", "true");
+    await breakers.click();
+    await expect(breakers).toHaveAttribute("aria-pressed", "true");
+    await expect(all).toHaveAttribute("aria-pressed", "false");
+    await breakers.click();
+    await expect(breakers).toHaveAttribute("aria-pressed", "false");
+    await expect(all).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
+  });
+
+  test("My tags: Starter, Extender and Brick are chips you click on a card, and the counts follow", async ({ page }) => {
+    await openApp(page);
+    await openCardLabels(page);
+    await page.getByLabel("Read card labels from").selectOption({ label: "My tags (set on each card)" });
+    await expect(page.locator("details.deck-labels summary")).toContainText("My tags");
+    // Nothing is tagged yet, so no card is a Starter, Extender or Brick.
+    await expect(chip(page, /^Starters 0/)).toBeVisible();
+    await expect(chip(page, /^Bricks 0/)).toBeVisible();
+    const main = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
+    await main.locator(".deck-tile").first().click();
+    const detail = main.getByRole("group", { name: /^Edit / });
+    // The three labels are chips here, not a read-only line.
+    await detail.getByRole("button", { name: "Starter", exact: true }).click();
+    await detail.getByRole("button", { name: "Brick", exact: true }).click();
+    await expect(detail.getByRole("button", { name: "Starter", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(chip(page, /^Starters [1-9]/)).toBeVisible();
+    await expect(chip(page, /^Bricks [1-9]/)).toBeEnabled();
+    await expect(chip(page, /^Extenders 0/)).toBeVisible();
+    // Back to a Hand Goal: the chips are read-only again and the tags are kept in the file.
+    await page.getByLabel("Read card labels from").selectOption({ index: 1 });
+    await expect(detail.getByRole("button", { name: "Starter", exact: true })).toHaveCount(0);
   });
 
   test("Interaction is a chip, Role is no longer a sort, and a saved Role sort becomes Label", async ({ page }) => {

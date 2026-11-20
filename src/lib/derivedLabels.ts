@@ -37,6 +37,19 @@ function needed(op: string, count: number): number | null {
 }
 
 export function deriveLabels(doc: MappingDocument): Map<number, DerivedLabels> {
+  // Set by hand: the labels are the tags on each card, with no reading of Hand Conditions.
+  if (doc.labels_by_hand) {
+    const byHand = new Map<number, DerivedLabels>();
+    for (const card of [...doc.main, ...doc.side, ...doc.extra]) {
+      const roles = card.taxonomy.roles;
+      byHand.set(card.card_id, {
+        starter: roles.includes("starter"),
+        extender: roles.includes("extender"),
+        brick: roles.includes("brick"),
+      });
+    }
+    return byHand;
+  }
   const conditionById = new Map(doc.hand_conditions.map((condition) => [condition.id, condition]));
   const used = new Set<string>();
   // Only the chosen Hand Goal counts, when one is chosen and still exists; else every Hand Goal does.

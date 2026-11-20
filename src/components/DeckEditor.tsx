@@ -4,7 +4,7 @@ import {
   DECK_LIST_ID,
   findConfiguration,
 } from "../lib/configuration";
-import { setBreakingGoal, setLabelGoal, type MappingDocument } from "../lib/document";
+import { setBreakingGoal, setLabelGoal, setLabelsByHand, type MappingDocument } from "../lib/document";
 import { CONFIGURATION_PANEL_ID } from "./ConfigurationPanel";
 import { DeckGrid } from "./DeckGrid";
 import { CardSearch } from "./CardSearch";
@@ -24,6 +24,9 @@ interface Props {
   onStatus: (message: string) => void;
 }
 
+/** The "Read card labels from" choice that means the tags you set on each card. */
+const BY_HAND = "__by_hand";
+
 export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatChange, onChange, onStatus }: Props) {
   const active = findConfiguration(doc, doc.active_configuration_id);
   const violations = deckViolations(doc, banlist, format);
@@ -33,7 +36,7 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
     const set = goals.find((entry) => entry.id === id);
     return set ? set.name || "Untitled hand goal" : none;
   };
-  const labelName = nameOf(doc.label_goal_id, "Every Hand Goal");
+  const labelName = doc.labels_by_hand ? "My tags" : nameOf(doc.label_goal_id, "Every Hand Goal");
   const breakingName = `Breaks: ${nameOf(doc.breaking_goal_id, "tagged cards only")}`;
   return (
     <div className="deck-editor-layout">
@@ -87,7 +90,7 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
           search a card on the right.
         </p>
       ) : null}
-      {goals.length > 0 ? (
+      {(
         <details className="deck-labels">
           <summary>
             <strong>Card labels</strong>
@@ -99,15 +102,22 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
             <span>
               Card dots come from
               <small>
-                Starter, Extender and Brick are worked out from the Hand Goal you pick: one card starts it,
-                needed with another card, or in no route.
+                Starter, Extender and Brick are worked out from the Hand Goal you pick, or are the tags you
+                set on each card yourself.
               </small>
             </span>
             <select
               aria-label="Read card labels from"
-              value={doc.label_goal_id ?? ""}
-              onChange={(event) => onChange(setLabelGoal(doc, event.target.value || null))}
+              value={doc.labels_by_hand ? BY_HAND : doc.label_goal_id ?? ""}
+              onChange={(event) =>
+                onChange(
+                  event.target.value === BY_HAND
+                    ? setLabelsByHand(doc, true)
+                    : setLabelGoal(doc, event.target.value || null),
+                )
+              }
             >
+              <option value={BY_HAND}>My tags (set on each card)</option>
               <option value="">Every Hand Goal</option>
               {goals.map((set) => (
                 <option key={set.id} value={set.id}>
@@ -116,6 +126,7 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
               ))}
             </select>
           </label>
+          {goals.length > 0 ? (
           <label className="deck-label-goal">
             <span>
               Board-breaking combos
@@ -137,8 +148,9 @@ export function DeckEditor({ doc, catalog, extraIds, banlist, format, onFormatCh
               ))}
             </select>
           </label>
+          ) : null}
         </details>
-      ) : null}
+      )}
       <DeckGrid
         doc={doc}
         catalog={catalog}

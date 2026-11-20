@@ -352,10 +352,14 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
   two. The Scorecard also shows the share of hands that meet the goal with only
   one route. A second copy of a card counts as a backup here, and so does
   another route, unless you marked their Group as a choke point in Models.
-- The Profile view opens with **Quality at a glance**: one combined number for
-  going first and one for going second, the weakest measured number in each,
-  and what is not measured yet and how to measure it. It is a summary of the
-  Scorecard, so it is only as complete as your models.
+- The Profile view opens with **At a glance**: a short list of hands worth having, going first and
+  going second, each its exact chance: a starter, a play through 1 interruption, a play through 2
+  interruptions, 2 lingering handtraps, a lingering handtrap with a board breaker, and a lingering
+  handtrap with a handtrap and a board breaker. The two interruption lines are the Scorecard's
+  interruption table for the Hand Goal (the opponent stops the card that hurts most); the others
+  count the cards you tagged (Starter, Lingering handtrap, Interaction, Board breaker), and a card
+  tagged with two of them counts toward both. A line that cannot be measured yet shows a dash and
+  what to tag, not a zero. The combined number and the other measures are in the Scorecard.
 - A slot mix per turn order (desirable, neutral, bricks, not set), and a
   combined number per turn order and overall. The combined numbers are weighted
   means; the weights are yours (kept in this browser), and a number that cannot
@@ -422,6 +426,15 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   is downloaded as before and the status says why. A built or hosted copy always downloads. The
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
+- **My tags.** Under "Card labels", "Read card labels from" can be set to **My tags (set on each card)**.
+  Starter, Extender and Brick are then chips you click in the card editor, next to Interaction,
+  Lingering handtrap and Board breaker, and the chips, dots, counts and Label sort use exactly what you
+  set. A card with no tag has no label, so it is never a Brick by default. A Brick counts as
+  Undesirable where you have not set Opening Quality, and a quality you set wins, as with the derived
+  Brick. The setting is saved as `labels_by_hand` (left out when off), and the tags are the card's
+  roles, including the new `brick` role (Brick had been removed in Taxonomy v0; it is a role you tag
+  again). Choosing a Hand Goal switches back and keeps the tags in the file. The menu is available
+  before you define any Hand Goal. Clicking the label chip that is already on goes back to All.
 - **Spotlight a label.** Above the Main Deck, the chips All, Starters, Extenders, Interaction,
   Breakers and Bricks each show how many copies carry that label. Choosing one fades every other card
   and moves nothing, so you can see where, say, the Bricks sit. Starter, Extender and Brick are read

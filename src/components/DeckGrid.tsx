@@ -186,6 +186,7 @@ function DetailRow({
             <RoleEditor
               roles={card.taxonomy.roles}
               derived={derived}
+              byHand={Boolean(doc.labels_by_hand)}
               onChange={(roles) => onChange(setCardRoles(doc, section, card.card_id, roles))}
             />
             <OpeningQualityEditor
@@ -240,9 +241,10 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
   // The quality row is hidden until asked for, so the deck view starts with one row of chips.
   const [showQuality, setShowQuality] = useState(false);
   const mainQuality = useMemo(() => qualityCounts(doc.main, turn), [doc.main, turn]);
+  // Clicking the chip that is already on turns it off and goes back to All.
   const chooseLabel = (key: Spotlight) => {
     setQualitySpot(null);
-    setSpotlight(key);
+    setSpotlight(key === spotlight && activeQuality === null ? "all" : key);
   };
   const chooseQuality = (key: QualityKey) => {
     setSpotlight("all");
@@ -405,7 +407,9 @@ export function DeckGrid({ doc, catalog, onChange, extraIds = new Set(), banlist
                         unknown
                           ? "Define a Hand Goal to read which cards are Bricks"
                           : key === "brick"
-                            ? "Cards in none of your routes. Undesirable, under Opening Quality, is the quality you set by hand, so the two can differ."
+                            ? doc.labels_by_hand
+                              ? "Cards you tagged Brick. Undesirable, under Opening Quality, is set separately, so the two can differ."
+                              : "Cards in none of your routes. Undesirable, under Opening Quality, is the quality you set by hand, so the two can differ."
                             : undefined
                       }
                       onClick={() => chooseLabel(key)}

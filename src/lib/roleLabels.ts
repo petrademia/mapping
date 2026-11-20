@@ -9,4 +9,5 @@ export const ROLE_LABELS: Record<Role, string> = {
   lingering_second: "Lingering handtrap, going second",
   breaker: "Board breaker",
   breaker_second: "Board breaker, going second",
+  brick: "Brick",
 };

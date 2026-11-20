@@ -5,6 +5,7 @@ import {
   removeHandConditionSet,
   serializeMapping,
   setLabelGoal,
+  setLabelsByHand,
   type MappingDocument,
 } from "./document";
 import { deriveLabels, withDerivedLabels } from "./derivedLabels";
@@ -222,5 +223,54 @@ describe("reading the labels from one Hand Goal", () => {
 
     expect(removeHandConditionSet(chosen, "pair").label_goal_id).toBeNull();
     expect(removeHandConditionSet(chosen, "alone").label_goal_id).toBe("pair");
+  });
+});
+
+describe("labels set by hand", () => {
+  const tagged = (): MappingDocument => ({
+    ...doc(),
+    main: [
+      { card_id: 1, quantity: 3, taxonomy: tag(["starter"]) },
+      { card_id: 2, quantity: 1, taxonomy: tag(["extender"]) },
+      { card_id: 5, quantity: 2, taxonomy: tag(["brick"]) },
+      { card_id: 6, quantity: 1, taxonomy: tag() },
+    ] as MappingDocument["main"],
+  });
+
+  it("reads Starter, Extender and Brick from the tags and not from the Hand Conditions", () => {
+    const labels = deriveLabels(setLabelsByHand(tagged(), true));
+    expect(labels.get(1)).toEqual({ starter: true, extender: false, brick: false });
+    expect(labels.get(2)).toEqual({ starter: false, extender: true, brick: false });
+    expect(labels.get(5)).toEqual({ starter: false, extender: false, brick: true });
+    // An untagged card has no label: it is never a Brick by default.
+    expect(labels.get(6)).toEqual({ starter: false, extender: false, brick: false });
+  });
+
+  it("has labels even with no Hand Goal, since the tags are the source", () => {
+    const empty = { ...setLabelsByHand(tagged(), true), hand_condition_sets: [], hand_conditions: [] };
+    expect(deriveLabels(empty).size).toBe(4);
+  });
+
+  it("counts a Brick tag as Undesirable where Opening Quality is not set, and yields to a set one", () => {
+    const base = setLabelsByHand(tagged(), true);
+    const view = withDerivedLabels({
+      ...base,
+      main: base.main.map((card) =>
+        card.card_id === 5
+          ? { ...card, taxonomy: { ...card.taxonomy, opening_quality: { going_first: "desirable", going_second: null } } }
+          : card,
+      ) as MappingDocument["main"],
+    });
+    const five = view.main.find((card) => card.card_id === 5)!;
+    expect(five.taxonomy.opening_quality.going_first).toBe("desirable");
+    expect(five.taxonomy.opening_quality.going_second).toBe("undesirable");
+  });
+
+  it("is remembered in the file, left out when off, and ended by choosing a Hand Goal", () => {
+    const on = setLabelsByHand(tagged(), true);
+    const back = parseMappingJson(serializeMapping(on));
+    expect(back.labels_by_hand).toBe(true);
+    expect(serializeMapping(tagged())).not.toContain("labels_by_hand");
+    expect(setLabelGoal(on, null).labels_by_hand).toBe(false);
   });
 });

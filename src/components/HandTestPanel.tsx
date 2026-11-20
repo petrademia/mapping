@@ -232,8 +232,8 @@ export function HandTestPanel({ doc, catalog, onHandSize, hand, order, onHandCha
   }, [hand, doc, scoreSettings, context.turn_order, deckScore]);
 
   const roleCounts = useMemo(() => {
-    if (!hand) return { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0 };
-    const counts = { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0 };
+    if (!hand) return { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0, brick: 0 };
+    const counts = { starter: 0, extender: 0, interaction: 0, lingering: 0, lingering_second: 0, breaker: 0, breaker_second: 0, brick: 0 };
     for (const card of doc.main) {
       const copies = hand.card_counts[card.card_id] ?? 0;
       if (copies === 0) continue;

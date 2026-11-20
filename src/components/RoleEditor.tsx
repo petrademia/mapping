@@ -10,6 +10,8 @@ interface Props {
    * no Hand Goal to read them from yet.
    */
   derived: DerivedLabels | null;
+  /** True when Starter, Extender and Brick are tags you set here, not read from a Hand Goal. */
+  byHand?: boolean;
 }
 
 /**
@@ -65,7 +67,7 @@ function TurnVariantChip({
  * Interaction is the one role you tag. Starter, Extender and Brick are not asked
  * for: they follow from the routes you wrote as Hand Conditions.
  */
-export function RoleEditor({ roles, onChange, derived }: Props) {
+export function RoleEditor({ roles, onChange, derived, byHand = false }: Props) {
   const interaction = roles.includes("interaction");
   const shown: { key: string; label: string; swatch: string; title: string }[] = [];
   if (derived?.starter) {
@@ -81,6 +83,25 @@ export function RoleEditor({ roles, onChange, derived }: Props) {
     <div className="taxonomy-block">
       <span className="taxonomy-label">Role</span>
       <div className="roles" role="group" aria-label="Roles">
+        {byHand
+          ? (["starter", "extender"] as const).map((role) => (
+              <button
+                key={role}
+                type="button"
+                className={roles.includes(role) ? "chip on" : "chip"}
+                data-role={role}
+                aria-pressed={roles.includes(role)}
+                title={
+                  role === "starter"
+                    ? "A card that starts your play on its own"
+                    : "A card that extends a play you have already started"
+                }
+                onClick={() => onChange(toggleRole(roles, role))}
+              >
+                {role === "starter" ? "Starter" : "Extender"}
+              </button>
+            ))
+          : null}
         <button
           type="button"
           className={interaction ? "chip on" : "chip"}
@@ -106,8 +127,20 @@ export function RoleEditor({ roles, onChange, derived }: Props) {
           title="A board breaker: it destroys, banishes or bounces the opponent's cards on your turn"
           secondTitle="Only worth it going second, since going first there is no board yet"
         />
+        {byHand ? (
+          <button
+            type="button"
+            className={roles.includes("brick") ? "chip on" : "chip"}
+            data-role="brick"
+            aria-pressed={roles.includes("brick")}
+            title="A card you do not want in your opening hand. Counts as Undesirable where you have not set Opening Quality"
+            onClick={() => onChange(toggleRole(roles, "brick"))}
+          >
+            Brick
+          </button>
+        ) : null}
       </div>
-      {derived ? (
+      {byHand ? null : derived ? (
         <p className="derived-labels" aria-label="Read from your Hand Conditions">
           <span className="derived-from">From your Hand Conditions:</span>
           {shown.length > 0 ? (
