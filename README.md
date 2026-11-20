@@ -29,9 +29,9 @@ Role                    Opening Quality (per turn order)
 | Dimension | Cardinality | Values |
 | --- | --- | --- |
 | **Role** | multi-select | `starter`, `extender`, `interaction` |
-| **Opening Quality** | per context | `desirable`, `neutral`, `undesirable`, or `null`, for each of Going First and Going Second |
+| **Opening Quality** | per context | `desirable`, `neutral`, `undesirable`, or `null`, for each of Going first and Going second |
 
-- Opening Quality is evaluated **separately for Going First and Going Second**
+- Opening Quality is evaluated **separately for Going first and Going second**
   (`opening_quality: { going_first, going_second }`, both `null` by default =
   unclassified).
 - `null` means the user has not evaluated opening quality in that context.
@@ -77,8 +77,8 @@ Example: Mulcharmy Fuwalos tagged
 
 ```text
 Role:              interaction
-Opening Quality:   Going First:  neutral
-                   Going Second: desirable
+Opening Quality:   Going first:  neutral
+                   Going second: desirable
 ```
 
 ### Role definitions (hypotheses)
@@ -522,14 +522,14 @@ Composition probabilities are evaluated under an **Analysis Context** (not taxon
 
 | Turn Order | Observation Point | Cards seen |
 | --- | --- | --- |
-| Going First | Opening Hand | opening hand size (default 5) |
-| Going Second | Opening Hand | opening hand size (default 5) |
-| Going Second | By First Turn | opening hand size + 1 (default 6) |
+| Going first | Opening Hand | opening hand size (default 5) |
+| Going second | Opening Hand | opening hand size (default 5) |
+| Going second | By First Turn | opening hand size + 1 (default 6) |
 
 Turn order does **not** change the distribution of the initial five-card hand: `P(Q | GF opening 5) = P(Q | GS opening 5)`. The sixth card is the normal draw, not part of the opening hand.
 
 Opening Quality selection depends on **turn order** (not merely hand size): both
-Going Second — Opening 5 and Going Second — First 6 Cards Seen use the
+Going second — Opening 5 and Going second — First 6 Cards Seen use the
 `going_second` annotation; the sample size differs, the annotation does not.
 
 Example (Fuwalos tagged `interaction`, GF neutral / GS desirable): MAPPING may
@@ -568,7 +568,7 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 
 - select Analysis Context (going first/second × opening hand / first cards seen)
 - create/load a deck (MAPPING JSON, YDK, or pasted id/quantity lines)
-- edit quantities, Roles, and contextual (Going First / Going Second) Opening Quality on Main and Side cards (Extra Deck cards are never in an opening hand, so they have no taxonomy controls)
+- edit quantities, Roles, and contextual (Going first / Going second) Opening Quality on Main and Side cards (Extra Deck cards are never in an opening hand, so they have no taxonomy controls)
 - add cards by catalog name search or passcode; Extra Deck monsters (Fusion, Synchro, Xyz, Link, from `public/extra-deck.json`) are routed to the Extra Deck when Main is selected, Side is never rerouted; paste-add appends without replacing
 - define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Hand Goals (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-goal union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Hand Goals, with per-predicate traces and population probabilities
@@ -701,4 +701,4 @@ MyCard's English data can lag behind new sets (its newest en-US commit was 22 Se
 
 **Card images** are optional and local. `npm run fetch-images -- --demo [deck.ydk ...]` downloads small images for the card ids found in the files you name into `public/cards/` and writes `public/cards/index.json`. The image host (YGOPRODeck) asks users to download each image once rather than hotlink it, so the script is throttled, skips existing files, and stops on HTTP 403/429. `public/cards/` is committed for the cards of the decks in `public/decks/`, so the art is not lost with a checkout; fetch and commit the images of a new deck after adding it. Cards without an image show an empty placeholder box.
 
-On first run (no saved draft in the browser) the app loads the default deck: the one you set with **Set as default** in this browser, else the deck `public/decks/index.json` names as its default (a mapping, with its Groups, Hand Goals and tags), else `public/default.ydk` (cards only). **Default deck** in the header loads the same one over the current deck. Replace those files to change the starting deck. The `public/decks/` folder holds the builds being compared, each as a `.mapping.json` (cards with Groups, Hand Goals and tags) and a `.ydk` (cards only): **Power Patron Ars Magna Artmage** (the default) and **Power Patron Ars Magna Light and Darkness Ritual**. Open either from "Open a deck" in the header. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going First: neutral, Going Second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.
+On first run (no saved draft in the browser) the app loads the default deck: the one you set with **Set as default** in this browser, else the deck `public/decks/index.json` names as its default (a mapping, with its Groups, Hand Goals and tags), else `public/default.ydk` (cards only). **Default deck** in the header loads the same one over the current deck. Replace those files to change the starting deck. The `public/decks/` folder holds the builds being compared, each as a `.mapping.json` (cards with Groups, Hand Goals and tags) and a `.ydk` (cards only): **Power Patron Ars Magna Artmage** (the default) and **Power Patron Ars Magna Light and Darkness Ritual**. Open either from "Open a deck" in the header. After that your draft is saved in the browser, and New deck or the Clear menu start from empty. The **Power Patron Ars Magna** (`power_patron_ars_magna_v0`) and **Elfnote Ars Magna** (`elfnote_ars_magna_v0`) demos live in `src/data/` as test fixtures and for `npm run fetch-images -- --demo`; they are no longer loaded by the UI. Power Patron has Hand Conditions for Vidolium / Pendulum Treasure / Medius / Nervedo+S/T (each selected as Modeled Engine Access) and a contextual Fuwalos annotation (Going first: neutral, Going second: desirable). Elfnote highlights Regina multi-role tags and Rhapsodia as interaction + undesirable.

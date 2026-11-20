@@ -226,6 +226,7 @@
 .deck-label-goal { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 22rem); align-items: start; gap: var(--space-2) var(--space-4); margin: var(--space-2) 0; font-size: var(--text-sm); color: var(--muted); }
 .deck-label-goal small { display: block; margin-top: var(--space-1); font-size: var(--text-xs); font-weight: 400; }
 .deck-label-goal select { width: 100%; }
+@media (max-width: 640px) { .deck-label-goal { grid-template-columns: minmax(0, 1fr); } }
 .deck-sort-hint { margin: var(--space-2) 0; padding: var(--space-2) var(--space-3); font-size: var(--text-sm); color: var(--muted); background: var(--sunken); border: 1px solid var(--line); }
 .deck-sort-hint button { margin-left: var(--space-2); padding: var(--space-1) var(--space-2); font-size: var(--text-sm); }
 .deck-detail-move { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }

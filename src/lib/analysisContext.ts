@@ -104,12 +104,12 @@ export function analysisContextLabel(
   const sample = observedCards(context, openingHandSize);
   const normalized = normalizeAnalysisContext(context);
   if (normalized.turn_order === "going_first") {
-    return `Going First — Opening ${openingHandSize}`;
+    return `Going first — Opening ${openingHandSize}`;
   }
   if (normalized.observation_point === "opening_hand") {
-    return `Going Second — Opening ${openingHandSize}`;
+    return `Going second — Opening ${openingHandSize}`;
   }
-  return `Going Second — First ${sample} Cards Seen`;
+  return `Going second — First ${sample} Cards Seen`;
 }
 
 export function sampleSizeDescription(

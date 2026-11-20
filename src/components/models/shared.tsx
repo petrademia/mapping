@@ -99,6 +99,6 @@ export function coverageWarning(
   if (cov.total === 0 || cov.classified >= cov.total) return null;
   const fraction = cov.classified / cov.total;
   return `Only ${formatPercent(fraction)} of deck slots have Opening Quality classified for ${
-    turnOrder === "going_first" ? "Going First" : "Going Second"
+    turnOrder === "going_first" ? "Going first" : "Going second"
   }; interpret this distribution with incomplete coverage.`;
 }
