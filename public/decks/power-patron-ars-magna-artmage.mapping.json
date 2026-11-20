@@ -6,7 +6,9 @@
       "card_id": 97556336,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -17,7 +19,10 @@
       "card_id": 25661743,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -28,7 +33,10 @@
       "card_id": 70488851,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -39,7 +47,10 @@
       "card_id": 26237713,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -50,7 +61,9 @@
       "card_id": 36270527,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -61,7 +74,9 @@
       "card_id": 62368221,
       "quantity": 2,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -72,7 +87,10 @@
       "card_id": 37279096,
       "quantity": 2,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -83,7 +101,9 @@
       "card_id": 48739627,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -94,7 +114,9 @@
       "card_id": 60946049,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -105,7 +127,9 @@
       "card_id": 17473466,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -116,7 +140,9 @@
       "card_id": 1122030,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -127,7 +153,9 @@
       "card_id": 56349876,
       "quantity": 2,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -138,7 +166,9 @@
       "card_id": 23829452,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -149,7 +179,9 @@
       "card_id": 10266279,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -160,7 +192,9 @@
       "card_id": 43871165,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -171,7 +205,9 @@
       "card_id": 36709484,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -193,7 +229,9 @@
       "card_id": 44654994,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -272,7 +310,8 @@
       "quantity": 3,
       "taxonomy": {
         "roles": [
-          "breaker_second"
+          "breaker_second",
+          "extender"
         ],
         "opening_quality": {
           "going_first": "undesirable",
@@ -312,7 +351,9 @@
       "card_id": 34541940,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -323,7 +364,9 @@
       "card_id": 97434754,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": "undesirable"
@@ -334,7 +377,9 @@
       "card_id": 14965712,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -345,7 +390,9 @@
       "card_id": 23599634,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": "undesirable"
@@ -356,7 +403,9 @@
       "card_id": 74011784,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": "neutral",
           "going_second": "neutral"
@@ -367,7 +416,9 @@
       "card_id": 74733322,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -378,7 +429,9 @@
       "card_id": 82833574,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -389,7 +442,9 @@
       "card_id": 99753860,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -400,7 +455,9 @@
       "card_id": 41350417,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -412,7 +469,9 @@
       "card_id": 78010363,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -670,7 +729,9 @@
       "card_id": 10266279,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -1136,38 +1197,119 @@
       ],
       "excludes": [],
       "distinct_constraints": []
+    },
+    {
+      "id": "c-starter",
+      "name": "Has a starter",
+      "requirements": [
+        {
+          "id": "c-starter-1",
+          "kind": "role",
+          "role": "starter",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "c-lingering-2",
+      "name": "2 lingering handtraps",
+      "requirements": [
+        {
+          "id": "c-lingering-2-1",
+          "kind": "role",
+          "role": "lingering",
+          "op": "gte",
+          "count": 2
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "c-lingering-breaker",
+      "name": "Lingering handtrap + board breaker",
+      "requirements": [
+        {
+          "id": "c-lingering-breaker-1",
+          "kind": "role",
+          "role": "lingering",
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "c-lingering-breaker-2",
+          "kind": "role",
+          "role": "breaker",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
+    },
+    {
+      "id": "c-lingering-handtrap-breaker",
+      "name": "Lingering handtrap + handtrap + board breaker",
+      "requirements": [
+        {
+          "id": "c-lingering-handtrap-breaker-1",
+          "kind": "role",
+          "role": "lingering",
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "c-lingering-handtrap-breaker-2",
+          "kind": "role",
+          "role": "interaction",
+          "op": "gte",
+          "count": 1
+        },
+        {
+          "id": "c-lingering-handtrap-breaker-3",
+          "kind": "role",
+          "role": "breaker",
+          "op": "gte",
+          "count": 1
+        }
+      ],
+      "excludes": [],
+      "distinct_constraints": []
     }
   ],
   "hand_condition_sets": [
     {
-      "id": "goal-medius",
-      "name": "Medius alone",
+      "id": "goal-starter",
+      "name": "Has a starter",
       "condition_ids": [
-        "medius-alone"
+        "c-starter"
       ],
       "aggregation": "any"
     },
     {
-      "id": "goal-gallant",
-      "name": "Gallant line",
+      "id": "goal-lingering-2",
+      "name": "2 lingering handtraps",
       "condition_ids": [
-        "gallant-line"
+        "c-lingering-2"
       ],
       "aggregation": "any"
     },
     {
-      "id": "goal-handtrap",
-      "name": "Plan with a handtrap in hand",
+      "id": "goal-lingering-breaker",
+      "name": "Lingering handtrap + board breaker",
       "condition_ids": [
-        "medius-handtrap"
+        "c-lingering-breaker"
       ],
       "aggregation": "any"
     },
     {
-      "id": "goal-second",
-      "name": "Plan with a going second card",
+      "id": "goal-lingering-handtrap-breaker",
+      "name": "Lingering handtrap + handtrap + board breaker",
       "condition_ids": [
-        "medius-second"
+        "c-lingering-handtrap-breaker"
       ],
       "aggregation": "any"
     },
@@ -1185,63 +1327,10 @@
         "treasure-pp"
       ],
       "aggregation": "any"
-    },
-    {
-      "id": "goal-nervedo-st",
-      "name": "Nervedo + a Spell/Trap (draft)",
-      "condition_ids": [
-        "nervedo-st"
-      ],
-      "aggregation": "any"
-    },
-    {
-      "id": "goal-nervedo-treasure",
-      "name": "Nervedo + Pendulum Treasure + a Spell/Trap (draft)",
-      "condition_ids": [
-        "nervedo-treasure-st"
-      ],
-      "aggregation": "any"
-    },
-    {
-      "id": "goal-any-pairs",
-      "name": "Any start, with the pair (draft)",
-      "notes": "The one-card starts plus Nervedo and a Spell/Trap. Draft: the headline goal is unchanged.",
-      "condition_ids": [
-        "medius-alone",
-        "vidolium-alone",
-        "treasure-alone",
-        "ars-magna-alone",
-        "nervedo-st",
-        "tinia-alone",
-        "plugging-pp",
-        "citrinitas-alone",
-        "terminus-alone",
-        "treasure-pp",
-        "graflare-stays"
-      ],
-      "aggregation": "any"
-    },
-    {
-      "id": "goal-plugging",
-      "name": "Portal Plugging + a Power Patron monster",
-      "condition_ids": [
-        "plugging-pp"
-      ],
-      "aggregation": "any"
-    },
-    {
-      "id": "goal-breaking",
-      "name": "Breaking a board: Jupredo and a partner",
-      "notes": "Ways to break the opponent's board that need more than one card. Single cards that break a board are tagged Board breaker instead. Chosen as the Hand Goal for breaking boards, so the Breaking measure counts it.",
-      "condition_ids": [
-        "jupredo-breaks"
-      ],
-      "aggregation": "any"
     }
   ],
   "engine_access_set_id": "goal-any",
-  "label_goal_id": "goal-any-pairs",
-  "breaking_goal_id": "goal-breaking",
+  "labels_by_hand": true,
   "choke_point_group_ids": [
     "citrinitas-funnel"
   ],
