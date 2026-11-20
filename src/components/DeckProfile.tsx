@@ -162,13 +162,9 @@ export function DeckProfile({ doc, onHandSize }: Props) {
           <article>
             <h3>Main Hand Goal</h3>
             <p className="explorer-notation">
-              Hands that meet any of its Hand Conditions; a hand meeting two is counted once.
+              Of all hands, and of the hands that meet the goal. The goal's own chance is in Hand Goals above.
             </p>
             <dl>
-              <div>
-                <dt>Meets the goal</dt>
-                <dd>{formatChance(profile.anyAccess)}</dd>
-              </div>
               <div>
                 <dt>Meets it and holds an Interaction card</dt>
                 <dd>
@@ -284,21 +280,6 @@ export function DeckProfile({ doc, onHandSize }: Props) {
                 <div>
                   <dt>Meets the main goal and holds &gt;= 1 undesirable-tagged card</dt>
                   <dd>{formatChance(profile.accessUndesirableGe1)}</dd>
-                </div>
-              </dl>
-            </article>
-
-            <article data-role="interaction">
-              <h3>Interaction-tagged cards</h3>
-              <p className="explorer-notation">
-                Raw tag count. An interaction-tagged card is not
-                automatically usable interaction in every context - model that
-                with Hand Conditions instead.
-              </p>
-              <dl>
-                <div>
-                  <dt>Contains &gt;= 1 interaction-tagged card</dt>
-                  <dd>{formatChance(profile.interactionGe1)}</dd>
                 </div>
               </dl>
             </article>

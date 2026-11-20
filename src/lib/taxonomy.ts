@@ -198,27 +198,6 @@ export function migrateLegacyRoles(
   };
 }
 
-export function roleDensity(
-  cards: readonly { quantity: number; taxonomy: CardTaxonomy }[],
-): Record<Role, number> {
-  const density: Record<Role, number> = {
-    starter: 0,
-    extender: 0,
-    interaction: 0,
-    lingering: 0,
-    lingering_second: 0,
-    breaker: 0,
-    breaker_second: 0,
-    brick: 0,
-  };
-  for (const card of cards) {
-    for (const role of uniqueRoles(card.taxonomy.roles)) {
-      density[role] += card.quantity;
-    }
-  }
-  return density;
-}
-
 export type OpeningQualityBucket = OpeningQuality | "unclassified";
 
 /**
