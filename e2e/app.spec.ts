@@ -166,15 +166,14 @@ test("the page stays responsive while the Profile's quality summary is calculate
   await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
-  const summary = page.getByRole("region", { name: "At a glance" });
+  const summary = page.getByRole("region", { name: "Hand Goal odds" });
   await expect(summary).toBeVisible();
   const started = Date.now();
   await page.getByLabel("Card name or passcode").fill("ash blossom");
   await expect(page.locator(".search-result").first()).toBeVisible();
   expect(Date.now() - started).toBeLessThan(2500);
   // The numbers still arrive afterwards, with the match-weighted push under them.
-  await expect(summary.locator(".summary-part-value").first()).toHaveText(/%/, { timeout: 45_000 });
-  await expect(summary.getByRole("listitem")).not.toHaveCount(0);
+  await expect(summary.locator(".odds-percent").first()).toHaveText(/%/, { timeout: 45_000 });
 });
 
 test.describe("Open a deck", () => {
@@ -1154,37 +1153,31 @@ test.describe("Handtrap versus", () => {
     await expect(page.locator(".scorecard").getByRole("spinbutton", { name: "Resilient" })).toHaveValue("0");
   });
 
-  test("the landing view lists the hands worth having for going first and going second, and says what is missing", async ({ page }) => {
+  test("Hand Goals lists every goal for going first and going second, with how many interruptions each can take", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
     await nav(page, "Profile").click();
-    const summary = page.getByRole("region", { name: "At a glance" });
-    const first = summary.getByRole("region", { name: "Going first" });
-    const second = summary.getByRole("region", { name: "Going second" });
-    const labels = [
-      "Has a starter",
-      "Plays through 1 interruption",
-      "Plays through 2 interruptions",
-      "2 lingering handtraps",
-      "Lingering handtrap + board breaker",
-      "Lingering handtrap + handtrap + board breaker",
-    ];
-    for (const tile of [first, second]) {
-      await expect(tile.getByRole("listitem")).toHaveCount(labels.length);
-      for (const label of labels) await expect(tile.getByRole("listitem").filter({ hasText: label }).first()).toBeVisible();
+    const panel = page.getByRole("region", { name: "Hand Goal odds" });
+    const table = panel.getByRole("table", { name: "Hand Goal odds by turn order" });
+    await expect(table.getByRole("columnheader", { name: /Going first/ })).toBeVisible();
+    await expect(table.getByRole("columnheader", { name: /Going second/ })).toBeVisible();
+    // One row per Hand Goal with a Hand Condition; each cell is a percentage with its exact hand count.
+    const row = table.getByRole("row").nth(1);
+    const first = row.getByRole("cell").first();
+    const second = row.getByRole("cell").nth(1);
+    await expect(first.locator(".odds-percent")).toHaveText(/^\d+\.\d%$/);
+    await expect(second.locator(".odds-percent")).toHaveText(/^\d+\.\d%$/);
+    await expect(first.locator(".odds-fraction")).toContainText(/\d[\d,]* \/ [\d,]+/);
+    // Going second sees six cards, so it has more hands to count than going first.
+    await expect(table.getByRole("columnheader", { name: /5 cards/ })).toBeVisible();
+    await expect(table.getByRole("columnheader", { name: /6 cards/ })).toBeVisible();
+    // The interruption figures arrive after the odds, each an exact percentage.
+    for (const cell of [first, second]) {
+      await expect(cell.locator(".goal-survival")).toContainText(/after 1 stop \d+\.\d%/, { timeout: 45_000 });
+      await expect(cell.locator(".goal-survival")).toContainText(/after 2 stops \d+\.\d%/);
     }
-    // The interruption lines are measurable from a Hand Goal alone, each an exact percentage.
-    const through = (tile: typeof first, label: string) =>
-      tile.getByRole("listitem").filter({ hasText: label }).first().locator(".summary-part-value");
-    await expect(through(first, "Plays through 1 interruption")).toHaveText(/^\d+\.\d%$/);
-    await expect(through(second, "Plays through 2 interruptions")).toHaveText(/^\d+\.\d%$/);
-    // The Hand Goal's one-card condition makes that card a Starter, so that line has a number.
-    await expect(through(first, "Has a starter")).toHaveText(/^\d+\.\d%$/);
-    // No handtrap or breaker is tagged yet, so those lines show a dash and say what to tag, not a made-up zero.
-    await expect(through(first, "2 lingering handtraps")).toHaveText("-");
-    await expect(first.getByText("no Lingering handtrap works in this turn order").first()).toBeVisible();
 
-    await summary.getByRole("button", { name: "Open the Scorecard" }).click();
+    await panel.getByRole("button", { name: "Open the Scorecard" }).click();
     await expect(page.locator(".scorecard")).toBeVisible();
   });
 
@@ -1441,8 +1434,8 @@ test("the analysis panels do not jump while the odds are counted again after an 
   await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
   await page.goto("/");
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
-  const summary = page.getByRole("region", { name: "At a glance" });
-  await expect(summary.locator(".summary-part-value").filter({ hasText: "%" }).first()).toBeVisible();
+  const summary = page.getByRole("region", { name: "Hand Goal odds" });
+  await expect(summary.locator(".odds-percent").filter({ hasText: "%" }).first()).toBeVisible();
   const configuration = page.locator("#deck-configuration");
   await expect(configuration).toBeVisible();
 
@@ -1464,7 +1457,7 @@ test("the analysis panels do not jump while the odds are counted again after an 
   // collapse to a placeholder and come back, which moves the panel by a couple of hundred.
   expect(Math.max(...seen) - Math.min(...seen)).toBeLessThanOrEqual(40);
   // The summary was never swapped for a placeholder.
-  await expect(summary.locator(".summary-part-value").filter({ hasText: "%" }).first()).toBeVisible();
+  await expect(summary.locator(".odds-percent").filter({ hasText: "%" }).first()).toBeVisible();
 });
 
 test.describe("Dragging cards in the deck", () => {

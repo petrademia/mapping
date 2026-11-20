@@ -212,22 +212,9 @@ export interface TurnScore {
   lingering: number | null;
   /** P(holding at least `breakersNeeded` board breakers usable this turn order); null when none is usable. */
   breaking: number | null;
-  /** The short list of hands worth having, each an exact chance (see `PlayRow`). */
-  plays: PlayRow[];
   /** Weighted mean of the numbers that exist; null when no weight is left. */
   combined: number | null;
   notes: string[];
-}
-
-/**
- * One line of the "at a glance" list: a kind of hand worth opening and its exact chance. `probability`
- * is null when it cannot be measured yet, with `missing` saying what to tag or define.
- */
-export interface PlayRow {
-  key: "starter" | "through1" | "through2" | "lingering2" | "lingeringBreaker" | "lingeringTrapBreaker";
-  label: string;
-  probability: number | null;
-  missing?: string;
 }
 
 export interface Scorecard {
@@ -395,9 +382,6 @@ export function combine(
 }
 
 const BRICK_GROUP = "__brick";
-const STARTER_GROUP = "__starters";
-const LINGERING_GROUP = "__lingering";
-const ONE_SHOT_GROUP = "__one-shot";
 
 function turnScore(
   doc: MappingDocument,
@@ -486,94 +470,9 @@ function turnScore(
           condition_ids: [...new Set(breakingConditions.map((condition) => condition.id))],
           aggregation: "any",
         };
-  // The hands worth having, by the cards you tagged: a Starter, Lingering handtraps (the ones that work
-  // in this turn order), one-shot Interaction cards, and Board breakers. A card tagged with two of them
-  // counts toward both.
-  const starterIds = new Set(doc.main.filter((card) => card.taxonomy.roles.includes("starter")).map((card) => card.card_id));
-  const lingeringIds = new Set<number>();
-  const oneShotIds = new Set<number>();
-  for (const card of doc.main) {
-    const roles = card.taxonomy.roles;
-    if (roles.includes("lingering") || (turnOrder === "going_second" && roles.includes("lingering_second"))) {
-      lingeringIds.add(card.card_id);
-    } else if (roles.includes("interaction")) {
-      oneShotIds.add(card.card_id);
-    }
-  }
-  groups.set(STARTER_GROUP, starterIds);
-  groups.set(LINGERING_GROUP, lingeringIds);
-  groups.set(ONE_SHOT_GROUP, oneShotIds);
-  const need = (group: string, count: number) => ({
-    id: `${group}::${count}`,
-    kind: "group" as const,
-    group_id: group,
-    op: "gte" as const,
-    count,
-  });
-  const playSpecs: { key: PlayRow["key"]; label: string; needs: [string, number][]; missing?: string }[] = [
-    {
-      key: "starter",
-      label: "Has a starter",
-      needs: [[STARTER_GROUP, 1]],
-      missing: starterIds.size === 0 ? "no card is a Starter" : undefined,
-    },
-    {
-      key: "lingering2",
-      label: "2 lingering handtraps",
-      needs: [[LINGERING_GROUP, 2]],
-      missing: lingeringIds.size === 0 ? "no Lingering handtrap works in this turn order" : undefined,
-    },
-    {
-      key: "lingeringBreaker",
-      label: "Lingering handtrap + board breaker",
-      needs: [
-        [LINGERING_GROUP, 1],
-        [BREAKER_GROUP, 1],
-      ],
-      missing:
-        lingeringIds.size === 0
-          ? "no Lingering handtrap works in this turn order"
-          : breakerIds.size === 0
-            ? "no Board breaker works in this turn order"
-            : undefined,
-    },
-    {
-      key: "lingeringTrapBreaker",
-      label: "Lingering handtrap + handtrap + board breaker",
-      needs: [
-        [LINGERING_GROUP, 1],
-        [ONE_SHOT_GROUP, 1],
-        [BREAKER_GROUP, 1],
-      ],
-      missing:
-        lingeringIds.size === 0
-          ? "no Lingering handtrap works in this turn order"
-          : oneShotIds.size === 0
-            ? "no Interaction card is tagged"
-            : breakerIds.size === 0
-              ? "no Board breaker works in this turn order"
-              : undefined,
-    },
-  ];
-  const playConditions: HandCondition[] = [];
-  const playSets: HandConditionSet[] = [];
-  for (const spec of playSpecs) {
-    if (spec.missing) continue;
-    const id = `__play-${spec.key}`;
-    playConditions.push({
-      id,
-      name: spec.label,
-      requirements: spec.needs.map(([group, count]) => need(group, count)),
-      excludes: [],
-    });
-    playSets.push({ id, name: spec.label, condition_ids: [id], aggregation: "any" });
-  }
-
   // The same condition may be in more than one list; read each once.
   const analysisConditions = [
-    ...new Map(
-      [...members, ...extraConditions, ...breakingConditions, ...playConditions].map((condition) => [condition.id, condition]),
-    ).values(),
+    ...new Map([...members, ...extraConditions, ...breakingConditions].map((condition) => [condition.id, condition])).values(),
   ];
 
   // Only this goal's conditions are read, so the exact pass tells fewer cards apart and runs faster.
@@ -581,7 +480,7 @@ function turnScore(
     doc.main,
     sample,
     analysisConditions,
-    [goalSet, ...extraSets, ...(breakingSet ? [breakingSet] : []), ...playSets],
+    [goalSet, ...extraSets, ...(breakingSet ? [breakingSet] : [])],
     groups,
     turnOrder,
   );
@@ -690,34 +589,6 @@ function turnScore(
         );
   const breaking = breakingSet === null ? null : unionOf(BREAKER_SET_ID);
 
-  // The list for the glance panel, in the order it reads. "Plays through N interruptions" is the
-  // interruption curve above for this Hand Goal.
-  const playRow = (spec: (typeof playSpecs)[number]): PlayRow => ({
-    key: spec.key,
-    label: spec.label,
-    probability: spec.missing ? null : unionOf(`__play-${spec.key}`),
-    ...(spec.missing ? { missing: spec.missing } : {}),
-  });
-  const [starterSpec, lingeringSpec, lingeringBreakerSpec, lingeringTrapBreakerSpec] = playSpecs;
-  const plays: PlayRow[] = [
-    playRow(starterSpec!),
-    {
-      key: "through1",
-      label: "Plays through 1 interruption",
-      probability: interruptions[1] ?? null,
-      ...(interruptions[1] === undefined ? { missing: "needs a Hand Goal" } : {}),
-    },
-    {
-      key: "through2",
-      label: "Plays through 2 interruptions",
-      probability: interruptions[2] ?? null,
-      ...(interruptions[2] === undefined ? { missing: "needs a Hand Goal" } : {}),
-    },
-    playRow(lingeringSpec!),
-    playRow(lingeringBreakerSpec!),
-    playRow(lingeringTrapBreakerSpec!),
-  ];
-
   return {
     turnOrder,
     sample,
@@ -735,7 +606,6 @@ function turnScore(
     interaction,
     lingering,
     breaking,
-    plays,
     combined: combine({ opens, clean, resilient, interaction, lingering, breaking }, settings),
     notes,
   };

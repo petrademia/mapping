@@ -7,7 +7,6 @@ import { ClearButton } from "./components/ClearButton";
 import { ClearMenu } from "./components/ClearMenu";
 import { ComparePanel } from "./components/ComparePanel";
 import { ScorecardPanel } from "./components/ScorecardPanel";
-import { ScorecardSummary } from "./components/ScorecardSummary";
 import { withDerivedLabels } from "./lib/derivedLabels";
 import { HandtrapPanel } from "./components/HandtrapPanel";
 import { DeckTuningPanel } from "./components/DeckTuningPanel";
@@ -479,8 +478,7 @@ export function App() {
                 }}
                 onTestHand={() => goTo("hand-test")}
               />
-              <GoalOdds doc={view} />
-              <ScorecardSummary doc={view} onOpen={() => goTo("scorecard")} />
+              <GoalOdds doc={view} onOpenScorecard={() => goTo("scorecard")} />
             </>
           ) : null}
 
