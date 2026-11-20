@@ -352,10 +352,14 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
   two. The Scorecard also shows the share of hands that meet the goal with only
   one route. A second copy of a card counts as a backup here, and so does
   another route, unless you marked their Group as a choke point in Models.
-- The Profile view opens with **Quality at a glance**: one combined number for
-  going first and one for going second, the weakest measured number in each,
-  and what is not measured yet and how to measure it. It is a summary of the
-  Scorecard, so it is only as complete as your models.
+- The Profile view opens with **At a glance**: a short list of hands worth having, going first and
+  going second, each its exact chance: a starter, a play through 1 interruption, a play through 2
+  interruptions, 2 lingering handtraps, a lingering handtrap with a board breaker, and a lingering
+  handtrap with a handtrap and a board breaker. The two interruption lines are the Scorecard's
+  interruption table for the Hand Goal (the opponent stops the card that hurts most); the others
+  count the cards you tagged (Starter, Lingering handtrap, Interaction, Board breaker), and a card
+  tagged with two of them counts toward both. A line that cannot be measured yet shows a dash and
+  what to tag, not a zero. The combined number and the other measures are in the Scorecard.
 - A slot mix per turn order (desirable, neutral, bricks, not set), and a
   combined number per turn order and overall. The combined numbers are weighted
   means; the weights are yours (kept in this browser), and a number that cannot
