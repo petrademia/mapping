@@ -1974,6 +1974,45 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
   });
 
+  test("clicking the chip that is on turns it off and goes back to All", async ({ page }) => {
+    await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+    await page.goto("/");
+    await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+    const breakers = chip(page, /^Breakers/);
+    const all = chip(page, /^All/);
+    await expect(all).toHaveAttribute("aria-pressed", "true");
+    await breakers.click();
+    await expect(breakers).toHaveAttribute("aria-pressed", "true");
+    await expect(all).toHaveAttribute("aria-pressed", "false");
+    await breakers.click();
+    await expect(breakers).toHaveAttribute("aria-pressed", "false");
+    await expect(all).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('li[data-card][data-dim="true"]')).toHaveCount(0);
+  });
+
+  test("My tags: Starter, Extender and Brick are chips you click on a card, and the counts follow", async ({ page }) => {
+    await openApp(page);
+    await openCardLabels(page);
+    await page.getByLabel("Read card labels from").selectOption({ label: "My tags (set on each card)" });
+    await expect(page.locator("details.deck-labels summary")).toContainText("My tags");
+    // Nothing is tagged yet, so no card is a Starter, Extender or Brick.
+    await expect(chip(page, /^Starters 0/)).toBeVisible();
+    await expect(chip(page, /^Bricks 0/)).toBeVisible();
+    const main = page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) });
+    await main.locator(".deck-tile").first().click();
+    const detail = main.getByRole("group", { name: /^Edit / });
+    // The three labels are chips here, not a read-only line.
+    await detail.getByRole("button", { name: "Starter", exact: true }).click();
+    await detail.getByRole("button", { name: "Brick", exact: true }).click();
+    await expect(detail.getByRole("button", { name: "Starter", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(chip(page, /^Starters [1-9]/)).toBeVisible();
+    await expect(chip(page, /^Bricks [1-9]/)).toBeEnabled();
+    await expect(chip(page, /^Extenders 0/)).toBeVisible();
+    // Back to a Hand Goal: the chips are read-only again and the tags are kept in the file.
+    await page.getByLabel("Read card labels from").selectOption({ index: 1 });
+    await expect(detail.getByRole("button", { name: "Starter", exact: true })).toHaveCount(0);
+  });
+
   test("Interaction is a chip, Role is no longer a sort, and a saved Role sort becomes Label", async ({ page }) => {
     await page.addInitScript(() => {
       try {

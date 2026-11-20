@@ -422,6 +422,15 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   is downloaded as before and the status says why. A built or hosted copy always downloads. The
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
+- **My tags.** Under "Card labels", "Read card labels from" can be set to **My tags (set on each card)**.
+  Starter, Extender and Brick are then chips you click in the card editor, next to Interaction,
+  Lingering handtrap and Board breaker, and the chips, dots, counts and Label sort use exactly what you
+  set. A card with no tag has no label, so it is never a Brick by default. A Brick counts as
+  Undesirable where you have not set Opening Quality, and a quality you set wins, as with the derived
+  Brick. The setting is saved as `labels_by_hand` (left out when off), and the tags are the card's
+  roles, including the new `brick` role (Brick had been removed in Taxonomy v0; it is a role you tag
+  again). Choosing a Hand Goal switches back and keeps the tags in the file. The menu is available
+  before you define any Hand Goal. Clicking the label chip that is already on goes back to All.
 - **Spotlight a label.** Above the Main Deck, the chips All, Starters, Extenders, Interaction,
   Breakers and Bricks each show how many copies carry that label. Choosing one fades every other card
   and moves nothing, so you can see where, say, the Bricks sit. Starter, Extender and Brick are read
