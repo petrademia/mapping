@@ -1176,7 +1176,7 @@ test.describe("Handtrap versus", () => {
     await expect(page.locator(".scorecard").getByRole("spinbutton", { name: "Resilient" })).toHaveValue("0");
   });
 
-  test("Hand Goals lists every goal for going first and going second, with how many interruptions each can take", async ({ page }) => {
+  test("Hand Goals lists every goal for going first and going second, each with its exact hand count", async ({ page }) => {
     await openApp(page);
     await withGoal(page);
     await nav(page, "Profile").click();
@@ -1194,12 +1194,6 @@ test.describe("Handtrap versus", () => {
     // Going second sees six cards, so it has more hands to count than going first.
     await expect(table.getByRole("columnheader", { name: /5 cards/ })).toBeVisible();
     await expect(table.getByRole("columnheader", { name: /6 cards/ })).toBeVisible();
-    // The interruption figures arrive after the odds, each an exact percentage.
-    for (const cell of [first, second]) {
-      await expect(cell.locator(".goal-survival")).toContainText(/after 1 stop \d+\.\d%/, { timeout: 45_000 });
-      await expect(cell.locator(".goal-survival")).toContainText(/after 2 stops \d+\.\d%/);
-    }
-
     await panel.getByRole("button", { name: "Open the Scorecard" }).click();
     await expect(page.locator(".scorecard")).toBeVisible();
   });

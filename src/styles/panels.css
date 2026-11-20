@@ -324,12 +324,9 @@
 .goal-odds-table thead th { border-top: 0; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
 .goal-odds-name-col { width: 32%; }
 .goal-odds-table .odds-name { font-weight: 600; overflow-wrap: anywhere; }
-.goal-odds-table .odds-fraction, .goal-survival > span { white-space: nowrap; }
+.goal-odds-table .odds-fraction { white-space: nowrap; }
 .goal-odds-table .odds-percent { display: block; font-size: var(--text-lg); font-weight: 700; line-height: 1.3; }
 .goal-odds-table .odds-fraction { line-height: 1.3; }
-/* Two fixed lines, so the figures arriving later do not move what is below them. */
-.goal-survival { display: block; margin-top: 2px; font-size: var(--text-xs); line-height: 1.3; color: var(--muted); font-variant-numeric: tabular-nums; }
-.goal-survival > span { display: block; }
 
 /* The Hand Conditions a goal does not use yet: folded away so a goal shows only its own. */
 .engine-add { margin: var(--space-2) 0; }
