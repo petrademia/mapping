@@ -42,20 +42,23 @@ function Tile({ title, turn, weights }: { title: string; turn: TurnScore; weight
         <ul className="summary-parts" aria-label={`${title}, each part`}>
           {parts.map(({ key, value }) => (
             <li key={key} data-weakest={low?.key === key ? "true" : undefined}>
-              <span className="summary-part-label">{COMPONENT_LABELS[key]}</span>
+              <span className="summary-part-head">
+                <span className="summary-part-label">{COMPONENT_LABELS[key]}</span>
+                {low?.key === key ? (
+                  <span className="summary-part-tag">weakest</span>
+                ) : EXTRA.includes(key) && weights[key] === 0 ? (
+                  <span
+                    className="summary-part-tag summary-part-tag-quiet"
+                    title="Left out of the combined number until you weight it in the Scorecard"
+                  >
+                    not combined
+                  </span>
+                ) : null}
+              </span>
+              <span className="summary-part-value">{percent(value)}</span>
               <span className="summary-part-bar" aria-hidden="true">
                 <span style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
               </span>
-              <span className="summary-part-value">{percent(value)}</span>
-              {low?.key === key ? (
-                <span className="summary-part-tag">weakest</span>
-              ) : EXTRA.includes(key) && weights[key] === 0 ? (
-                <span className="summary-part-tag summary-part-tag-quiet" title="Left out of the combined number until you weight it in the Scorecard">
-                  not combined
-                </span>
-              ) : (
-                <span />
-              )}
             </li>
           ))}
         </ul>

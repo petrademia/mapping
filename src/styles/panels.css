@@ -340,14 +340,24 @@
 
 /* At a glance: each part of a turn order as its own bar, with the combined number smaller beneath. */
 .summary-parts { list-style: none; margin: var(--space-2) 0 var(--space-1); padding: 0; display: grid; gap: var(--space-1); }
-.summary-parts li { display: grid; grid-template-columns: 5.5rem 1fr 3.5rem 5.5rem; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.summary-tile { container-type: inline-size; }
+/* Narrow tile: name and number on one line, the bar full width beneath. Wide tile: all on one row. */
+.summary-parts li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: var(--space-2); row-gap: 2px; font-size: var(--text-sm); }
+.summary-part-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); min-width: 0; }
 .summary-part-label { color: var(--ink); }
-.summary-part-bar { height: 0.4rem; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.summary-part-bar { grid-column: 1 / -1; height: 0.4rem; border-radius: 999px; background: var(--sunken); overflow: hidden; }
 .summary-part-bar > span { display: block; height: 100%; background: var(--muted); }
 .summary-parts li[data-weakest="true"] .summary-part-bar > span { background: var(--accent); }
 .summary-part-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
 .summary-part-tag { font-size: var(--text-xs); color: var(--accent); font-weight: 600; white-space: nowrap; }
 .summary-part-tag-quiet { color: var(--muted); font-weight: 400; }
+@container (min-width: 19rem) {
+  .summary-parts li { grid-template-columns: 5rem minmax(3rem, 1fr) 3.5rem 6.5rem; align-items: center; }
+  .summary-part-head { display: contents; }
+  .summary-part-bar { grid-column: auto; order: 2; }
+  .summary-part-value { order: 3; }
+  .summary-part-tag { order: 4; }
+}
 .summary-combined { margin: var(--space-2) 0 var(--space-1); padding-top: var(--space-2); border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--muted); }
 .summary-combined strong { margin-left: var(--space-1); font-family: var(--font-mono); color: var(--ink); font-weight: 600; }
 /* The share "of hands that meet it" sits on its own line under the main number. */
