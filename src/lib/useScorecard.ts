@@ -21,10 +21,14 @@ const keyOf = (goalId: string | null, settings: ScorecardSettings): string =>
  * order. Renaming the deck or moving a card around does not change the Scorecard, so it must not
  * start the calculation again.
  */
-function contentKey(doc: MappingDocument): string {
+export function contentKey(doc: MappingDocument): string {
   const byId = <T extends { card_id: number }>(cards: readonly T[]): T[] =>
     [...cards].sort((a, b) => a.card_id - b.card_id);
-  return JSON.stringify({ ...doc, name: "", main: byId(doc.main), extra: byId(doc.extra), side: byId(doc.side) });
+  // The list of Post-Side configurations and which one is open do not change what is scored: the
+  // cards of the open list are already in main/extra/side. Adding a Post-Side or switching to one with
+  // the same cards must not count everything again.
+  const { configurations: _configurations, active_configuration_id: _active, ...scored } = doc;
+  return JSON.stringify({ ...scored, name: "", main: byId(doc.main), extra: byId(doc.extra), side: byId(doc.side) });
 }
 
 /** Wait this long after the last change before starting, so a burst of edits is one calculation. */
