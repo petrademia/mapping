@@ -1312,9 +1312,24 @@
         "c-lingering-handtrap-breaker"
       ],
       "aggregation": "any"
+    },
+    {
+      "id": "goal-any",
+      "name": "Any one-card start",
+      "notes": "One card starts it: Medius, Vidolium, Pendulum Treasure, an Ars Magna starter (Finite and the Infinite, or Corruption and the Purification), Citrinitas or Terminus. The headline goal. Treasure + a Power Patron monster is listed too: it starts nothing new (Treasure alone already does), but you tested that it survives 2 interruptions, so it is here to count that.",
+      "condition_ids": [
+        "medius-alone",
+        "vidolium-alone",
+        "treasure-alone",
+        "ars-magna-alone",
+        "citrinitas-alone",
+        "terminus-alone",
+        "treasure-pp"
+      ],
+      "aggregation": "any"
     }
   ],
-  "engine_access_set_id": "goal-starter",
+  "engine_access_set_id": "goal-any",
   "labels_by_hand": true,
   "choke_point_group_ids": [
     "citrinitas-funnel"
