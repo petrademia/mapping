@@ -4,7 +4,6 @@ import type { Catalog } from "../../lib/catalog";
 import type { MappingDocument } from "../../lib/document";
 import type { HandCondition, HandConditionSet } from "../../lib/handCondition";
 import { pairKey, type HandEventAnalysis } from "../../lib/handExplorer";
-import { sortCheckedFirst } from "../../lib/sortCheckedFirst";
 import { CardStrip, conditionCards } from "../ModelArt";
 import { ConditionEditor } from "./ConditionEditor";
 import { coverageWarning, DeferredNameInput, EntityNotes, formatPercent, formatPercentOrDash } from "./shared";
@@ -54,6 +53,28 @@ export function HandGoalEditor({
     ? doc.hand_conditions.find((condition) => condition.id === inlineConditionId)
     : undefined;
   const n = setSummary?.conditionIds.length ?? 0;
+  // The goal lists the conditions it uses; the rest wait behind a picker, so a goal does not
+  // repeat every condition in the deck. The picker starts open for a goal that has none yet.
+  const memberConditions = doc.hand_conditions.filter((condition) => members.has(condition.id));
+  const otherConditions = doc.hand_conditions.filter((condition) => !members.has(condition.id));
+  const [pickerOpen, setPickerOpen] = useState(set.condition_ids.length === 0);
+  const row = (condition: HandCondition) => {
+    const probability = summary?.conditions.find((entry) => entry.id === condition.id)?.probability;
+    return (
+      <li key={condition.id}>
+        <label className="engine-member">
+          <input
+            type="checkbox"
+            checked={members.has(condition.id)}
+            onChange={(event) => onToggleMember(condition.id, event.target.checked)}
+          />
+          <span className="explorer-title">{condition.name}</span>
+          <CardStrip cardIds={conditionCards(condition, doc)} deck={doc.main} catalog={catalog} max={6} />
+          <span className="engine-member-prob">{probability !== undefined ? formatPercent(probability) : "—"}</span>
+        </label>
+      </li>
+    );
+  };
   const warning = coverageWarning(context.turn_order, doc);
 
   return (
@@ -78,41 +99,27 @@ export function HandGoalEditor({
       {doc.hand_conditions.length === 0 ? (
         <p className="empty">Add a Hand Condition first.</p>
       ) : (
-        <ul className="engine-members">
-          {sortCheckedFirst(doc.hand_conditions, (condition) =>
-            members.has(condition.id),
-          ).map((condition) => {
-            const probability = summary?.conditions.find(
-              (row) => row.id === condition.id,
-            )?.probability;
-            const member = members.has(condition.id);
-            return (
-              <li key={condition.id}>
-                <label className="engine-member">
-                  <input
-                    type="checkbox"
-                    checked={member}
-                    onChange={(event) =>
-                      onToggleMember(condition.id, event.target.checked)
-                    }
-                  />
-                  <span className="explorer-title">{condition.name}</span>
-                  <CardStrip
-                    cardIds={conditionCards(condition, doc)}
-                    deck={doc.main}
-                    catalog={catalog}
-                    max={6}
-                  />
-                  <span className="engine-member-prob">
-                    {probability !== undefined
-                      ? formatPercent(probability)
-                      : "—"}
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          {memberConditions.length > 0 ? (
+            <ul className="engine-members" aria-label={`Hand Conditions in ${set.name || "this goal"}`}>
+              {memberConditions.map(row)}
+            </ul>
+          ) : null}
+          {otherConditions.length > 0 ? (
+            <details
+              className="engine-add"
+              open={pickerOpen}
+              onToggle={(event) => setPickerOpen(event.currentTarget.open)}
+            >
+              <summary>
+                {memberConditions.length === 0
+                  ? "Pick the Hand Conditions this goal accepts"
+                  : `Add a Hand Condition (${otherConditions.length} more)`}
+              </summary>
+              <ul className="engine-members">{otherConditions.map(row)}</ul>
+            </details>
+          ) : null}
+        </>
       )}
       <div className="row-actions">
         <button

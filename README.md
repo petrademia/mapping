@@ -184,6 +184,9 @@ Normal Engine Access
     Nervedo Access
 ```
 
+In Models, a Hand Goal lists only the Hand Conditions it uses. The others sit behind "Add a Hand Condition
+(N more)", which opens to pick one and starts open for a goal that has none yet.
+
 For each outcome MAPPING reports, exactly, the union probability
 `P(C1 ∪ C2 ∪ ...)`, and (behind a "Multiplicity details" disclosure) the
 multiplicity distribution (`P(N >= 1)`, `P(N >= 2)`, ... and `P(N = k)`

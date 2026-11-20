@@ -160,6 +160,30 @@ test("a first run loads the default deck from public/decks, with its Hand Goals"
     .toBeNull();
 });
 
+test("a Hand Goal lists only the Hand Conditions it uses, and adds another from a picker", async ({ page }) => {
+  // Not through openApp: the real default mapping has many Hand Conditions and Hand Goals.
+  await page.route("**/__save-deck-mapping", (route) => route.fulfill({ status: 409, json: { saved: false } }));
+  await page.goto("/");
+  await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
+  await nav(page, "Models").click();
+  await page.getByRole("button", { name: "Hand Goals", exact: true }).click();
+  const used = page.getByRole("list", { name: /^Hand Conditions in / }).first();
+  await expect(used).toBeVisible();
+  // Everything listed is a member of the goal; the others are not repeated under it.
+  await expect(used.locator('input[type="checkbox"]')).not.toHaveCount(0);
+  await expect(used.locator('input[type="checkbox"]:not(:checked)')).toHaveCount(0);
+  const before = await used.locator('input[type="checkbox"]').count();
+  const picker = page.locator("details.engine-add").first();
+  const summary = picker.locator("summary");
+  await expect(summary).toContainText(/^Add a Hand Condition \((\d+) more\)$/);
+  const left = Number((await summary.innerText()).match(/\((\d+) more\)/)![1]);
+  expect(left).toBeGreaterThan(0);
+  await summary.click();
+  await picker.locator('input[type="checkbox"]').first().click();
+  await expect(used.locator('input[type="checkbox"]')).toHaveCount(before + 1);
+  await expect(summary).toContainText(`(${left - 1} more)`);
+});
+
 test("the page stays responsive while the Profile's quality summary is calculated", async ({ page }) => {
   // The full mapping takes seconds to score. That runs in a Web Worker, so the page must keep
   // answering meanwhile; it once froze for about 8 seconds on the main thread.
