@@ -7,7 +7,7 @@ import type { MappingDocument } from "../../lib/document";
 import { COUNT_OPERATORS, type ConditionRequirement, type CountOperator } from "../../lib/handExplorer";
 import { CardStrip, conditionCards, DeckPicker, requirementCards } from "../ModelArt";
 import { ROLES, type Role } from "../../lib/taxonomy";
-import { DeferredNameInput, EntityNotes, formatPercent, OP_LABELS, ROLE_LABELS } from "./shared";
+import { DeferredNameInput, EntityNotes, formatPercent, OP_LABELS, OP_WORDS, ROLE_LABELS } from "./shared";
 
 export function ConditionEditor({
   condition,
@@ -116,6 +116,10 @@ export function ConditionEditor({
     (requirement) => requirement.id && isPresenceRequirement(requirement),
   );
   const canAddDistinct = presenceRequirements.length >= 2;
+  const advancedUsed =
+    Boolean(condition.survives_interruptions) ||
+    condition.excludes.length > 0 ||
+    (condition.distinct_constraints ?? []).length > 0;
 
   return (
     <div className="access-block">
@@ -142,11 +146,34 @@ export function ConditionEditor({
         label={`Notes for ${condition.name || "hand condition"}`}
         onCommit={(notes) => onChange({ ...condition, notes })}
       />
-      {/* Rarely needed, so closed unless this line already carries a mark. */}
+      <p className="access-allof">Requires</p>
+      {condition.requirements.length === 0 ? (
+        <p className="empty">Add at least one requirement.</p>
+      ) : (
+        condition.requirements.map((requirement, index) => (
+          <RequirementEditor
+            key={requirement.id ?? `require-${condition.id}-${index}`}
+            requirement={requirement}
+            doc={doc}
+            catalog={catalog}
+            onChange={(next) => updateRequirement(index, next)}
+            onRemove={() => removeRequirement(index)}
+          />
+        ))
+      )}
+      <div className="row-actions">
+        <button type="button" onClick={addRequirement}>
+          + Requirement
+        </button>
+        {probability !== undefined ? (
+          <span className="access-prob">Probability: {formatPercent(probability)}</span>
+        ) : null}
+      </div>
+      {/* Rarely needed, so closed unless this condition already uses one of them. */}
       <details
-        key={condition.survives_interruptions ? "marked" : "unmarked"}
+        key={advancedUsed ? "used" : "unused"}
         className="condition-advanced"
-        open={Boolean(condition.survives_interruptions)}
+        open={advancedUsed}
       >
         <summary>Advanced</summary>
         <label className="interruptions-field">
@@ -172,36 +199,11 @@ export function ConditionEditor({
             whichever cards the opponent picks. Only mark a line you tested.
           </small>
         </label>
-      </details>
-      <p className="access-allof">Requires</p>
-      {condition.requirements.length === 0 ? (
-        <p className="empty">Add at least one requirement.</p>
-      ) : (
-        condition.requirements.map((requirement, index) => (
-          <RequirementEditor
-            key={requirement.id ?? `require-${condition.id}-${index}`}
-            requirement={requirement}
-            doc={doc}
-            catalog={catalog}
-            onChange={(next) => updateRequirement(index, next)}
-            onRemove={() => removeRequirement(index)}
-          />
-        ))
-      )}
-      <div className="row-actions">
-        <button type="button" onClick={addRequirement}>
-          + Requirement
-        </button>
-      </div>
-      <p className="access-allof access-excludes-label">Excludes</p>
-      <p className="empty access-excludes-note">
-        Each exclusion rejects a hand whose composition satisfies it. Not a
-        "bad card" label.
-      </p>
-      {condition.excludes.length === 0 ? (
-        <p className="empty">No exclusions.</p>
-      ) : (
-        condition.excludes.map((exclusion, index) => (
+        <p className="access-allof access-excludes-label">Excludes</p>
+        <p className="empty access-excludes-note">
+          A hand that meets any of these is rejected. It is not a "bad card" label.
+        </p>
+        {condition.excludes.map((exclusion, index) => (
           <RequirementEditor
             key={exclusion.id ?? `exclude-${condition.id}-${index}`}
             requirement={exclusion}
@@ -210,23 +212,17 @@ export function ConditionEditor({
             onChange={(next) => updateExclusion(index, next)}
             onRemove={() => removeExclusion(index)}
           />
-        ))
-      )}
-      <div className="row-actions">
-        <button type="button" onClick={addExclusion}>
-          + Exclusion
-        </button>
-      </div>
-      <p className="access-allof">Distinct matches</p>
-      <p className="empty access-excludes-note">
-        Selected ≥ 1 requirements must be satisfied by different card names.
-        Count predicates (≥ 2, = 2, …) are unchanged and cannot join a
-        distinct constraint.
-      </p>
-      {(condition.distinct_constraints ?? []).length === 0 ? (
-        <p className="empty">No distinct-card constraints.</p>
-      ) : (
-        (condition.distinct_constraints ?? []).map((constraint, index) => (
+        ))}
+        <div className="row-actions">
+          <button type="button" onClick={addExclusion}>
+            + Exclusion
+          </button>
+        </div>
+        <p className="access-allof">Distinct matches</p>
+        <p className="empty access-excludes-note">
+          Makes the chosen "at least 1" requirements use different card names.
+        </p>
+        {(condition.distinct_constraints ?? []).map((constraint, index) => (
           <DistinctConstraintEditor
             key={constraint.id}
             constraint={constraint}
@@ -236,27 +232,18 @@ export function ConditionEditor({
             onChange={(next) => updateDistinctConstraint(index, next)}
             onRemove={() => removeDistinctConstraint(index)}
           />
-        ))
-      )}
-      <div className="row-actions">
-        <button
-          type="button"
-          onClick={addDistinctConstraint}
-          disabled={!canAddDistinct}
-          title={
-            canAddDistinct
-              ? undefined
-              : "Need at least two Requires rows of the form ≥ 1"
-          }
-        >
-          + Distinct constraint
-        </button>
-        {probability !== undefined ? (
-          <span className="access-prob">
-            Probability: {formatPercent(probability)}
-          </span>
-        ) : null}
-      </div>
+        ))}
+        <div className="row-actions">
+          <button
+            type="button"
+            onClick={addDistinctConstraint}
+            disabled={!canAddDistinct}
+            title={canAddDistinct ? undefined : "Need at least two Requires rows of the form at least 1"}
+          >
+            + Distinct constraint
+          </button>
+        </div>
+      </details>
     </div>
   );
 }
@@ -482,7 +469,7 @@ function RequirementEditor({
       ) : null}
 
       <label>
-        Op
+        Needs
         <select
           value={requirement.op}
           onChange={(event) =>
@@ -494,14 +481,14 @@ function RequirementEditor({
         >
           {COUNT_OPERATORS.map((op) => (
             <option key={op} value={op}>
-              {OP_LABELS[op]}
+              {OP_WORDS[op]}
             </option>
           ))}
         </select>
       </label>
 
       <label>
-        Count
+        Number
         <input
           type="number"
           min={0}

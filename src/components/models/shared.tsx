@@ -12,6 +12,16 @@ export const OP_LABELS: Record<CountOperator, string> = {
   lt: "<",
 };
 
+/** The comparison in words, for the dropdown; OP_LABELS keeps the symbols for one-line summaries. */
+export const OP_WORDS: Record<CountOperator, string> = {
+  eq: "exactly",
+  neq: "anything but",
+  gte: "at least",
+  lte: "at most",
+  gt: "more than",
+  lt: "fewer than",
+};
+
 export { ROLE_LABELS } from "../../lib/roleLabels";
 
 export function EntityNotes({

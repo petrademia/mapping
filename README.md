@@ -161,6 +161,11 @@ A Hand Condition has three parts:
   (`≥ 2`, `= 2`, …) keep counting physical copies and cannot join a distinct
   constraint in v0.
 
+In the editor, Requires comes first, with "+ Requirement" and the condition's probability. Excludes,
+Distinct matches and "Interruptions it can take" sit under one **Advanced** fold, closed unless the
+condition already uses one of them. The comparison is a dropdown in words (exactly, anything but, at
+least, at most, more than, fewer than) beside a Number.
+
 Both sides use the same condition primitive (Card / Role / Group subjects with
 the same operators). `Excludes Citrinitas >= 1` reads as `NOT(Citrinitas >= 1)`
 (Power Patron / during the sequence we model, a Nervedo + valid S/T hand that
