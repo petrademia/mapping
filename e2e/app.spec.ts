@@ -136,8 +136,7 @@ test("first run loads the default deck from default.ydk", async ({ page }) => {
 test("a first run loads the default deck from public/decks, with its Hand Goals", async ({ page }) => {
   const file = JSON.parse(readFileSync("public/decks/power-patron-ars-magna-artmage.mapping.json", "utf8")) as {
     name: string;
-    label_goal_id: string;
-    breaking_goal_id: string;
+    labels_by_hand?: boolean;
     hand_condition_sets: { name: string }[];
   };
   // Not through openApp: nothing is hidden, so the real default mapping is what loads.
@@ -146,18 +145,18 @@ test("a first run loads the default deck from public/decks, with its Hand Goals"
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
   await expect(page.getByLabel("Deck", { exact: true })).toHaveValue(file.name);
   await expect(page.getByText(file.hand_condition_sets[0]!.name, { exact: true }).filter({ visible: true }).first()).toBeVisible();
-  // The labels are read from the Hand Goal the mapping names, and the choice can be changed.
+  // The deck says where its card labels are read from, and the choice can be changed.
   await expect(page.locator("details.deck-labels summary")).toContainText("Card labels");
   await openCardLabels(page);
   const labelGoal = page.getByLabel("Read card labels from");
-  await expect(labelGoal).toHaveValue(file.label_goal_id);
-  // So is the Hand Goal that counts as breaking a board.
-  await expect(page.getByLabel("Hand Goal for breaking boards")).toHaveValue(file.breaking_goal_id);
+  await expect(labelGoal).toHaveValue(file.labels_by_hand ? "__by_hand" : "");
+  await expect(page.locator("details.deck-labels summary")).toContainText(file.labels_by_hand ? "My tags" : "Every Hand Goal");
+  // Reading them from the Hand Goals instead turns the by-hand setting off.
   await labelGoal.selectOption("");
   await expect(labelGoal).toHaveValue("");
   await expect
-    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("mapping.document.v2")!).label_goal_id ?? null))
-    .toBeNull();
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("mapping.document.v2")!).labels_by_hand ?? false))
+    .toBe(false);
 });
 
 test("a Hand Goal lists only the Hand Conditions it uses, and adds another from a picker", async ({ page }) => {
