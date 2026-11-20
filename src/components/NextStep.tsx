@@ -6,7 +6,6 @@ import { useHandAnalysis } from "../lib/useHandAnalysis";
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
 import { TURN_CONTEXTS } from "../lib/scorecard";
 import { rolesForTurn } from "../lib/turnRoles";
-import { useGoalSurvival } from "../lib/useGoalSurvival";
 
 interface Props {
   doc: MappingDocument;
@@ -50,7 +49,7 @@ const ORDERS = [
 ] as const;
 
 /**
- * The odds of every Hand Goal for one turn order, and how many interruptions each can take. The
+ * The odds of every Hand Goal for one turn order. The
  * deck reads as it does in that turn order, so a "going second only" tag counts going second only.
  */
 function useTurnOrderOdds(doc: MappingDocument, order: (typeof ORDERS)[number]) {
@@ -81,16 +80,12 @@ function useTurnOrderOdds(doc: MappingDocument, order: (typeof ORDERS)[number]) 
           turnOrder: order.turnOrder,
         },
   );
-  const survival = useGoalSurvival(
-    `${key}|${JSON.stringify(doc.choke_point_group_ids)}`,
-    usable ? { doc, turnOrder: order.turnOrder } : null,
-  );
-  return { sample, usable, odds, survival };
+  return { sample, usable, odds };
 }
 
 /**
  * Each Hand Goal's chance, going first and going second side by side, with the exact hand count
- * underneath so it can be checked, and how often it still holds after 1 and after 2 interruptions.
+ * underneath so it can be checked.
  */
 export function GoalOdds({ doc, onOpenScorecard }: { doc: MappingDocument; onOpenScorecard?: () => void }) {
   const first = useTurnOrderOdds(doc, ORDERS[0]);
@@ -103,7 +98,7 @@ export function GoalOdds({ doc, onOpenScorecard }: { doc: MappingDocument; onOpe
   // numbers still to come, so the panels below it do not jump when the odds fill in.
   const counting = !anyAnalysis && goals.length > 0 && turns.some((turn) => turn.usable);
   if (goals.length === 0 || (!counting && !anyAnalysis)) return null;
-  const pending = turns.some((turn) => turn.odds.pending || turn.survival.pending);
+  const pending = turns.some((turn) => turn.odds.pending);
 
   return (
     <section className="panel goal-odds" aria-label="Hand Goal odds" aria-busy={pending || counting}>
@@ -111,8 +106,7 @@ export function GoalOdds({ doc, onOpenScorecard }: { doc: MappingDocument; onOpe
         <h2>Hand Goals</h2>
       </header>
       <p className="note">
-        Exact chance of each goal. "After 1 stop" and "after 2" mean the opponent stops the card in your hand that
-        hurts most.
+        Exact chance of each goal, with the hand count under it so it can be checked.
       </p>
       <div className="goal-odds-scroll">
         <table className="goal-odds-table" aria-label="Hand Goal odds by turn order">
@@ -139,10 +133,6 @@ export function GoalOdds({ doc, onOpenScorecard }: { doc: MappingDocument; onOpe
                 </th>
                 {turns.map((turn, index) => {
                   const row = turn.odds.analysis?.sets.find((set) => set.id === goal.id);
-                  const survival =
-                    turn.survival.result && "survival" in turn.survival.result
-                      ? turn.survival.result.survival[goal.id]
-                      : undefined;
                   return (
                     <td key={ORDERS[index]!.key} className="odds-value">
                       <span className="odds-percent">{row ? percent(row.union) : "-"}</span>
@@ -150,14 +140,6 @@ export function GoalOdds({ doc, onOpenScorecard }: { doc: MappingDocument; onOpe
                         {row && turn.odds.analysis
                           ? `${row.unionWeight.toLocaleString("en-US")} / ${turn.odds.analysis.total.toLocaleString("en-US")}`
                           : "\u00a0"}
-                      </span>
-                      <span className="goal-survival">
-                        <span>
-                          {survival && survival.afterOne !== null ? `after 1 stop ${percent(survival.afterOne)}` : "-"}
-                        </span>
-                        <span>
-                          {survival && survival.afterTwo !== null ? `after 2 stops ${percent(survival.afterTwo)}` : "\u00a0"}
-                        </span>
                       </span>
                     </td>
                   );
