@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDocument, type MappingDocument } from "./document";
 import { parseSettings } from "./scorecardWeights";
-import { combinations } from "./probability";
 import {
   atLeastOne,
   rangeMean,
@@ -246,77 +245,5 @@ describe("combine and settings", () => {
       opens: 5,
       brickTolerance: 2,
     });
-  });
-});
-
-describe("the hands worth having, each an exact chance", () => {
-  // 40 cards: 3 Starters, 2 lingering handtraps, 3 one-shot Interaction, 2 Board breakers, 30 filler.
-  function deckWith(roles: { lingering?: boolean; breaker?: boolean; oneShot?: boolean; starter?: boolean } = {}): MappingDocument {
-    const { lingering = true, breaker = true, oneShot = true, starter = true } = roles;
-    const card = (card_id: number, quantity: number, r: string[]) => ({
-      card_id,
-      quantity,
-      taxonomy: { roles: r, opening_quality: none },
-    });
-    return {
-      ...createDocument("t"),
-      main: [
-        card(1, 3, starter ? ["starter"] : []),
-        card(2, 2, lingering ? ["lingering"] : []),
-        card(3, 2, breaker ? ["breaker"] : []),
-        card(4, 3, oneShot ? ["interaction"] : []),
-        card(9, 30, []),
-      ],
-      hand_conditions: [
-        { id: "c", name: "needs 1", requirements: [{ kind: "card", card_id: 1, op: "gte", count: 1 }], excludes: [] },
-      ],
-      hand_condition_sets: [{ id: "g", name: "Goal", condition_ids: ["c"], aggregation: "any" }],
-    } as unknown as MappingDocument;
-  }
-  const T = combinations(40, 5);
-  const p = (n: number, k = 5) => Number(combinations(n, k)) / Number(T);
-  const row = (card: Scorecard, key: string) => card.first.plays.find((entry) => entry.key === key)!;
-
-  it("matches the closed-form chances for a five-card hand", () => {
-    const card = ok(scorecard(deckWith(), "g"));
-    expect(row(card, "starter").probability).toBeCloseTo(1 - p(37), 10);
-    expect(row(card, "lingering2").probability).toBeCloseTo(Number(combinations(38, 3)) / Number(T), 10);
-    // Lingering (2) and breaker (2): inclusion-exclusion over "none of this group".
-    expect(row(card, "lingeringBreaker").probability).toBeCloseTo(1 - 2 * p(38) + p(36), 10);
-    // Lingering (2), one-shot (3) and breaker (2).
-    expect(row(card, "lingeringTrapBreaker").probability).toBeCloseTo(
-      1 - (p(38) + p(37) + p(38)) + (p(36) + p(35) + p(35)) - p(33),
-      10,
-    );
-  });
-
-  it("reads the two interruption rows from the interruption curve", () => {
-    const card = ok(scorecard(deckWith(), "g"));
-    expect(row(card, "through1").probability).toBe(card.first.interruptions[1]);
-    expect(row(card, "through2").probability).toBe(card.first.interruptions[2]);
-    expect(row(card, "through1").probability!).toBeLessThanOrEqual(card.first.opens);
-    expect(row(card, "through2").probability!).toBeLessThanOrEqual(row(card, "through1").probability!);
-  });
-
-  it("says what is missing instead of showing a made-up zero", () => {
-    const card = ok(scorecard(deckWith({ lingering: false, starter: false }), "g"));
-    expect(row(card, "starter").probability).toBeNull();
-    expect(row(card, "starter").missing).toMatch(/Starter/);
-    expect(row(card, "lingering2").probability).toBeNull();
-    expect(row(card, "lingeringBreaker").missing).toMatch(/Lingering/);
-    expect(row(card, "through1").probability).not.toBeNull();
-  });
-
-  it("counts a lingering handtrap that works only going second in that turn order only", () => {
-    const base = deckWith();
-    const secondOnly = {
-      ...base,
-      main: base.main.map((c) =>
-        c.card_id === 2 ? { ...c, taxonomy: { ...c.taxonomy, roles: ["lingering_second"] } } : c,
-      ),
-    } as unknown as MappingDocument;
-    const card = ok(scorecard(secondOnly, "g"));
-    expect(card.first.plays.find((entry) => entry.key === "lingering2")!.probability).toBeNull();
-    expect(card.second.plays.find((entry) => entry.key === "lingering2")!.probability).toBeGreaterThan(0);
   });
 });

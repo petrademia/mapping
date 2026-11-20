@@ -1,8 +1,12 @@
-import { analysisContextLabel, observedCards } from "../lib/analysisContext";
-import { analysisContextOf, sectionSize, type MappingDocument } from "../lib/document";
+import { useMemo } from "react";
+import { observedCards } from "../lib/analysisContext";
+import { sectionSize, type MappingDocument } from "../lib/document";
 import { groupsToMembership } from "../lib/handCondition";
 import { useHandAnalysis } from "../lib/useHandAnalysis";
 import { modelsAnalysisKey } from "../lib/modelsAnalysisKey";
+import { TURN_CONTEXTS } from "../lib/scorecard";
+import { rolesForTurn } from "../lib/turnRoles";
+import { useGoalSurvival } from "../lib/useGoalSurvival";
 
 interface Props {
   doc: MappingDocument;
@@ -10,7 +14,6 @@ interface Props {
   onTestHand: () => void;
 }
 
-const formatPercent = (value: number): string => `${(value * 100).toFixed(2)}%`;
 
 /** The one thing to do next, in a sentence with a single button. */
 export function NextStep({ doc, onDefineGoal, onTestHand }: Props) {
@@ -39,71 +42,136 @@ export function NextStep({ doc, onDefineGoal, onTestHand }: Props) {
   );
 }
 
-/** Each Hand Goal's chance, with the exact hand count underneath so it can be checked. */
-export function GoalOdds({ doc }: { doc: MappingDocument }) {
-  const context = analysisContextOf(doc);
-  const opening = doc.analysis.opening_hand_size;
-  const sample = observedCards(context, opening);
+const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+
+const ORDERS = [
+  { key: "first", turnOrder: "going_first", title: "Going first" },
+  { key: "second", turnOrder: "going_second", title: "Going second" },
+] as const;
+
+/**
+ * The odds of every Hand Goal for one turn order, and how many interruptions each can take. The
+ * deck reads as it does in that turn order, so a "going second only" tag counts going second only.
+ */
+function useTurnOrderOdds(doc: MappingDocument, order: (typeof ORDERS)[number]) {
+  const sample = observedCards(TURN_CONTEXTS[order.key], doc.analysis.opening_hand_size);
   const deck = sectionSize(doc.main);
+  const main = useMemo(() => rolesForTurn(doc.main, order.turnOrder), [doc.main, order.turnOrder]);
   const key = modelsAnalysisKey({
-    main: doc.main,
+    main,
     groups: doc.groups,
     hand_conditions: doc.hand_conditions,
     hand_condition_sets: doc.hand_condition_sets,
     sample,
-    turn_order: context.turn_order,
+    turn_order: order.turnOrder,
     engine_access_set_id: doc.engine_access_set_id,
   });
-  // Worked out in a Web Worker; the previous odds stay on screen, dimmed, while a new edit is counted.
-  const { analysis, pending } = useHandAnalysis(
+  const usable = deck > 0 && sample <= deck;
+  // Worked out in Web Workers; the previous odds stay on screen, dimmed, while a new edit is counted.
+  const odds = useHandAnalysis(
     key,
-    deck === 0 || sample > deck
+    !usable
       ? null
       : {
-          main: doc.main,
+          main,
           sample,
           conditions: doc.hand_conditions,
           sets: doc.hand_condition_sets,
           groups: groupsToMembership(doc.groups),
-          turnOrder: context.turn_order,
+          turnOrder: order.turnOrder,
         },
   );
+  const survival = useGoalSurvival(
+    `${key}|${JSON.stringify(doc.choke_point_group_ids)}`,
+    usable ? { doc, turnOrder: order.turnOrder } : null,
+  );
+  return { sample, usable, odds, survival };
+}
 
-  const rows = (analysis?.sets ?? []).filter((set) => set.conditionIds.length > 0);
+/**
+ * Each Hand Goal's chance, going first and going second side by side, with the exact hand count
+ * underneath so it can be checked, and how often it still holds after 1 and after 2 interruptions.
+ */
+export function GoalOdds({ doc, onOpenScorecard }: { doc: MappingDocument; onOpenScorecard?: () => void }) {
+  const first = useTurnOrderOdds(doc, ORDERS[0]);
+  const second = useTurnOrderOdds(doc, ORDERS[1]);
+  const turns = [first, second];
+
   const goals = doc.hand_condition_sets.filter((set) => set.condition_ids.length > 0);
+  const anyAnalysis = turns.some((turn) => turn.odds.analysis !== undefined);
   // Before the first count arrives the panel is already there, with every goal named and its
   // numbers still to come, so the panels below it do not jump when the odds fill in.
-  const counting = !analysis && goals.length > 0 && deck > 0 && sample <= deck;
-  if (!counting && (!analysis || rows.length === 0)) return null;
+  const counting = !anyAnalysis && goals.length > 0 && turns.some((turn) => turn.usable);
+  if (goals.length === 0 || (!counting && !anyAnalysis)) return null;
+  const pending = turns.some((turn) => turn.odds.pending || turn.survival.pending);
+
   return (
     <section className="panel goal-odds" aria-label="Hand Goal odds" aria-busy={pending || counting}>
       <header>
         <h2>Hand Goals</h2>
-        <p className="note">{analysisContextLabel(context, opening)}</p>
       </header>
-      <ul className="odds-list">
-        {analysis
-          ? rows.map((set) => (
-              <li key={set.id} className="odds-row">
-                <span className="odds-name">{set.name || "Untitled hand goal"}</span>
-                <span className="odds-value">
-                  <span className="odds-percent">{formatPercent(set.union)}</span>
-                  <span className="odds-fraction">
-                    {set.unionWeight.toLocaleString("en-US")} / {analysis.total.toLocaleString("en-US")}
-                  </span>
-                </span>
-              </li>
-            ))
-          : goals.map((set) => (
-              <li key={set.id} className="odds-row">
-                <span className="odds-name">{set.name || "Untitled hand goal"}</span>
-                <span className="odds-value">
-                  <span className="odds-percent">&hellip;</span>
-                  <span className="odds-fraction">&nbsp;</span>
-                </span>
-              </li>
+      <p className="note">
+        Exact chance of each goal. "After 1 stop" and "after 2" mean the opponent stops the card in your hand that
+        hurts most.
+      </p>
+      <div className="goal-odds-scroll">
+        <table className="goal-odds-table" aria-label="Hand Goal odds by turn order">
+          <colgroup>
+            <col className="goal-odds-name-col" />
+            <col />
+            <col />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Hand Goal</th>
+              {ORDERS.map((order, index) => (
+                <th key={order.key} scope="col">
+                  {order.title} <span className="explorer-notation">{turns[index]!.sample} cards</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {goals.map((goal) => (
+              <tr key={goal.id}>
+                <th scope="row" className="odds-name">
+                  {goal.name || "Untitled hand goal"}
+                </th>
+                {turns.map((turn, index) => {
+                  const row = turn.odds.analysis?.sets.find((set) => set.id === goal.id);
+                  const survival =
+                    turn.survival.result && "survival" in turn.survival.result
+                      ? turn.survival.result.survival[goal.id]
+                      : undefined;
+                  return (
+                    <td key={ORDERS[index]!.key} className="odds-value">
+                      <span className="odds-percent">{row ? percent(row.union) : "-"}</span>
+                      <span className="odds-fraction">
+                        {row && turn.odds.analysis
+                          ? `${row.unionWeight.toLocaleString("en-US")} / ${turn.odds.analysis.total.toLocaleString("en-US")}`
+                          : "\u00a0"}
+                      </span>
+                      <span className="goal-survival">
+                        <span>
+                          {survival && survival.afterOne !== null ? `after 1 stop ${percent(survival.afterOne)}` : "-"}
+                        </span>
+                        <span>
+                          {survival && survival.afterTwo !== null ? `after 2 stops ${percent(survival.afterTwo)}` : "\u00a0"}
+                        </span>
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
             ))}
-      </ul>
+          </tbody>
+        </table>
+      </div>
+      {onOpenScorecard ? (
+        <button type="button" onClick={onOpenScorecard}>
+          Open the Scorecard
+        </button>
+      ) : null}
     </section>
   );
 }
