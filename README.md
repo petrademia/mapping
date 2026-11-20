@@ -229,7 +229,7 @@ Treating each condition as an event, MAPPING also exposes:
 
 **Modeled Engine Access** is just the hand goal with the fixed id
 `modeled-engine-access` (backed by an internal `HandConditionSet` - a normal
-set, not a separate mechanism). The Deck Profile reads that set. More than one
+set, not a separate mechanism). Card Impact reads that set. More than one
 satisfied condition is a combinatorial property of the user's definitions, not
 evidence of two independent combo routes. Do not label this combo success,
 playability, or win rate.
@@ -296,7 +296,7 @@ editors never compete with analysis results for vertical space:
 - **Test** - try hands. **Hand Test** evaluates one exact hand against the
   model, with the opponent's handtraps; **Batch Test** deals many.
 - **Analyze** - read the results. **Profile** (Hand Goals, Analysis Context,
-  Deck Profile, Card Impact), **Scorecard** and **Compare**.
+  Card Impact, Chance to draw), **Scorecard** and **Compare**.
 
 The **Scorecard** measures one Hand Goal going first (the five-card opening
 hand) and going second (six cards, after the first draw), in terms of how the
@@ -370,29 +370,17 @@ Main Deck's slots are spent. All numbers are exact over every possible hand:
 The app opens on Profile, whose next-step card points to Define. Returning to a
 step puts you back on the workspace you last used in it.
 
-### Deck Profile
+### Analysis Context and the opening hand
 
-The **Deck Profile** panel is a compact strategic summary that separates
-**hand goals** from raw annotation diagnostics. It never reports a
-single aggregate "Deck Quality" score:
+**Analysis Context** chooses which cards are counted (going first sees the opening hand, going second
+sees one card more) and holds the **Opening hand** size (default 5). The Profile shows no single
+aggregate "Deck Quality" score. Every percentage has an explicit mathematical interpretation (exact
+opening-hand hypergeometric / composition enumeration). Do **not** read "an undesirable-tagged card in
+a hand" as a bad hand: it can still produce a strong line. Usable interaction should be modeled with
+Hand Conditions, not read from a raw tag count.
 
-| Layer | What it shows |
-| --- | --- |
-| **Main Hand Goal** | P(goal and an Interaction-tagged card), P(goal and no Undesirable card), each with its share of the hands that meet the goal. The goal's own chance is in the Hand Goals panel |
-| **How many routes a hand has** | P(N >= 1), P(N >= 2), ... over the main goal's Hand Conditions, with rows at 0.00% hidden (not "resilience") |
-| **Annotation & composition analysis** (collapsed) | Opening Quality coverage and composition, and the going-first versus going-second comparison |
-
-Every percentage has an explicit mathematical interpretation (exact
-opening-hand hypergeometric / composition enumeration). Do **not** read
-"hands with ≥ 1 undesirable" as "bad hands": an undesirable-tagged card in a
-hand can still produce a strong line. Do **not** read "≥ 1 interaction-tagged
-card" as "usable interaction": that is a raw taxonomy event, and usable
-interaction should be modeled with Hand Conditions instead. The user is never
-asked whether conditions are mutually exclusive; overlap is derived from exact
-evaluation.
-
-How many cards carry each label or quality is on the chips above the Main Deck (the label chips, and the
-Opening Quality chips behind the Opening Quality button), so there is no separate panel for it.
+How many cards carry each label or quality is on the chips above the Main Deck (the label chips, and
+the Opening Quality chips behind the Opening Quality button).
 
 ### Deck Configuration
 
@@ -555,11 +543,8 @@ Taxonomy lives on the deck card entry only.
 
 ## Opening chances are not combo success
 
-The Deck Profile panel reports **composition probabilities** for the selected
-configuration's main deck under the selected Analysis Context: exact chances
-for contextual opening-quality composition (desirable / neutral / undesirable /
-unclassified), modeled engine access, access composition, and interaction, with
-a configurable base opening-hand size (default 5).
+The Profile reports **composition probabilities** for the selected configuration's main deck under
+the selected Analysis Context, with a configurable base opening-hand size (default 5).
 
 That is the chance a random sample of the observed cards contains some number
 of cards you annotated in a particular way. It is not win rate, combo quality,
@@ -583,7 +568,7 @@ MAPPING distinguishes **occurrence** from **strategic value**:
 - define Hand Conditions (Requires / Excludes / optional distinct-card matches), Groups, and Hand Goals (ANY of members) in a dedicated Models workspace, with optional notes for intent; inspect per-goal union, pairwise overlap, and multiplicity distribution
 - test one exact hand (random or manual) against all Hand Conditions and Hand Goals, with per-predicate traces and population probabilities
 - inspect main/extra/side sizes in Deck Configuration, and label and opening-quality counts on the chips above the Main Deck
-- inspect the Deck Profile: the main Hand Goal with Interaction and no-Undesirable, how many routes a hand has, plus collapsed annotation/composition diagnostics and annotation coverage
+- inspect the Profile: every Hand Goal going first and going second, Card Impact, and the chance to draw a card or Group; annotation coverage
 - save locally (browser `localStorage` plus file download)
 - Save YDK exports the current list for Omega / external tools
 - export a YAPPING-readable archetype JSON
