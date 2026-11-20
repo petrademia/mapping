@@ -1328,6 +1328,26 @@ test.describe("Models are card art", () => {
     await expect(stops).toHaveValue("0");
   });
 
+  test("a Hand Condition shows Requires first and keeps Excludes and Distinct matches under Advanced", async ({ page }) => {
+    await view(page, "Hand Conditions").click();
+    await page.getByRole("button", { name: "+ Add Hand Condition" }).click();
+    // Requires is what you see; the rarely used parts are folded away until asked for.
+    await expect(page.getByText("Requires", { exact: true })).toBeVisible();
+    await expect(page.getByText("Excludes", { exact: true })).toBeHidden();
+    await expect(page.getByText("Distinct matches", { exact: true })).toBeHidden();
+    // The comparison reads in words, not symbols.
+    const needs = page.getByLabel("Needs").first();
+    await expect(needs.locator("option")).toHaveText(["exactly", "anything but", "at least", "at most", "more than", "fewer than"]);
+    // Opening Advanced shows them; adding an exclusion keeps it open and adds another comparison.
+    await page.getByText("Advanced", { exact: true }).click();
+    await expect(page.getByText("Excludes", { exact: true })).toBeVisible();
+    await expect(page.getByText("Distinct matches", { exact: true })).toBeVisible();
+    const before = await page.getByLabel("Needs").count();
+    await page.getByRole("button", { name: "+ Exclusion" }).click();
+    await expect(page.getByLabel("Needs")).toHaveCount(before + 1);
+    await expect(page.getByText("Excludes", { exact: true })).toBeVisible();
+  });
+
   test("a Group is built by clicking cards in the Main Deck", async ({ page }) => {
     await view(page, "Groups").click();
     await page.getByRole("button", { name: "+ Add group" }).click();
