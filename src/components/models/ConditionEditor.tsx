@@ -502,7 +502,7 @@ function RequirementEditor({
         />
       </label>
 
-      <button type="button" className="ghost" onClick={onRemove}>
+      <button type="button" className="ghost requirement-remove" onClick={onRemove}>
         Remove
       </button>
     </div>
