@@ -6,7 +6,10 @@
       "card_id": 37279096,
       "quantity": 2,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -17,7 +20,9 @@
       "card_id": 97556336,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -28,7 +33,9 @@
       "card_id": 17473466,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -39,7 +46,10 @@
       "card_id": 70488851,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -50,7 +60,10 @@
       "card_id": 26237713,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -61,7 +74,10 @@
       "card_id": 25661743,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter",
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -72,7 +88,9 @@
       "card_id": 36270527,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -83,7 +101,9 @@
       "card_id": 62368221,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -94,7 +114,9 @@
       "card_id": 1122030,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -105,7 +127,9 @@
       "card_id": 56349876,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -116,7 +140,9 @@
       "card_id": 48739627,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -138,7 +164,9 @@
       "card_id": 23829452,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -149,7 +177,9 @@
       "card_id": 10266279,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -160,7 +190,9 @@
       "card_id": 43871165,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -225,7 +257,9 @@
       "card_id": 98476659,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": null
@@ -237,7 +271,8 @@
       "quantity": 3,
       "taxonomy": {
         "roles": [
-          "breaker_second"
+          "breaker_second",
+          "extender"
         ],
         "opening_quality": {
           "going_first": "undesirable",
@@ -277,7 +312,9 @@
       "card_id": 82833574,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -288,7 +325,9 @@
       "card_id": 59581480,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -300,7 +339,9 @@
       "card_id": 51669847,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "extender"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -311,7 +352,9 @@
       "card_id": 70405001,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": "undesirable"
@@ -322,7 +365,9 @@
       "card_id": 44001993,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": "undesirable"
@@ -333,7 +378,9 @@
       "card_id": 98684220,
       "quantity": 3,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -344,7 +391,9 @@
       "card_id": 24088928,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": "undesirable"
@@ -355,7 +404,9 @@
       "card_id": 97462632,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -366,7 +417,9 @@
       "card_id": 33599853,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": "undesirable"
@@ -377,7 +430,9 @@
       "card_id": 24461358,
       "quantity": 2,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "starter"
+        ],
         "opening_quality": {
           "going_first": null,
           "going_second": null
@@ -388,7 +443,9 @@
       "card_id": 24749710,
       "quantity": 1,
       "taxonomy": {
-        "roles": [],
+        "roles": [
+          "brick"
+        ],
         "opening_quality": {
           "going_first": "undesirable",
           "going_second": "undesirable"
@@ -1274,7 +1331,7 @@
     }
   ],
   "engine_access_set_id": "goal-any",
-  "label_goal_id": "goal-any-pairs",
+  "labels_by_hand": true,
   "breaking_goal_id": "goal-breaking",
   "choke_point_group_ids": [
     "citrinitas-funnel"
