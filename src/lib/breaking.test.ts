@@ -20,6 +20,7 @@ const tax = (roles: Role[]) => ({ roles, opening_quality: { going_first: null, g
 function build(): MappingDocument {
   return {
     ...createDocument("t"),
+    labels_by_hand: false,
     main: [
       { card_id: 1, quantity: 4, taxonomy: tax([]) },
       { card_id: 2, quantity: 1, taxonomy: tax(["breaker"]) },
@@ -48,6 +49,7 @@ function ok(result: ReturnType<typeof scorecard>): Scorecard {
 function withPartner(tagCard7: boolean): MappingDocument {
   return {
     ...createDocument("t"),
+    labels_by_hand: false,
     main: [
       { card_id: 1, quantity: 4, taxonomy: tax([]) },
       { card_id: 5, quantity: 1, taxonomy: tax([]) },

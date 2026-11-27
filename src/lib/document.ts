@@ -178,6 +178,9 @@ export function createDocument(name: string): MappingDocument {
       },
     ],
     engine_access_set_id: ENGINE_ACCESS_SET_ID,
+    // A new deck starts with My tags: you set Starter, Extender and Brick on each card. A saved
+    // mapping without the field still reads its labels from Hand Conditions, as it always did.
+    labels_by_hand: true,
     choke_point_group_ids: [],
     hit_priority: [],
     analysis: defaultAnalysis(),

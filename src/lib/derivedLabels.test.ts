@@ -26,6 +26,7 @@ const grp = (group_id: string, count = 1, op = "gte") => ({ kind: "group", group
 function doc(extra: Partial<MappingDocument> = {}): MappingDocument {
   return {
     ...createDocument("t"),
+    labels_by_hand: false,
     main: [
       { card_id: 1, quantity: 3, taxonomy: tag() },
       { card_id: 2, quantity: 1, taxonomy: tag() },
@@ -272,5 +273,11 @@ describe("labels set by hand", () => {
     expect(back.labels_by_hand).toBe(true);
     expect(serializeMapping(tagged())).not.toContain("labels_by_hand");
     expect(setLabelGoal(on, null).labels_by_hand).toBe(false);
+  });
+  it("starts a new deck on My tags, and leaves a saved mapping without the field on Hand Conditions", () => {
+    expect(createDocument("new").labels_by_hand).toBe(true);
+    const saved = serializeMapping({ ...createDocument("old"), labels_by_hand: false });
+    expect(parseMappingJson(saved).labels_by_hand).toBeUndefined();
+    expect(parseMappingJson(serializeMapping(createDocument("new"))).labels_by_hand).toBe(true);
   });
 });

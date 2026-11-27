@@ -418,7 +418,10 @@ attributes: `undesirable to draw != undesirable to include != should side out`.
   is downloaded as before and the status says why. A built or hosted copy always downloads. The
   dev server writes only into that folder, only to a file already named after the deck, only
   for a page on the same server, and the browser tests stub it.
-- **My tags.** Under "Card labels", "Read card labels from" can be set to **My tags (set on each card)**.
+- **My tags.** A new deck, whether empty or imported from a `.ydk`, starts on **My tags (set on each
+  card)**. Under "Card labels", "Read card labels from" switches a deck to a Hand Goal or to every Hand
+  Goal, which reads the labels from the Hand Conditions instead. A saved mapping keeps the setting it
+  was saved with, and one saved without it reads from Hand Conditions as before.
   Starter, Extender and Brick are then chips you click in the card editor, next to Interaction,
   Lingering handtrap and Board breaker, and the chips, dots, counts and Label sort use exactly what you
   set. A card with no tag has no label, so it is never a Brick by default. A Brick counts as

@@ -14,6 +14,7 @@ const tax = (roles: Role[]) => ({ roles, opening_quality: { going_first: null, g
 function build(): MappingDocument {
   return {
     ...createDocument("t"),
+    labels_by_hand: false,
     main: [
       { card_id: 1, quantity: 4, taxonomy: tax([]) },
       { card_id: 2, quantity: 2, taxonomy: tax(["lingering"]) },

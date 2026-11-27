@@ -34,6 +34,13 @@ async function openApp(page: Page): Promise<void> {
   await expect(page.getByRole("status").filter({ hasText: "Loaded the default deck" })).toBeVisible();
 }
 
+/** New decks start on My tags; these tests read Starter, Extender and Brick from the Hand Conditions instead. */
+async function readLabelsFromHandConditions(page: Page): Promise<void> {
+  const select = page.getByLabel("Read card labels from");
+  if (!(await select.isVisible())) await page.locator("details.deck-labels > summary").click();
+  await select.selectOption({ label: "Every Hand Goal" });
+}
+
 async function stubDefaults(page: Page): Promise<void> {
   await page.route("**/decks/index.json", (route) => route.fulfill({ status: 404, body: "" }));
   await page.route("**/__save-deck-mapping", (route) =>
@@ -647,6 +654,7 @@ test.describe("Deck view", () => {
 
   test("the editor opens right under the clicked card, not at the end of the section", async ({ page }) => {
     await openApp(page);
+    await readLabelsFromHandConditions(page);
     const main = section(page, "Main Deck");
     const tile = main.locator(".deck-tile").nth(3);
     await tile.click();
@@ -1004,6 +1012,7 @@ test.describe("Handtrap versus", () => {
     await page.getByRole("button", { name: "+ Create hand condition" }).last().click();
     await page.locator('.engine-member input[type="checkbox"]').last().check();
     await nav(page, "Handtrap versus").click();
+    await readLabelsFromHandConditions(page);
   }
 
   test("asks for a Hand Goal before showing any odds", async ({ page }) => {
@@ -2092,9 +2101,27 @@ test.describe("Spotlight a label in the Main Deck", () => {
     await expect(sort.locator("option", { hasText: /^Role$/ })).toHaveCount(0);
   });
 
+  test("a new deck starts on My tags, and the automatic reading stays one choice away", async ({ page }) => {
+    await openApp(page);
+    await menuItem(page, "More", "New deck");
+    await addCardBySearch(page, "vidolium unstable");
+    await page.locator("details.deck-labels > summary").click();
+    const select = page.getByLabel("Read card labels from");
+    await expect(select.locator("option:checked")).toHaveText("My tags (set on each card)");
+    // The card's labels are tags you click.
+    await page.locator(".deck-section").filter({ has: page.getByRole("heading", { name: "Main Deck" }) }).locator(".deck-tile").first().click();
+    const detail = page.getByRole("group", { name: /^Edit / });
+    await detail.getByRole("button", { name: "Starter", exact: true }).click();
+    await expect(detail.getByRole("button", { name: "Starter", exact: true })).toHaveAttribute("aria-pressed", "true");
+    // Reading from Hand Conditions is still there.
+    await select.selectOption({ label: "Every Hand Goal" });
+    await expect(select.locator("option:checked")).toHaveText("Every Hand Goal");
+  });
+
   test("Bricks cannot be read without a Hand Goal, and the Label sort is offered", async ({ page }) => {
     await openApp(page);
     await menuItem(page, "More", "New deck");
+    await readLabelsFromHandConditions(page);
     await addCardBySearch(page, "vidolium unstable");
     await addCardBySearch(page, "ash blossom");
     await expect(chip(page, /^Bricks/)).toBeDisabled();
