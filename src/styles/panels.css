@@ -112,6 +112,9 @@
 .access-prob { align-self: center; font-family: var(--font-mono); font-size: var(--text-sm); }
 .access-outcome-label, .access-relationships-label { margin-top: var(--space-3); }
 .requirement-block { margin-bottom: var(--space-2); }
+/* Remove sits at the end of its row, on the right, and turns red only when you reach for it. */
+.requirement-remove { grid-column: 1 / -1; justify-self: end; font-size: var(--text-sm); }
+.requirement-remove:hover:not(:disabled) { color: var(--danger-strong); }
 .condition-controls { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .condition-controls label,
 .condition-controls .condition-card { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
